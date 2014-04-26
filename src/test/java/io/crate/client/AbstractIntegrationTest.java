@@ -39,6 +39,7 @@ public abstract class AbstractIntegrationTest {
 
     public static final int httpPort = 44200;
     public static final int transportPort = 44300;
+    private static final String workingDir = System.getProperty("user.dir");
     private static Process crateProcess;
 
     static {
@@ -46,8 +47,6 @@ public abstract class AbstractIntegrationTest {
     }
 
     private static void startCrateAsDaemon() throws IOException, InterruptedException {
-        String workingDir = System.getProperty("user.dir");
-
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "bin/crate",
                 "-Des.index.storage.type=memory",
@@ -79,7 +78,6 @@ public abstract class AbstractIntegrationTest {
     }
 
     private static void wipeDataDirectory() throws Exception {
-        String workingDir = System.getProperty("user.dir");
         File dataDir = new File(workingDir + "/parts/crate/data");
         if (dataDir.exists()) {
             deletePath(dataDir.toPath());
@@ -88,7 +86,6 @@ public abstract class AbstractIntegrationTest {
     }
 
     private static void wipeLogs() throws Exception {
-        String workingDir = System.getProperty("user.dir");
         File logDir = new File(workingDir + "/parts/crate/logs");
         if (logDir.exists()) {
             deletePath(logDir.toPath());
