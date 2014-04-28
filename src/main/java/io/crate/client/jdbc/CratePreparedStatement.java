@@ -7,14 +7,15 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class CratePreparedStatement extends CrateStatement implements PreparedStatement {
 
     private final SQLRequest sqlRequest = new SQLRequest();
-    private final List<Object> arguments = new ArrayList<>();
+    private final Map<Integer, Object> arguments = new TreeMap<>();
 
     public CratePreparedStatement(CrateConnection connection, String stmt) {
         super(connection);
@@ -35,52 +36,52 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
-        arguments.set(parameterIndex, null);
+        arguments.put(parameterIndex, null);
     }
 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public void setShort(int parameterIndex, short x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public void setInt(int parameterIndex, int x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public void setLong(int parameterIndex, long x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public void setDouble(int parameterIndex, double x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
@@ -90,17 +91,17 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void setDate(int parameterIndex, Date x) throws SQLException {
-        arguments.set(parameterIndex, x.getTime());
+        arguments.put(parameterIndex, x.getTime());
     }
 
     @Override
     public void setTime(int parameterIndex, Time x) throws SQLException {
-        arguments.set(parameterIndex, x.getTime());
+        arguments.put(parameterIndex, x.getTime());
     }
 
     @Override
     public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-        arguments.set(parameterIndex, x.getTime());
+        arguments.put(parameterIndex, x.getTime());
     }
 
     @Override
@@ -130,12 +131,12 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override
     public boolean execute() throws SQLException {
-        sqlRequest.args(arguments.toArray(new Object[arguments.size()]));
+        sqlRequest.args(arguments.values().toArray(new Object[arguments.size()]));
         sqlResponse = connection.client().sql(sqlRequest).actionGet();
         resultSet = new CrateResultSet(this, sqlResponse);
 
@@ -169,7 +170,7 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        arguments.set(parameterIndex, x);
+        arguments.put(parameterIndex, x);
     }
 
     @Override

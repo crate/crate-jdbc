@@ -112,4 +112,27 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
         Map<String, Object> objectField = new HashMap<String, Object>(){{put("inner", "Zoon");}};
         assertThat((Map<String, Object>)resultSet.getObject("object_field"), is(objectField));
     }
+
+    @Test
+    public void testSelectUsingPreparedStatement() throws Exception {
+        setUpTable();
+        PreparedStatement preparedStatement = connection.prepareStatement("select * from test where id = ?");
+        preparedStatement.setInt(1, 1);
+
+        ResultSet resultSet = preparedStatement.executeQuery();
+        resultSet.next();
+
+        assertThat(resultSet.getInt("id"), is(1));
+        assertThat(resultSet.getString("string_field"), is("Youri"));
+        assertThat(resultSet.getBoolean("boolean_field"), is(true));
+        assertThat(resultSet.getByte("byte_field"), is(new Byte("120")));
+        assertThat(resultSet.getShort("short_field"), is(new Short("1000")));
+        assertThat(resultSet.getInt("integer_field"), is(1200000));
+        assertThat(resultSet.getLong("long_field"), is(120000000000L));
+        assertThat(resultSet.getFloat("float_field"), is(1.4f));
+        assertThat(resultSet.getDouble("double_field"), is(3.456789d));
+        assertThat(resultSet.getTimestamp("timestamp_field"), is(new Timestamp(0L)));
+        assertThat(resultSet.getString("ip_field"), is("127.0.0.1"));
+    }
 }
+
