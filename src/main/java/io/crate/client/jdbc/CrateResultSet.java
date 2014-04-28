@@ -283,7 +283,7 @@ public class CrateResultSet implements ResultSet {
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException();
+        return new CrateResultSetMetaData(columns);
     }
 
     @Override

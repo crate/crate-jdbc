@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -175,7 +174,7 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException("no metaData");
     }
 
     @Override
