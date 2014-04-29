@@ -7,6 +7,7 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.TreeMap;
@@ -30,7 +31,22 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public int executeUpdate() throws SQLException {
+        checkClosed();
         throw new SQLFeatureNotSupportedException("PreparedStatement: executeUpdate() not supported");
+    }
+
+    @Override
+    public ResultSet executeQuery(String sql) throws SQLException {
+        checkClosed();
+        sqlRequest.stmt(sql);
+        execute();
+        return resultSet;
+    }
+
+    @Override
+    public int executeUpdate(String sql) throws SQLException {
+        checkClosed();
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override
@@ -138,8 +154,7 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
         sqlRequest.args(arguments.values().toArray(new Object[arguments.size()]));
         sqlResponse = connection.client().sql(sqlRequest).actionGet();
         resultSet = new CrateResultSet(this, sqlResponse);
-
-        return true;
+        return resultSet.next();
     }
 
     @Override
@@ -174,7 +189,9 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        throw new SQLFeatureNotSupportedException("no metaData");
+        checkClosed();
+        //return null;
+        return new CrateResultSetMetaData(new ArrayList<String>(2){{add("id");add("name");}});
     }
 
     @Override

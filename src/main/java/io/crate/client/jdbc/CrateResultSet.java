@@ -24,16 +24,16 @@ package io.crate.client.jdbc;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.common.collect.Lists;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.sql.Date;
+import java.util.*;
 
 public class CrateResultSet implements ResultSet {
 
@@ -145,12 +145,12 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: getBigDecimal(int columnIndex, int scale) not supported");
     }
 
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: getBytes(int columnIndex) not supported");
     }
 
     @Override
@@ -170,17 +170,17 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -303,7 +303,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Reader getCharacterStream(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -393,32 +393,32 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public boolean relative(int rows) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public boolean previous() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -448,227 +448,227 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateNull(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBoolean(int columnIndex, boolean x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateByte(int columnIndex, byte x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateShort(int columnIndex, short x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateInt(int columnIndex, int x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateLong(int columnIndex, long x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateFloat(int columnIndex, float x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateDouble(int columnIndex, double x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBigDecimal(int columnIndex, BigDecimal x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateString(int columnIndex, String x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBytes(int columnIndex, byte[] x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateDate(int columnIndex, Date x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateTime(int columnIndex, Time x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateAsciiStream(int columnIndex, InputStream x, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream x, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader x, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateObject(int columnIndex, Object x, int scaleOrLength) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateObject(int columnIndex, Object x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateNull(String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBoolean(String columnLabel, boolean x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateByte(String columnLabel, byte x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateShort(String columnLabel, short x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateInt(String columnLabel, int x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateLong(String columnLabel, long x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateFloat(String columnLabel, float x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateDouble(String columnLabel, double x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBigDecimal(String columnLabel, BigDecimal x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateString(String columnLabel, String x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBytes(String columnLabel, byte[] x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateDate(String columnLabel, Date x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateTime(String columnLabel, Time x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateTimestamp(String columnLabel, Timestamp x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateObject(String columnLabel, Object x, int scaleOrLength) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateObject(String columnLabel, Object x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void insertRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void deleteRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void refreshRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void cancelRowUpdates() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void moveToInsertRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void moveToCurrentRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -678,22 +678,22 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public Ref getRef(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public Blob getBlob(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public Clob getClob(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -729,32 +729,32 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -773,47 +773,47 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateRef(int columnIndex, Ref x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateRef(String columnLabel, Ref x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBlob(int columnIndex, Blob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBlob(String columnLabel, Blob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateClob(int columnIndex, Clob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateClob(String columnLabel, Clob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateArray(int columnIndex, Array x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateArray(String columnLabel, Array x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public RowId getRowId(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -823,7 +823,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateRowId(int columnIndex, RowId x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -843,27 +843,27 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateNString(int columnIndex, String nString) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateNString(String columnLabel, String nString) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateNClob(String columnLabel, NClob nClob) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public NClob getNClob(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -873,7 +873,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -883,7 +883,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -893,7 +893,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public String getNString(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -903,7 +903,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -913,7 +913,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateNCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -923,17 +923,17 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateAsciiStream(int columnIndex, InputStream x, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
    }
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -963,7 +963,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -973,7 +973,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -983,7 +983,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateNCharacterStream(int columnIndex, Reader x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -993,17 +993,17 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateAsciiStream(int columnIndex, InputStream x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader x) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -1023,7 +1023,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -1033,7 +1033,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -1043,7 +1043,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
@@ -1053,22 +1053,26 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
     }
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        if (iface.isAssignableFrom(getClass()))
+        {
+            return (T) this;
+        }
+        throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        return iface.isAssignableFrom(getClass());
     }
 
     public long getCount() {
@@ -1091,4 +1095,34 @@ public class CrateResultSet implements ResultSet {
         return number == null ? 0 : (Number) number;
     }
 
+    public static class Utilities {
+        public static String getCurrentMethodName() {
+            ByteArrayOutputStream
+                    byteArrayOutputStream = new ByteArrayOutputStream();
+            PrintWriter
+                    printWriter = new PrintWriter(byteArrayOutputStream);
+            (new Throwable()).printStackTrace(printWriter);
+            printWriter.flush();
+            String stackTrace = byteArrayOutputStream.toString();
+            printWriter.close();
+
+            StringTokenizer
+                    stringTokenizer = new StringTokenizer(stackTrace, "\n");
+
+            // Line 1 -- java.lang.Throwable
+            stringTokenizer.nextToken();
+
+            // Line 2 -- "at thisClass.thisMethod(file.java:line)"
+            stringTokenizer.nextToken();
+
+            // Line 3 -- "at callingClass.callingMethod(file.java:line)"
+            String methodName = stringTokenizer.nextToken();
+            stringTokenizer = new StringTokenizer(methodName.trim(), " (");
+            stringTokenizer.nextToken();
+            methodName = stringTokenizer.nextToken();
+
+            // Return callingClass.callingMethod
+            return methodName;
+        }
+    }
 }

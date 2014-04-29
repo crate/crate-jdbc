@@ -655,7 +655,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             } else {
                 rows[i][3] = "TABLE";
             }
-            rows[i][4] = null;
+            rows[i][4] = "";
             rows[i][5] = null;
             rows[i][6] = null;
             rows[i][7] = null;
@@ -663,7 +663,13 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][9] = "SYSTEM";
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        return new CrateResultSet(connection.createStatement(), tableResponse);
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = new CrateResultSet(statement, tableResponse);
+        ((CrateStatement)statement).setResultSet(resultSet);
+        if(!resultSet.next()) {
+            throw new SQLException(getClass() + ": getTables returned 0 rows");
+        }
+        return resultSet;
     }
 
     @Override
@@ -679,7 +685,13 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][1] = null;
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        return new CrateResultSet(connection.createStatement(), tableResponse);
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = new CrateResultSet(statement, tableResponse);
+        ((CrateStatement)statement).setResultSet(resultSet);
+        if(!resultSet.next()) {
+            throw new SQLException(getClass() + ": getSchemas() returned 0 rows");
+        }
+        return resultSet;
     }
 
     @Override
@@ -694,7 +706,11 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         rows[0][0] = "SYSTEM TABLE";
         rows[1][0] = "TABLE";
         SQLResponse tableResponse = new SQLResponse(cols, rows, 2, 0);
-        return new CrateResultSet(connection.createStatement(), tableResponse);
+        ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
+        if(!resultSet.next()) {
+            throw new SQLException(getClass() + ": getSchemas() returned 0 rows");
+        }
+        return resultSet;
     }
 
     @Override
@@ -761,7 +777,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][13] = null;
             rows[i][14] = null;
             rows[i][15] = null;
-            rows[i][16] = sqlResponse.rows()[i][3];
+            rows[i][16] = ((Number)sqlResponse.rows()[i][4]).intValue();
             rows[i][17] = "YES";
             rows[i][18] = null;
             rows[i][19] = null;
@@ -771,7 +787,13 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][23] = "NO";
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        return new CrateResultSet(connection.createStatement(), tableResponse);
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = new CrateResultSet(statement, tableResponse);
+        ((CrateStatement)statement).setResultSet(resultSet);
+        if(!resultSet.next()) {
+            throw new SQLException(getClass() + ": getColumns returned 0 rows");
+        }
+        return resultSet;
     }
 
     @Override
@@ -822,7 +844,11 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         }
         Object[][] rows = rowList.toArray(new Object[rowList.size()][6]);
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        return new CrateResultSet(connection.createStatement(), tableResponse);
+        ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
+        if(!resultSet.next()) {
+            throw new SQLException(getClass() + ": getSchemas() returned 0 rows");
+        }
+        return resultSet;
     }
 
     @Override
@@ -1098,7 +1124,11 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         }
 
         SQLResponse tableResponse = new SQLResponse(cols, rows, rows.length, 0);
-        return new CrateResultSet(connection.createStatement(), tableResponse);
+        ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
+        if(!resultSet.next()) {
+            throw new SQLException(getClass() + ": getSchemas() returned 0 rows");
+        }
+        return resultSet;
     }
 
     @Override
@@ -1284,7 +1314,11 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][1] = null;
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        return new CrateResultSet(connection.createStatement(), tableResponse);
+        ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
+        if(!resultSet.next()) {
+            throw new SQLException(getClass() + ": getSchemas(catalog, schemaPattern) returned 0 rows");
+        }
+        return resultSet;
     }
 
     @Override
@@ -1324,12 +1358,16 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
+        if (iface.isAssignableFrom(getClass()))
+        {
+            return (T) this;
+        }
+        throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
+        return iface.isAssignableFrom(getClass());
     }
 
     public int sqlTypeOfCrateType(String dataType) {
