@@ -104,7 +104,11 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public String getString(int columnIndex) throws SQLException {
-        return getField(columnIndex).toString();
+        Object value = getField(columnIndex);
+        if (value != null) {
+            return value.toString();
+        }
+        return null;
     }
 
     @Override
