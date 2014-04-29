@@ -23,6 +23,7 @@ package io.crate.client.jdbc;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
 
 public class CrateResultSetMetaData implements ResultSetMetaData {
@@ -75,12 +76,12 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public String getColumnLabel(int column) throws SQLException {
-        return columns.get(column);
+        return columns.get(column - 1);
     }
 
     @Override
     public String getColumnName(int column) throws SQLException {
-        return columns.get(column);
+        return columns.get(column - 1);
     }
 
     @Override
@@ -110,7 +111,7 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public int getColumnType(int column) throws SQLException {
-        return 0;
+        return Types.VARCHAR;
     }
 
     @Override

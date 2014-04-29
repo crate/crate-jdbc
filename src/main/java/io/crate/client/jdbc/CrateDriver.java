@@ -46,7 +46,8 @@ public class CrateDriver implements Driver {
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
         if (info != null && info.size() > 0) {
-            throw new UnsupportedOperationException("Properties are not supported yet");
+            // just ignore them for now
+            // throw new UnsupportedOperationException("Properties are not supported yet");
         }
 
         if (url.startsWith(PREFIX)) {

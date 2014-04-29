@@ -666,9 +666,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         Statement statement = connection.createStatement();
         ResultSet resultSet = new CrateResultSet(statement, tableResponse);
         ((CrateStatement)statement).setResultSet(resultSet);
-        if(!resultSet.next()) {
-            throw new SQLException(getClass() + ": getTables returned 0 rows");
-        }
         return resultSet;
     }
 
@@ -688,9 +685,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         Statement statement = connection.createStatement();
         ResultSet resultSet = new CrateResultSet(statement, tableResponse);
         ((CrateStatement)statement).setResultSet(resultSet);
-        if(!resultSet.next()) {
-            throw new SQLException(getClass() + ": getSchemas() returned 0 rows");
-        }
         return resultSet;
     }
 
@@ -707,9 +701,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         rows[1][0] = "TABLE";
         SQLResponse tableResponse = new SQLResponse(cols, rows, 2, 0);
         ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
-        if(!resultSet.next()) {
-            throw new SQLException(getClass() + ": getSchemas() returned 0 rows");
-        }
         return resultSet;
     }
 
@@ -790,9 +781,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         Statement statement = connection.createStatement();
         ResultSet resultSet = new CrateResultSet(statement, tableResponse);
         ((CrateStatement)statement).setResultSet(resultSet);
-        if(!resultSet.next()) {
-            throw new SQLException(getClass() + ": getColumns returned 0 rows");
-        }
         return resultSet;
     }
 
@@ -845,9 +833,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         Object[][] rows = rowList.toArray(new Object[rowList.size()][6]);
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
         ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
-        if(!resultSet.next()) {
-            throw new SQLException(getClass() + ": getSchemas() returned 0 rows");
-        }
         return resultSet;
     }
 
@@ -1125,9 +1110,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
         SQLResponse tableResponse = new SQLResponse(cols, rows, rows.length, 0);
         ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
-        if(!resultSet.next()) {
-            throw new SQLException(getClass() + ": getSchemas() returned 0 rows");
-        }
         return resultSet;
     }
 
@@ -1315,9 +1297,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
         ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
-        if(!resultSet.next()) {
-            throw new SQLException(getClass() + ": getSchemas(catalog, schemaPattern) returned 0 rows");
-        }
         return resultSet;
     }
 

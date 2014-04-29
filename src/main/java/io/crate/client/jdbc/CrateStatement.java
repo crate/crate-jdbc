@@ -54,8 +54,10 @@ public class CrateStatement implements Statement {
     @Override
     public void close() throws SQLException {
         connection = null;
-        resultSet.close();
-        resultSet = null;
+        if (resultSet != null) {
+            resultSet.close();
+            resultSet = null;
+        }
     }
 
     @Override

@@ -97,7 +97,7 @@ public abstract class AbstractIntegrationTest {
     public static void setUpClass() throws Exception {
         startCrateAsDaemon();
         // give crate time to settle
-        sleep(3000);
+        sleep(4000);
     }
 
     @AfterClass

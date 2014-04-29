@@ -1087,7 +1087,7 @@ public class CrateResultSet implements ResultSet {
 
     private Object getField(int columnIndex) throws SQLException {
         checkClosed();
-        return currentRow.get(columnIndex);
+        return currentRow.get(columnIndex - 1);
     }
 
     private Number getNumber(int columnIndex) throws SQLException {
