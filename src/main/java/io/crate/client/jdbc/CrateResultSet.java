@@ -119,32 +119,56 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public byte getByte(int columnIndex) throws SQLException {
-        return getNumber(columnIndex).byteValue();
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return number.byteValue();
+        }
+        return 0;
     }
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-        return getNumber(columnIndex).shortValue();
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return number.shortValue();
+        }
+        return 0;
     }
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        return getNumber(columnIndex).intValue();
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return number.intValue();
+        }
+        return 0;
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        return getNumber(columnIndex).longValue();
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return number.longValue();
+        }
+        return 0;
     }
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        return getNumber(columnIndex).floatValue();
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return number.floatValue();
+        }
+        return 0;
     }
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        return getNumber(columnIndex).doubleValue();
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return number.doubleValue();
+        }
+        return 0;
     }
 
     @Override
@@ -159,17 +183,29 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        return new Date(getNumber(columnIndex).longValue());
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return new Date(number.longValue());
+        }
+        return null;
     }
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        return new Time(getNumber(columnIndex).longValue());
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return new Time(number.longValue());
+        }
+        return null;
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        return new Timestamp(getNumber(columnIndex).longValue());
+        Number number =  getNumber(columnIndex);
+        if (number != null) {
+            return new Timestamp(number.longValue());
+        }
+        return null;
     }
 
     @Override
@@ -763,8 +799,12 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public URL getURL(int columnIndex) throws SQLException {
+        String string = getString(columnIndex);
+        if (string == null) {
+            return null;
+        }
         try {
-            return new URL(getString(columnIndex));
+            return new URL(string);
         } catch (MalformedURLException e) {
             throw new SQLException("Malformed url", e);
         }

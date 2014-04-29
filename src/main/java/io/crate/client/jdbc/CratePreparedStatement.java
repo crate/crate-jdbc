@@ -7,10 +7,8 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Map;
-import java.util.TreeMap;
+import java.sql.Date;
+import java.util.*;
 
 public class CratePreparedStatement extends CrateStatement implements PreparedStatement {
 
@@ -153,8 +151,11 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
     public boolean execute() throws SQLException {
         sqlRequest.args(arguments.values().toArray(new Object[arguments.size()]));
         sqlResponse = connection.client().sql(sqlRequest).actionGet();
+        if (sqlResponse.rowCount() <= 0) {
+            return false;
+        }
         resultSet = new CrateResultSet(this, sqlResponse);
-        return resultSet.next();
+        return true;
     }
 
     @Override

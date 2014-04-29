@@ -34,10 +34,6 @@ public class CrateStatement implements Statement {
     public CrateStatement(CrateConnection connection) {
         this.connection = connection;
     }
-    public CrateStatement(CrateConnection connection, ResultSet resultSet) {
-        this(connection);
-        this.resultSet = resultSet;
-    }
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
@@ -77,7 +73,7 @@ public class CrateStatement implements Statement {
 
     @Override
     public void setMaxRows(int max) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement: setMaxRows not supported");
+        //throw new SQLFeatureNotSupportedException("Statement: setMaxRows not supported");
     }
 
     @Override
@@ -103,7 +99,7 @@ public class CrateStatement implements Statement {
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement getWarnings not supported");
+        return null;
     }
 
     @Override
@@ -123,18 +119,13 @@ public class CrateStatement implements Statement {
             return false;
         }
         resultSet = new CrateResultSet(this, sqlResponse);
-        return resultSet.next();
+        return true; // TODO: fix return value
     }
 
     @Override
     public ResultSet getResultSet() throws SQLException {
         checkClosed();
         return resultSet;
-    }
-
-    public void setResultSet(ResultSet resultSet) throws SQLException {
-        checkClosed();
-        this.resultSet = resultSet;
     }
 
     @Override

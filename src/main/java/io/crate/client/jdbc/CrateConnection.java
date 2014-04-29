@@ -31,9 +31,11 @@ import java.util.concurrent.Executor;
 public class CrateConnection implements Connection {
 
     private CrateClient crateClient;
+    private String url;
 
-    public CrateConnection(CrateClient crateClient) {
+    public CrateConnection(CrateClient crateClient, String url) {
         this.crateClient = crateClient;
+        this.url = url;
     }
 
     public CrateClient client() {
@@ -109,14 +111,14 @@ public class CrateConnection implements Connection {
     @Override
     public void setReadOnly(boolean readOnly) throws SQLException {
         checkClosed();
-        if (readOnly) {
-            throw new SQLFeatureNotSupportedException("ReadOnly mode is not supported");
+        if (!readOnly) {
+            throw new SQLFeatureNotSupportedException("Write mode is not supported");
         }
     }
 
     @Override
     public boolean isReadOnly() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
@@ -128,7 +130,8 @@ public class CrateConnection implements Connection {
     @Override
     public String getCatalog() throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException();
+        //throw new SQLFeatureNotSupportedException();
+        return null;
     }
 
     @Override
@@ -360,4 +363,7 @@ public class CrateConnection implements Connection {
         }
     }
 
+    public String getUrl() {
+        return url;
+    }
 }

@@ -106,7 +106,7 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public String getCatalogName(int column) throws SQLException {
-        return null;
+        return "";
     }
 
     @Override
@@ -116,7 +116,7 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public String getColumnTypeName(int column) throws SQLException {
-        return null;
+        return "string"; // TODO: fix
     }
 
     @Override

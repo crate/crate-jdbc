@@ -28,7 +28,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getURL() throws SQLException {
-        return null;
+        return connection.getUrl();
     }
 
     @Override
@@ -662,11 +662,8 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][8] = "_id";
             rows[i][9] = "SYSTEM";
         }
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        Statement statement = connection.createStatement();
-        ResultSet resultSet = new CrateResultSet(statement, tableResponse);
-        ((CrateStatement)statement).setResultSet(resultSet);
-        return resultSet;
+        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
+        return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
@@ -681,11 +678,8 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][0] = sqlResponse.rows()[i][0];
             rows[i][1] = null;
         }
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        Statement statement = connection.createStatement();
-        ResultSet resultSet = new CrateResultSet(statement, tableResponse);
-        ((CrateStatement)statement).setResultSet(resultSet);
-        return resultSet;
+        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
+        return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
@@ -699,9 +693,8 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         Object[][] rows = new Object[2][1];
         rows[0][0] = "SYSTEM TABLE";
         rows[1][0] = "TABLE";
-        SQLResponse tableResponse = new SQLResponse(cols, rows, 2, 0);
-        ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
-        return resultSet;
+        SQLResponse tableResponse = new SQLResponse(cols, rows, 2L, 0L);
+        return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
@@ -777,11 +770,8 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][22] = "NO";
             rows[i][23] = "NO";
         }
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        Statement statement = connection.createStatement();
-        ResultSet resultSet = new CrateResultSet(statement, tableResponse);
-        ((CrateStatement)statement).setResultSet(resultSet);
-        return resultSet;
+        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
+        return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
@@ -809,7 +799,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         String stmt = "select constraint_name from information_schema.table_constraints " +
                 "where schema_name = '" + schema + "' and table_name = '" + table + "'";
         SQLResponse sqlResponse = connection.client().sql(stmt).actionGet();
-        String[] cols = new String[10];
+        String[] cols = new String[6];
         cols[0] = "TABLE_CAT";
         cols[1] = "TABLE_SCHEM";
         cols[2] = "TABLE_NAME";
@@ -831,9 +821,8 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             }
         }
         Object[][] rows = rowList.toArray(new Object[rowList.size()][6]);
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
-        return resultSet;
+        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
+        return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
@@ -853,7 +842,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getTypeInfo() throws SQLException {
-        String[] cols = new String[10];
+        String[] cols = new String[18];
         cols[0] = "TYPE_NAME";
         cols[1] = "DATA_TYPE";
         cols[2] = "PRECISION";
@@ -1108,9 +1097,8 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][17] = 10;
         }
 
-        SQLResponse tableResponse = new SQLResponse(cols, rows, rows.length, 0);
-        ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
-        return resultSet;
+        SQLResponse tableResponse = new SQLResponse(cols, rows, 21L, 0L);
+        return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
@@ -1120,18 +1108,12 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsResultSetType(int type) throws SQLException {
-        if (type == ResultSet.TYPE_FORWARD_ONLY) {
-            return true;
-        }
-        return false;
+        return type == ResultSet.TYPE_FORWARD_ONLY;
     }
 
     @Override
     public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
-        if (type == ResultSet.TYPE_FORWARD_ONLY && concurrency == ResultSet.CONCUR_READ_ONLY) {
-            return true;
-        }
-        return false;
+        return (type == ResultSet.TYPE_FORWARD_ONLY && concurrency == ResultSet.CONCUR_READ_ONLY);
     }
 
     @Override
@@ -1231,7 +1213,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsResultSetHoldability(int holdability) throws SQLException {
-        return false;
+        return holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
     @Override
@@ -1287,7 +1269,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         }
         stmt = stmt  + " group by schema_name order by schema_name";
         SQLResponse sqlResponse = connection.client().sql(stmt).actionGet();
-        String[] cols = new String[10];
+        String[] cols = new String[2];
         cols[0] = "TABLE_SCHEM";
         cols[1] = "TABLE_CATALOG";
         Object[][] rows = new Object[sqlResponse.rows().length][2];
@@ -1296,8 +1278,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][1] = null;
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
-        ResultSet resultSet = new CrateResultSet(connection.createStatement(), tableResponse);
-        return resultSet;
+        return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
