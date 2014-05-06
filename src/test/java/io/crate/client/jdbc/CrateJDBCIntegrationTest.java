@@ -24,9 +24,7 @@ package io.crate.client.jdbc;
 import io.crate.action.sql.SQLRequest;
 import io.crate.client.AbstractIntegrationTest;
 import io.crate.client.CrateClient;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -53,8 +51,8 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
         connection = null;
         AbstractIntegrationTest.tearDownClass();
     }
-
-    protected void setUpTable() {
+    @Before
+    public void setUpTable() {
         CrateClient client = new CrateClient("localhost:" +  transportPort);
 
         String stmt = "create table test (" +
@@ -87,10 +85,15 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
         client.sql("refresh table test").actionGet();
     }
 
+    @After
+    public void tearDownTable() {
+        CrateClient client = new CrateClient("localhost:" +  transportPort);
+        client.sql("drop table test").actionGet();
+    }
+
     @Test
     @SuppressWarnings("unchecked")
     public void testSelectAllTypes() throws Exception {
-        setUpTable();
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery("select * from test");
 
@@ -115,7 +118,6 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     public void testSelectUsingPreparedStatement() throws Exception {
-        setUpTable();
         PreparedStatement preparedStatement = connection.prepareStatement("select * from test where id = ?");
         preparedStatement.setInt(1, 1);
 

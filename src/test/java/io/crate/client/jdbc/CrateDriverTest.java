@@ -42,7 +42,7 @@ public class CrateDriverTest {
         }
 
         Class.forName("io.crate.client.jdbc.CrateDriver");
-        Connection c = DriverManager.getConnection("crate://localhost:44200");
+        Connection c = DriverManager.getConnection("crate://localhost:4300");
         assertThat(c, instanceOf(CrateConnection.class));
     }
 

@@ -4,26 +4,24 @@
    :alt: Crate
    :target: https://crate.io
 
-========================
- Crate Data Java Client
-========================
+=================
+Crate JDBC Driver
+=================
 
 .. highlight:: java
 
-This is the Java client library for `Crate Data`_ using the transport
-protocol. The library exposes a very simply interface to query Crate
-using SQL.
+This is the JDBC driver for `Crate Data`_.
 
 Installation
 ============
 
-Build JAR including dependencies from source
---------------------------------------------
+Build JAR from source
+---------------------
 
 Clone the repo::
 
-  git clone https://github.com/crate/crate-java
-  cd crate-java
+  git clone https://github.com/crate/crate-jdbc
+  cd crate-jdbc
 
 and build a JAR including all dependencies::
 
@@ -31,47 +29,10 @@ and build a JAR including all dependencies::
 
 Afterwards a JAR file of the current version exists under ``build/lib``.
 
-Build JAR without dependencies from source
-------------------------------------------
-
-Clone the repo::
-
-  git clone https://github.com/crate/crate-java
-  cd crate-java
-
-and build a JAR without dependencies::
-
-   ./gradlew jarNoDeps
-
-Afterwards a JAR file of the current version exists under ``build/lib``.
-
 Usage
 =====
 
-A minimal example is just a few lines of code::
-
-    import io.crate.client.CrateClient;
-
-    CrateClient client = new CrateClient("server1.crate.org:4300", "server2.crate.org:4300");
-    SQLResponse r = client.sql("select firstName, lastName from users").actionGet();
-
-    System.out.println(Arrays.toString(r.cols()));
-    // outputs ["firstName", "lastName"]
-
-    for (Object[] row: r.rows()){
-        System.out.println(Arrays.toString(row));
-    }
-    // outputs the users. For example:
-    // ["Arthur", "Dent"]
-    // ["Ford", "Perfect"]
-
-The `CrateClient` takes multiple servers as arguments. They are used in a
-round-robin fashion to distribute the load. In case a server is unavailable it
-will be skipped.
-
-Queries are executed asynchronous. `client.sql("")` will return a
-`Future<SQLResponse>` and code execution is only blocked if `.actionGet()` is
-called on it.
+TBD.
 
 Help & Contact
 ==============
