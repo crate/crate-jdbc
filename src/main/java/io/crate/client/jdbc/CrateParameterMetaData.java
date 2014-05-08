@@ -21,24 +21,35 @@
 
 package io.crate.client.jdbc;
 
+import com.google.common.base.Preconditions;
+
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
+import java.util.Map;
 
 public class CrateParameterMetaData implements ParameterMetaData {
 
+    private final Map<Integer, Object> parameters;
+
+    public CrateParameterMetaData(Map<Integer, Object> parameters) {
+        this.parameters = parameters;
+    }
+
     @Override
     public int getParameterCount() throws SQLException {
-        return 0;
+        return parameters.size();
     }
 
     @Override
     public int isNullable(int param) throws SQLException {
-        return 0;
+        // null values allowed everywhere still
+        // TODO: change this method when NOT NULL constraint is implemented
+        return ParameterMetaData.parameterNullable;
     }
 
     @Override
     public boolean isSigned(int param) throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
@@ -63,21 +74,31 @@ public class CrateParameterMetaData implements ParameterMetaData {
 
     @Override
     public String getParameterClassName(int param) throws SQLException {
+        Preconditions.checkArgument(param > 0, "invalid parameter");
+        Object parameter = parameters.get(param-1);
+        if (parameter != null) {
+            return parameter.getClass().getName();
+        }
+        // TODO: get accepted classname from somewhere
         return null;
     }
 
     @Override
     public int getParameterMode(int param) throws SQLException {
-        return 0;
+        return parameterModeUnknown;
     }
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
+        if (iface.isAssignableFrom(getClass()))
+        {
+            return (T) this;
+        }
+        throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
+        return iface.isAssignableFrom(getClass());
     }
 }
