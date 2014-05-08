@@ -21,8 +21,8 @@
 
 package io.crate.client.jdbc;
 
+import com.google.common.collect.Lists;
 import io.crate.action.sql.SQLResponse;
-import org.elasticsearch.common.collect.Lists;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;

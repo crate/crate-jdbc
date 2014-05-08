@@ -36,7 +36,7 @@ public class CrateDriverTest {
     @Test
     public void testDriverRegistration() throws Exception {
         try {
-            DriverManager.getConnection("crate://localhost:44200");
+            DriverManager.getConnection("crate://localhost:4300");
             fail("expected SQLException");
         } catch (SQLException e) {
         }

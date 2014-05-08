@@ -115,11 +115,11 @@ public class CrateStatement implements Statement {
     public boolean execute(String sql) throws SQLException {
         checkClosed();
         sqlResponse = connection.client().sql(sql).actionGet();
-        if (sqlResponse.rowCount() <= 0) {
+        if (sqlResponse.rowCount() < 0 || sqlResponse.rowCount() != sqlResponse.rows().length) {
             return false;
         }
         resultSet = new CrateResultSet(this, sqlResponse);
-        return true; // TODO: fix return value
+        return true;
     }
 
     @Override

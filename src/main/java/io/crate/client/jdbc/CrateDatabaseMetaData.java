@@ -1,8 +1,7 @@
 package io.crate.client.jdbc;
 
+import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLResponse;
-import io.crate.client.CrateClient;
-import org.elasticsearch.common.base.Joiner;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -68,7 +67,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getDatabaseProductVersion() throws SQLException {
-        return "0.36.0";
+        return "0.36.3";
     }
 
     @Override
@@ -78,17 +77,17 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getDriverVersion() throws SQLException {
-        return CrateClient.VERSION;
+        return CrateDriver.VERSION;
     }
 
     @Override
     public int getDriverMajorVersion() {
-        return new Integer(CrateClient.VERSION.split(".")[1]);
+        return new Integer(CrateDriver.VERSION.split(".")[1]);
     }
 
     @Override
     public int getDriverMinorVersion() {
-        return new Integer(CrateClient.VERSION.split(".")[2]);
+        return new Integer(CrateDriver.VERSION.split(".")[2]);
     }
 
     @Override
@@ -148,13 +147,41 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getSQLKeywords() throws SQLException {
-        return "partitioned, dynamic, strict, clustered, shards, fulltext, plain, analyzer," +
-                "extends, token_filters, char_filters";
+        // include some sql 2003 keywords too
+        // quote all the things!
+        return "alias,all,alter,analyzer,and,any,array,as,asc," +
+                "bernoulli,between,blob,boolean,by,byte," +
+                "case,cast,catalogs,char_filters,clustered,coalesce,columns," +
+                "constraint,copy,create,cross,current,current_date,current_time," +
+                "current_timestamp," +
+                "date,day,delete,desc,describe,directory,distinct,distributed," +
+                "double,drop,dynamic," +
+                "else,end,escape,except,exists,explain,extends,extract," +
+                "false,first,float,following,for,format,from,full,fulltext,functions," +
+                "graphviz,group," +
+                "having,hour," +
+                "if,ignored,in,index,inner,insert,int,integer,intersect,interval," +
+                "into,ip,is," +
+                "join," +
+                "last,left,like,limit,logical,long," +
+                "materialized,minute,month," +
+                "natural,not,null,nullif,nulls," +
+                "object,off,offset,on,or,order,outer,over," +
+                "partition,partitioned,partitions,plain,preceding,primary_key," +
+                "range,recursive,refresh,reset,right,row,rows," +
+                "schemas,second,select,set,shards,short,show,some,stratify," +
+                "strict,string_type,substring,system," +
+                "table,tables,tablesample,text,then,time,timestamp,to,tokenizer," +
+                "token_filters,true,type," +
+                "unbounded,union,update,using," +
+                "values,view," +
+                "when,where,with," +
+                "year";
     }
 
     @Override
     public String getNumericFunctions() throws SQLException {
-        return null;
+        return "";
     }
 
     @Override
@@ -164,7 +191,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getSystemFunctions() throws SQLException {
-        return null;
+        return "";
     }
 
     @Override
@@ -179,7 +206,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getExtraNameCharacters() throws SQLException {
-        return null;
+        return "";
     }
 
     @Override
@@ -324,12 +351,12 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getProcedureTerm() throws SQLException {
-        return null;
+        return "procedure";
     }
 
     @Override
     public String getCatalogTerm() throws SQLException {
-        return null;
+        return "catalog";
     }
 
     @Override
@@ -339,12 +366,12 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getCatalogSeparator() throws SQLException {
-        return null;
+        return ".";
     }
 
     @Override
     public boolean supportsSchemasInDataManipulation() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
@@ -609,12 +636,43 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern) throws SQLException {
-        return null;
+        // TODO: call information_schema.routines
+        return fakedEmptyResult(
+                "PROCEDURE_CAT",
+                "PROCEDURE_SCHEM",
+                "PROCEDURE_NAME",
+                "REMARKS",
+                "PROCEDURE_TYPE",
+                "SPECIFIC_NAME"
+        );
     }
 
     @Override
     public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult(
+                "PROCEDURE_CAT",
+                "PROCEDURE_SCHEM",
+                "PROCEDURE_NAME",
+                "COLUMN_NAME",
+                "COLUMN_TYPE",
+                "DATA_TYPE",
+                "TYPE_NAME",
+                "PRECISION",
+                "LENGTH",
+                "SCALE",
+                "RADIX",
+                "NULLABLE",
+                "REMARKS",
+                "COLUMN_DEF",
+                "TRUNCATE",
+                "NULL",
+                "SQL_DATA_TYPE",
+                "SQL_DATETIME_SUB",
+                "CHAR_OCTET_LENGTH",
+                "ORDINAL_POSITION",
+                "IS_NULLANLE",
+                "SPECIFIC_NAME"
+        );
     }
 
     @Override
@@ -684,7 +742,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getCatalogs() throws SQLException {
-        return null;
+        return fakedEmptyResult("TABLE_CAT");
     }
 
     @Override
@@ -774,24 +832,43 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
+    private ResultSet fakedEmptyResult(String ... columnNames) throws SQLException {
+        SQLResponse response = new SQLResponse(
+                columnNames,
+                new Object[0][], 0, System.currentTimeMillis()
+        );
+        return new CrateResultSet(connection.createStatement(), response);
+    }
+
     @Override
     public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME",
+                "GRANTOR", "GRANTEE", "PRIVILEGE", "IS_GRANTABLE");
     }
 
     @Override
     public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME",
+                "GRANTOR", "GRANTEE", "PRIVILEGE", "IS_GRANTABLE");
     }
 
     @Override
     public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException {
-        return null;
+        return fakedEmptyResult("SCOPE", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME",
+                        "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS",
+                        "PSEUDO_COLUMNS");
     }
 
     @Override
     public ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException {
-        return null;
+        return fakedEmptyResult("SCOPE",
+                        "COLUMN_NAME",
+                        "DATA_TYPE",
+                        "TYPE_NAME",
+                        "COLUMN_SIZE",
+                        "BUFFER_LENGTH",
+                        "DECIMAL_DIGITS",
+                        "PSEUDO_COLUMN");
     }
 
     @Override
@@ -808,7 +885,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         cols[5] = "PK_NAME";
         List<Object[]> rowList = new ArrayList<>();
         for (int i = 0; i < sqlResponse.rows().length; i++) {
-            String[] pks = (String[])sqlResponse.rows()[i][0];
+            Object[] pks = (Object[])sqlResponse.rows()[i][0];
             for (int j = 0; j < pks.length; j++) {
                 Object[] row = new Object[6];
                 row[0] = null;
@@ -827,17 +904,56 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-        return null;
+        return fakedEmptyResult("PKTABLE_CAT",
+                        "PKTABLE_SCHEM",
+                        "PKTABLE_NAME",
+                        "PKCOLUMN_NAME",
+                        "FKTABLE_CAT",
+                        "FKTABLE_SCHEM",
+                        "FKTABLE_NAME",
+                        "FKCOLUMN_NAME",
+                        "KEY_SEQ",
+                        "UPDATE_RULE",
+                        "DELETE_RULE",
+                        "FK_NAME",
+                        "PK_NAME",
+                        "DEFERRABILITY");
     }
 
     @Override
     public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
-        return null;
+        return fakedEmptyResult("PKTABLE_CAT",
+                "PKTABLE_SCHEM",
+                "PKTABLE_NAME",
+                "PKCOLUMN_NAME",
+                "FKTABLE_CAT",
+                "FKTABLE_SCHEM",
+                "FKTABLE_NAME",
+                "FKCOLUMN_NAME",
+                "KEY_SEQ",
+                "UPDATE_RULE",
+                "DELETE_RULE",
+                "FK_NAME",
+                "PK_NAME",
+                "DEFERRABILITY");
     }
 
     @Override
     public ResultSet getCrossReference(String parentCatalog, String parentSchema, String parentTable, String foreignCatalog, String foreignSchema, String foreignTable) throws SQLException {
-        return null;
+        return fakedEmptyResult("PKTABLE_CAT",
+                "PKTABLE_SCHEM",
+                "PKTABLE_NAME",
+                "PKCOLUMN_NAME",
+                "FKTABLE_CAT",
+                "FKTABLE_SCHEM",
+                "FKTABLE_NAME",
+                "FKCOLUMN_NAME",
+                "KEY_SEQ",
+                "UPDATE_RULE",
+                "DELETE_RULE",
+                "FK_NAME",
+                "PK_NAME",
+                "DEFERRABILITY");
     }
 
     @Override
@@ -1103,7 +1219,10 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) throws SQLException {
-        return null;
+        return fakedEmptyResult("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME",
+                "NON_UNIQUE", "INDEX_QUALIFIER", "INDEX_NAME", "TYPE",
+                "ORDINAL_POSITION", "COLUMN_NAME", "ASC_OR_DESC", "CARDINALITY",
+                "PAGES", "FILTER_CONDITION");
     }
 
     @Override
@@ -1168,7 +1287,8 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern, int[] types) throws SQLException {
-        return null;
+        return fakedEmptyResult("TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME",
+                "CLASS_NAME", "DATA_TYPE", "REMARKS", "BASE_TYPE");
     }
 
     @Override
@@ -1198,17 +1318,40 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult("TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME",
+                "SUPERTYPE_CAT", "SUPERTYPE_SCHEM", "SUPERTYPE_NAME");
     }
 
     @Override
     public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME",
+                "SUPERTABLE_NAME");
     }
 
     @Override
     public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern, String attributeNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult("TYPE_CAT",
+                "TYPE_SCHEM",
+                "TYPE_NAME",
+                "ATTR_NAME",
+                "DATA_TYPE",
+                "ATTR_TYPE_NAME",
+                "ATTR_SIZE",
+                "DECIMAL_DIGITS",
+                "NUM_PREC_RADIX",
+                "NULLABLE",
+                "REMARKS",
+                "ATTR_DEF",
+                "SQL_DATA_TYPE",
+                "SQL_DATETIME_SUB",
+                "CHAR_OCTET_LENGTH",
+                "ORDINAL_POSITION",
+                "IS_NULLABLE",
+                "SCOPE_CATALOG",
+                "SCOPE_SCHEMA",
+                "SCOPE_TABLE",
+                "SOURCE_DATA_TYPE"
+        );
     }
 
     @Override
@@ -1233,12 +1376,12 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getJDBCMajorVersion() throws SQLException {
-        return 1;
+        return 4;
     }
 
     @Override
     public int getJDBCMinorVersion() throws SQLException {
-        return 0;
+        return 1;
     }
 
     @Override
@@ -1258,7 +1401,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public RowIdLifetime getRowIdLifetime() throws SQLException {
-        return null;
+        return RowIdLifetime.ROWID_UNSUPPORTED;
     }
 
     @Override
@@ -1293,22 +1436,65 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getClientInfoProperties() throws SQLException {
-        return null;
+        return fakedEmptyResult(
+                "NAME",
+                "MAX_LEN",
+                "DEFAULT_VALUE",
+                "DESCRIPTION"
+        );
     }
 
     @Override
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult(
+                "FUNCTION_CAT",
+                "FUNCTION_SCHEM",
+                "FUNCTION_NAME",
+                "REMARKS",
+                "FUNCTION_TYPE",
+                "SPECIFIC_NAME"
+        );
     }
 
     @Override
     public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult(
+                "FUNCTION_CAT",
+                "FUNCTION_SCHEM",
+                "FUNCTION_NAME",
+                "COLUMN_NAME",
+                "COLUMN_TYPE",
+                "DATA_TYPE",
+                "TYPE_NAME",
+                "PRECISION",
+                "LENGTH",
+                "SCALE",
+                "RADIX",
+                "NULLABLE",
+                "REMARKS",
+                "CHAR_OCTET_LENGTH",
+                "ORDINAL_POSITION",
+                "IS_NULLABLE",
+                "SPECIFIC_NAME"
+        );
     }
 
     @Override
     public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-        return null;
+        return fakedEmptyResult(
+                "TABLE_CAT",
+                "TABLE_SCHEM",
+                "TABLE_NAME",
+                "COLUMN_NAME",
+                "DATA_TYPE",
+                "COLUMN_SIZE",
+                "DECIMAL_DIGITS",
+                "NUM_PREC_RADIX",
+                "COLUMN_USAGE",
+                "REMARKS",
+                "CHAR_OCTET_LENGTH",
+                "IS_NULLABLE"
+        );
     }
 
     @Override

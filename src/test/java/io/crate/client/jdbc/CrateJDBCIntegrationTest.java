@@ -21,6 +21,7 @@
 
 package io.crate.client.jdbc;
 
+import com.google.common.base.Splitter;
 import io.crate.action.sql.SQLRequest;
 import io.crate.client.AbstractIntegrationTest;
 import io.crate.client.CrateClient;
@@ -41,6 +42,9 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
     @BeforeClass
     public static void setUpClass() throws Exception {
         AbstractIntegrationTest.setUpClass();
+        for (String path : Splitter.on(":").split(System.getProperty("java.class.path"))) {
+            System.out.println(path);
+        }
         Class.forName("io.crate.client.jdbc.CrateDriver");
         connection = DriverManager.getConnection("crate://127.0.0.1:44300");
     }
@@ -69,6 +73,11 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
                 " object_field object as (\"inner\" string)," +
                 " ip_field ip" +
                 ") clustered by (id) into 1 shards with(number_of_replicas=0)";
+        try {
+            client.sql("drop table test").actionGet();
+        } catch (Exception e) {
+            // ignore
+        }
         client.sql(stmt).actionGet();
 
         Map<String, Object> objectField = new HashMap<String, Object>(){{put("inner", "Zoon");}};
@@ -88,7 +97,11 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
     @After
     public void tearDownTable() {
         CrateClient client = new CrateClient("localhost:" +  transportPort);
-        client.sql("drop table test").actionGet();
+        try {
+            client.sql("drop table test").actionGet();
+        } catch (Exception e) {
+            // ignore
+        }
     }
 
     @Test
