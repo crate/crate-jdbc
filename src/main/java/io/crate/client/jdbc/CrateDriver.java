@@ -54,7 +54,10 @@ public class CrateDriver implements Driver {
             url = url.substring(PREFIX.length());
         }
 
-        return new CrateConnection(new CrateClient(url), url);
+        CrateConnection connection = new CrateConnection(new CrateClient(url), url);
+        connection.connect();
+
+        return connection;
     }
 
     @Override
