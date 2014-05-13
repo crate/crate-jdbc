@@ -22,8 +22,10 @@
 package io.crate.client.jdbc;
 
 import io.crate.client.CrateClient;
+import org.elasticsearch.client.transport.NoNodeAvailableException;
 
 import java.sql.*;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -40,6 +42,18 @@ public class CrateConnection implements Connection {
 
     public CrateClient client() {
         return crateClient;
+    }
+
+    public void connect() throws SQLException {
+        Statement statement = createStatement();
+
+        try {
+            if (!statement.execute("select id from sys.cluster")) {
+                throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", url));
+            }
+        } catch (NoNodeAvailableException e) {
+            throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", url), e);
+        }
     }
 
     @Override
