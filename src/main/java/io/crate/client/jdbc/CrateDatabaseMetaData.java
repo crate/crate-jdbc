@@ -6,6 +6,7 @@ import io.crate.action.sql.SQLResponse;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class CrateDatabaseMetaData implements DatabaseMetaData {
 
@@ -67,7 +68,13 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getDatabaseProductVersion() throws SQLException {
-        return "0.36.3";
+        String stmt = "select version from sys.nodes limit 1";
+        SQLResponse sqlResponse = connection.client().sql(stmt).actionGet();
+        if (sqlResponse.rowCount() > 0) {
+            Map<String, Object> versionMap =  (Map<String, Object>)sqlResponse.rows()[0][0];
+            return (String)versionMap.get("number");
+        }
+        return null;
     }
 
     @Override
@@ -77,17 +84,17 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getDriverVersion() throws SQLException {
-        return CrateDriver.VERSION;
+        return CrateDriverVersion.CURRENT.number();
     }
 
     @Override
     public int getDriverMajorVersion() {
-        return new Integer(CrateDriver.VERSION.split(".")[1]);
+        return CrateDriverVersion.CURRENT.major;
     }
 
     @Override
     public int getDriverMinorVersion() {
-        return new Integer(CrateDriver.VERSION.split(".")[2]);
+        return CrateDriverVersion.CURRENT.minor;
     }
 
     @Override
