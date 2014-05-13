@@ -1,7 +1,8 @@
 apply plugin: 'idea'
 apply plugin: 'java'
+apply plugin: 'maven'
 
-version = '0.1.0'
+group = "io.crate"
 
 repositories {
     mavenCentral()
@@ -75,20 +76,99 @@ task downloadCrateRelease << {
     extractTopfolder(dest, 'parts/crate')
 }
 
+task getVersion ( dependsOn: 'classes') << {
+    def stdout = new ByteArrayOutputStream()
+    javaexec {
+        classpath = sourceSets.main.runtimeClasspath
+        main = 'io.crate.client.jdbc.CrateDriverVersion'
+        standardOutput = stdout
+    }
+    ext.gitTag = "git describe".execute().in.text.trim()
+    ext.version = stdout.toString().trim().split(" ")[1].replace(',','').trim()
 
+    if (!gradle.taskGraph.hasTask(uploadArchives)) {
+        ext.version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+    }
+    project.version = version
+
+    logger.quiet("gitTag: " + gitTag)
+    logger.quiet("version: " + version)
+}
+
+jar.dependsOn getVersion
 jar {
     baseName 'crate-jdbc'
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
+        exclude 'META-INF/**'
+    }}
 
-    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    manifest {
-        attributes("Implementation-Title": "Crate Data Java Client", "Implementation-Version": version)
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate Data JDBC Driver", "Implementation-Version": project.version)
+        }
     }
 }
 
-task jarNoDeps (type: Jar) {
-    baseName 'crate-client'
-    manifest {
-        attributes("Implementation-Title": "Crate Data Java Client", "Implementation-Version": version)
+install.dependsOn jar
+install {
+    repositories {
+        mavenInstaller {
+            pom.whenConfigured {
+                it.dependencies.clear()
+            }
+        }
+    }
+}
+
+project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
+project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
+
+uploadArchives.dependsOn jar
+uploadArchives {
+    repositories{
+        mavenDeployer {
+            beforeDeployment {
+                if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
+                    throw new StopExecutionException("uploadArchives cannot be called without sonatype username and password")
+                }
+            }
+            pom.whenConfigured {
+                it.dependencies.clear()
+            }
+            pom.project {
+                artifactId 'crate-jdbc'
+                name 'crate-jdbc'
+                description 'Crate Data JDBC Driver'
+                url 'https://crate.io'
+                scm {
+                    url 'https://github.com/crate/crate-jdbc'
+                    connection 'scm:git:git://github.com/crate/crate-jdbc.git'
+                    developerConnection 'scm:git:ssh:git@github.com:crate/crate-jdbc.git'
+                }
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/license/LICENSE-2.0.txt'
+                        distribution 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'crate'
+                        name 'Crate Developers'
+                        email 'office@crate.io'
+                    }
+                }
+            }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
+            }
+        }
     }
 }
 

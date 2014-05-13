@@ -29,8 +29,6 @@ import java.util.logging.Logger;
 
 public class CrateDriver implements Driver {
 
-    public static final String VERSION = "0.1.0";
-
     public static final String PREFIX = "crate://";
 
     static {
@@ -71,12 +69,12 @@ public class CrateDriver implements Driver {
 
     @Override
     public int getMajorVersion() {
-        return 1;
+        return CrateDriverVersion.CURRENT.major;
     }
 
     @Override
     public int getMinorVersion() {
-        return 0;
+        return CrateDriverVersion.CURRENT.minor;
     }
 
     @Override
