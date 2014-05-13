@@ -1,6 +1,7 @@
 package io.crate.client.jdbc;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import io.crate.action.sql.SQLResponse;
 
 import java.sql.*;
@@ -11,6 +12,7 @@ import java.util.Map;
 public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     private final CrateConnection connection;
+    private String dataBaseVersion;
 
     public CrateDatabaseMetaData(CrateConnection connection) {
         this.connection = connection;
@@ -72,9 +74,9 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         SQLResponse sqlResponse = connection.client().sql(stmt).actionGet();
         if (sqlResponse.rowCount() > 0) {
             Map<String, Object> versionMap =  (Map<String, Object>)sqlResponse.rows()[0][0];
-            return (String)versionMap.get("number");
+            dataBaseVersion = (String)versionMap.get("number");
         }
-        return null;
+        return dataBaseVersion;
     }
 
     @Override
@@ -1373,12 +1375,18 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getDatabaseMajorVersion() throws SQLException {
-        return 36;
+        if (dataBaseVersion == null) {
+            return -1;
+        }
+        return new Integer(Splitter.on(".").splitToList(dataBaseVersion).get(0));
     }
 
     @Override
     public int getDatabaseMinorVersion() throws SQLException {
-        return 0;
+        if (dataBaseVersion == null) {
+            return -1;
+        }
+        return new Integer(Splitter.on(".").splitToList(dataBaseVersion).get(1));
     }
 
     @Override
@@ -1388,7 +1396,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getJDBCMinorVersion() throws SQLException {
-        return 1;
+        return 0;
     }
 
     @Override
