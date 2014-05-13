@@ -23,6 +23,9 @@ package io.crate.client.jdbc;
 
 import com.google.common.collect.Lists;
 import io.crate.action.sql.SQLResponse;
+import io.crate.client.jdbc.types.CrateArray;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -44,6 +47,7 @@ public class CrateResultSet implements ResultSet {
     private List<Object> currentRow;
     private int rowIdx = -1;
     private List<String> columns;
+    private List<DataType> types;
 
 
     static class ArrayIterator implements Iterator<Object[]> {
@@ -79,6 +83,7 @@ public class CrateResultSet implements ResultSet {
         this.statement = statement;
         this.sqlResponse = sqlResponse;
         columns = Lists.newArrayList(sqlResponse.cols());
+        types = Lists.newArrayList(sqlResponse.columnTypes());
         rowsIt = new ArrayIterator(sqlResponse.rows(), 0, sqlResponse.rows().length);
     }
 
@@ -323,7 +328,7 @@ public class CrateResultSet implements ResultSet {
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClosed();
-        return new CrateResultSetMetaData(columns);
+        return new CrateResultSetMetaData(columns, types);
     }
 
     @Override
@@ -338,7 +343,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public int findColumn(String columnLabel) throws SQLException {
-        return columns.indexOf(columnLabel);
+        return columns.indexOf(columnLabel) + 1;
     }
 
     @Override
@@ -718,7 +723,8 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
+        // TODO: use given map
+        return getObject(columnIndex);
     }
 
     @Override
@@ -739,7 +745,15 @@ public class CrateResultSet implements ResultSet {
     @Override
     public Array getArray(int columnIndex) throws SQLException {
         Object a = getField(columnIndex);
-        return a == null ? null : (Array) a;
+        if (a == null) {
+            return null;
+        }
+        DataType type = sqlResponse.columnTypes()[columnIndex-1];
+        if (type.id() != ArrayType.ID) {
+            throw new SQLDataException("no array");
+        }
+        String name = sqlResponse.cols()[columnIndex-1];
+        return new CrateArray(((ArrayType)type).innerType(), (Object[])a, name);
     }
 
     @Override
@@ -1131,7 +1145,7 @@ public class CrateResultSet implements ResultSet {
 
     private Object getField(int columnIndex) throws SQLException {
         checkClosed();
-        return currentRow.get(columnIndex - 1);
+        return currentRow.get(columnIndex-1);
     }
 
     private Number getNumber(int columnIndex) throws SQLException {
