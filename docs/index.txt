@@ -1,0 +1,27 @@
+=================
+Crate JDBC Driver
+=================
+
+JDBC is a core API of Java 1.1 and later. It provides a standard set of
+interfaces to SQL-compliant databases.
+
+Crate provides a type 4 JDBC driver. The driver is written in Pure Java, and
+communicates in the database system's own network protocol. Because of this,
+the driver is platform independent.
+
+JDBC Driver Class
+=================
+
+The Crate JDBC driver class is `io.crate.client.jdbc.CrateDriver`.
+
+JDBC URL Format
+===============
+
+With JDBC, a database is represented by a URL (Uniform Resource Locator).
+With Crate, this takes the following form:
+
+    crate://<host>:<transport-port>
+
+For example::
+
+    crate://localhost:4300

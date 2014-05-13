@@ -1,0 +1,9 @@
+/out/
+*.pyc
+*.pyo
+/tmp/
+parts/
+.installed.cfg
+bin/
+develop-eggs/
+eggs/
