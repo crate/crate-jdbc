@@ -20,6 +20,9 @@ dependencies {
     testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.1') {
         exclude group: 'junit', module: 'junit'
     }
+    testCompile ("org.mockito:mockito-core:1.9.5") {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
 }
 
 sourceSets {
@@ -32,7 +35,7 @@ sourceSets {
 
 ext {
     downloadDir = new File(rootDir, 'downloads')
-    crate_version = '0.37.2'
+    crate_version = '0.37.1'
 }
 
 

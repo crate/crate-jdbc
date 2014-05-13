@@ -7,8 +7,9 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class CratePreparedStatement extends CrateStatement implements PreparedStatement {
 
@@ -185,14 +186,17 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        arguments.put(parameterIndex, x.getArray());
     }
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClosed();
-        //return null;
-        return new CrateResultSetMetaData(new ArrayList<String>(2){{add("id");add("name");}});
+        if (resultSet != null) {
+            return resultSet.getMetaData();
+        } else {
+            return null;
+        }
     }
 
     @Override

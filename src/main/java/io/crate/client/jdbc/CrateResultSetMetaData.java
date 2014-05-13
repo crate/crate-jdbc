@@ -21,17 +21,30 @@
 
 package io.crate.client.jdbc;
 
+import com.google.common.base.Preconditions;
+import io.crate.client.jdbc.types.Mappings;
+import io.crate.types.*;
+
+import java.lang.reflect.Array;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.Timestamp;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class CrateResultSetMetaData implements ResultSetMetaData {
 
     private final List<String> columns;
+    private final List<DataType> types;
 
-    public CrateResultSetMetaData(List<String> columns) {
+    public CrateResultSetMetaData(List<String> columns, List<DataType> types) {
+        Preconditions.checkArgument(columns.size() == types.size(),
+                "sizes columns and types do not match");
         this.columns = columns;
+        this.types = types;
     }
 
     @Override
@@ -66,7 +79,7 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public boolean isSigned(int column) throws SQLException {
-        return false;
+        return DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(types.get(column - 1));
     }
 
     @Override
@@ -111,17 +124,25 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public int getColumnType(int column) throws SQLException {
-        return Types.VARCHAR;
+        DataType type = types.get(column-1);
+        Integer jdbcType = Mappings.CRATE_TO_JDBC.get(type.getClass());
+        if (jdbcType == null) {
+            throw new SQLDataException(
+                    String.format(Locale.ENGLISH,
+                            "type '%s' not supported by JDBC driver", type.getName()));
+        }
+        return jdbcType;
     }
 
     @Override
     public String getColumnTypeName(int column) throws SQLException {
-        return "string"; // TODO: fix
+        return types.get(column-1).getName();
     }
 
     @Override
     public boolean isReadOnly(int column) throws SQLException {
-        return false;
+        // everything is readonly for now
+        return true;
     }
 
     @Override
@@ -136,7 +157,39 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public String getColumnClassName(int column) throws SQLException {
-        return null;
+        DataType type = types.get(column - 1 );
+        switch (type.id()) {
+            case BooleanType.ID:
+                return Boolean.class.getName();
+            case ByteType.ID:
+                return Byte.class.getName();
+            case ShortType.ID:
+                return Short.class.getName();
+            case IntegerType.ID:
+                return Integer.class.getName();
+            case LongType.ID:
+                return Long.class.getName();
+            case FloatType.ID:
+                return Float.class.getName();
+            case DoubleType.ID:
+                return Double.class.getName();
+            case StringType.ID:
+                return String.class.getName();
+            case TimestampType.ID:
+                return Timestamp.class.getName();
+            case IpType.ID:
+                return String.class.getName();
+            case ArrayType.ID:
+                // TODO: maybe return concrete (e.g. "Long[]") class names
+                return Array.class.getName();
+            case ObjectType.ID:
+                return Map.class.getName();
+            case SetType.ID:
+                return Set.class.getName();
+            default:
+                return Object.class.getName();
+        }
+
     }
 
     @Override
