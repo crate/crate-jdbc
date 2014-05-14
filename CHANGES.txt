@@ -1,0 +1,15 @@
+======================
+Changes for Crate JDBC
+======================
+
+Unreleased
+==========
+
+ - change column names of nested fields to subscript notation
+   in DatabaseMetaData as these names are used to query those fields
+
+ - special array type CrateArray
+
+ - initial release
+
+
