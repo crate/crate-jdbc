@@ -3,9 +3,12 @@ package io.crate.client.jdbc;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import io.crate.action.sql.SQLResponse;
+import io.crate.types.*;
+import org.elasticsearch.common.collect.Tuple;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -647,40 +650,41 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
     public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern) throws SQLException {
         // TODO: call information_schema.routines
         return fakedEmptyResult(
-                "PROCEDURE_CAT",
-                "PROCEDURE_SCHEM",
-                "PROCEDURE_NAME",
-                "REMARKS",
-                "PROCEDURE_TYPE",
-                "SPECIFIC_NAME"
+                new Tuple<String, DataType>("PROCEDURE_CAT", StringType.INSTANCE),
+                new Tuple<String, DataType>("PROCEDURE_SCHEM", StringType.INSTANCE),
+                new Tuple<String, DataType>("PROCEDURE_NAME", StringType.INSTANCE),
+                new Tuple<String, DataType>("", StringType.INSTANCE), // FUTURE USE
+                new Tuple<String, DataType>("", StringType.INSTANCE), // FUTURE USE
+                new Tuple<String, DataType>("", StringType.INSTANCE), // FUTURE USE
+                new Tuple<String, DataType>("REMARKS", StringType.INSTANCE),
+                new Tuple<String, DataType>("PROCEDURE_TYPE", ShortType.INSTANCE),
+                new Tuple<String, DataType>("SPECIFIC_NAME", StringType.INSTANCE)
         );
     }
 
     @Override
     public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
         return fakedEmptyResult(
-                "PROCEDURE_CAT",
-                "PROCEDURE_SCHEM",
-                "PROCEDURE_NAME",
-                "COLUMN_NAME",
-                "COLUMN_TYPE",
-                "DATA_TYPE",
-                "TYPE_NAME",
-                "PRECISION",
-                "LENGTH",
-                "SCALE",
-                "RADIX",
-                "NULLABLE",
-                "REMARKS",
-                "COLUMN_DEF",
-                "TRUNCATE",
-                "NULL",
-                "SQL_DATA_TYPE",
-                "SQL_DATETIME_SUB",
-                "CHAR_OCTET_LENGTH",
-                "ORDINAL_POSITION",
-                "IS_NULLANLE",
-                "SPECIFIC_NAME"
+                col("PROCEDURE_CAT"),
+                col("PROCEDURE_SCHEM"),
+                col("PROCEDURE_NAME"),
+                col("COLUMN_NAME"),
+                col("COLUMN_TYPE", ShortType.INSTANCE),
+                col("DATA_TYPE", IntegerType.INSTANCE),
+                col("TYPE_NAME"),
+                col("PRECISION", IntegerType.INSTANCE),
+                col("LENGTH", IntegerType.INSTANCE),
+                col("SCALE", ShortType.INSTANCE),
+                col("RADIX", ShortType.INSTANCE),
+                col("NULLABLE", ShortType.INSTANCE),
+                col("REMARKS"),
+                col("COLUMN_DEF"),
+                col("SQL_DATA_TYPE", IntegerType.INSTANCE),
+                col("SQL_DATETIME_SUB", IntegerType.INSTANCE),
+                col("CHAR_OCTET_LENGTH", IntegerType.INSTANCE),
+                col("ORDINAL_POSITION", IntegerType.INSTANCE),
+                col("IS_NULLANLE"),
+                col("SPECIFIC_NAME")
         );
     }
 
@@ -730,6 +734,9 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][9] = "SYSTEM";
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
+        DataType[] columnTypes = new DataType[10];
+        Arrays.fill(columnTypes, StringType.INSTANCE);
+        tableResponse.columnTypes(columnTypes);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -746,12 +753,17 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][1] = null;
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
+        DataType[] columnTypes = new DataType[2];
+        Arrays.fill(columnTypes, StringType.INSTANCE);
+        tableResponse.columnTypes(columnTypes);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
     public ResultSet getCatalogs() throws SQLException {
-        return fakedEmptyResult("TABLE_CAT");
+        return fakedEmptyResult(
+                col("TABLE_CAT")
+        );
     }
 
     @Override
@@ -761,6 +773,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         rows[0][0] = "SYSTEM TABLE";
         rows[1][0] = "TABLE";
         SQLResponse tableResponse = new SQLResponse(cols, rows, 2L, 0L);
+        tableResponse.columnTypes(new DataType[]{StringType.INSTANCE});
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -838,27 +851,99 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][23] = "NO";
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
+        DataType[] columnTypes = new DataType[]{
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                IntegerType.INSTANCE,
+                StringType.INSTANCE,
+                IntegerType.INSTANCE,
+                StringType.INSTANCE,  // not used
+                IntegerType.INSTANCE,
+                IntegerType.INSTANCE,
+                IntegerType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                IntegerType.INSTANCE,
+                IntegerType.INSTANCE,
+                IntegerType.INSTANCE,
+                IntegerType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                ShortType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE
+        };
+        tableResponse.columnTypes(columnTypes);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
-    private ResultSet fakedEmptyResult(String ... columnNames) throws SQLException {
+    @SafeVarargs
+    private final ResultSet fakedEmptyResult(Tuple<String, DataType>... columns) throws SQLException {
+        String[] columnNames = new String[columns.length];
+        DataType[] columnTypes = new DataType[columns.length];
+        for (int i = 0; i<columns.length; i++) {
+            columnNames[i] = columns[i].v1();
+            columnTypes[i] = columns[i].v2();
+        }
         SQLResponse response = new SQLResponse(
                 columnNames,
                 new Object[0][], 0, System.currentTimeMillis()
         );
+        response.columnTypes(columnTypes);
         return new CrateResultSet(connection.createStatement(), response);
+    }
+
+    private ResultSet fakedEmptyResult(String ... columns) throws SQLException {
+        DataType[] columnTypes = new DataType[columns.length];
+        Arrays.fill(columnTypes, StringType.INSTANCE);
+        SQLResponse response = new SQLResponse(
+                columns,
+                new Object[0][], 0, System.currentTimeMillis()
+        );
+        response.columnTypes(columnTypes);
+        return new CrateResultSet(connection.createStatement(), response);
+    }
+
+    private Tuple<String, DataType> col(String name, DataType type) {
+        return new Tuple<>(name, type);
+    }
+
+    private Tuple<String, DataType> col(String name) {
+        return new Tuple<String, DataType>(name, StringType.INSTANCE);
+    }
+
+    private Tuple<String, DataType> intCol(String name) {
+        return new Tuple<String, DataType>(name, IntegerType.INSTANCE);
     }
 
     @Override
     public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
-        return fakedEmptyResult("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME",
-                "GRANTOR", "GRANTEE", "PRIVILEGE", "IS_GRANTABLE");
+        return fakedEmptyResult(
+                col("TABLE_CAT"),
+                col("TABLE_SCHEM"),
+                col("TABLE_NAME"),
+                col("COLUMN_NAME"),
+                col("GRANTOR"),
+                col("GRANTEE"),
+                col("PRIVILEGE"),
+                col("IS_GRANTABLE")
+        );
     }
 
     @Override
     public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-        return fakedEmptyResult("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME",
-                "GRANTOR", "GRANTEE", "PRIVILEGE", "IS_GRANTABLE");
+        return fakedEmptyResult(
+                col("TABLE_CAT"),
+                col("TABLE_SCHEM"),
+                col("TABLE_NAME"),
+                col("GRANTOR"),
+                col("GRANTEE"),
+                col("PRIVILEGE"),
+                col("IS_GRANTABLE"));
     }
 
     @Override
@@ -870,14 +955,15 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException {
-        return fakedEmptyResult("SCOPE",
-                        "COLUMN_NAME",
-                        "DATA_TYPE",
-                        "TYPE_NAME",
-                        "COLUMN_SIZE",
-                        "BUFFER_LENGTH",
-                        "DECIMAL_DIGITS",
-                        "PSEUDO_COLUMN");
+        return fakedEmptyResult(
+                col("SCOPE", ShortType.INSTANCE),
+                col("COLUMN_NAME"),
+                col("DATA_TYPE", IntegerType.INSTANCE),
+                col("TYPE_NAME", StringType.INSTANCE),
+                col("COLUMN_SIZE", IntegerType.INSTANCE),
+                col("BUFFER_LENGTH", IntegerType.INSTANCE),
+                col("DECIMAL_DIGITS", ShortType.INSTANCE),
+                col("PSEUDO_COLUMN", ShortType.INSTANCE));
     }
 
     @Override
@@ -908,6 +994,15 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         }
         Object[][] rows = rowList.toArray(new Object[rowList.size()][6]);
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
+        DataType[] types = new DataType[]{
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                ShortType.INSTANCE,
+                StringType.INSTANCE
+        };
+        tableResponse.columnTypes(types);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -1066,7 +1161,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         rows[3][17] = 10;
 
         rows[4][0] = "float";
-        rows[4][1] = Types.FLOAT;
+        rows[4][1] = Types.REAL;
         rows[4][2] = 7;
         rows[4][3] = null;
         rows[4][4] = null;
@@ -1223,6 +1318,28 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         }
 
         SQLResponse tableResponse = new SQLResponse(cols, rows, 21L, 0L);
+
+        DataType[] types = new DataType[] {
+                StringType.INSTANCE,
+                IntegerType.INSTANCE,
+                IntegerType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                ShortType.INSTANCE,
+                BooleanType.INSTANCE,
+                ShortType.INSTANCE,
+                BooleanType.INSTANCE,
+                BooleanType.INSTANCE,
+                BooleanType.INSTANCE,
+                StringType.INSTANCE,
+                ShortType.INSTANCE,
+                ShortType.INSTANCE,
+                IntegerType.INSTANCE,
+                IntegerType.INSTANCE,
+                IntegerType.INSTANCE
+        };
+        tableResponse.columnTypes(types);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -1436,6 +1553,9 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][1] = null;
         }
         SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
+        DataType[] types = new DataType[2];
+        Arrays.fill(types, StringType.INSTANCE);
+        tableResponse.columnTypes(types);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -1452,63 +1572,63 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
     @Override
     public ResultSet getClientInfoProperties() throws SQLException {
         return fakedEmptyResult(
-                "NAME",
-                "MAX_LEN",
-                "DEFAULT_VALUE",
-                "DESCRIPTION"
+                col("NAME"),
+                intCol("MAX_LEN"),
+                col("DEFAULT_VALUE"),
+                col("DESCRIPTION")
         );
     }
 
     @Override
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException {
         return fakedEmptyResult(
-                "FUNCTION_CAT",
-                "FUNCTION_SCHEM",
-                "FUNCTION_NAME",
-                "REMARKS",
-                "FUNCTION_TYPE",
-                "SPECIFIC_NAME"
+                col("FUNCTION_CAT"),
+                col("FUNCTION_SCHEM"),
+                col("FUNCTION_NAME"),
+                col("REMARKS"),
+                col("FUNCTION_TYPE", ShortType.INSTANCE),
+                col("SPECIFIC_NAME")
         );
     }
 
     @Override
     public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException {
         return fakedEmptyResult(
-                "FUNCTION_CAT",
-                "FUNCTION_SCHEM",
-                "FUNCTION_NAME",
-                "COLUMN_NAME",
-                "COLUMN_TYPE",
-                "DATA_TYPE",
-                "TYPE_NAME",
-                "PRECISION",
-                "LENGTH",
-                "SCALE",
-                "RADIX",
-                "NULLABLE",
-                "REMARKS",
-                "CHAR_OCTET_LENGTH",
-                "ORDINAL_POSITION",
-                "IS_NULLABLE",
-                "SPECIFIC_NAME"
+                col("FUNCTION_CAT"),
+                col("FUNCTION_SCHEM"),
+                col("FUNCTION_NAME"),
+                col("COLUMN_NAME"),
+                col("COLUMN_TYPE", ShortType.INSTANCE),
+                intCol("DATA_TYPE"),
+                col("TYPE_NAME"),
+                intCol("PRECISION"),
+                intCol("LENGTH"),
+                col("SCALE", ShortType.INSTANCE),
+                col("RADIX", ShortType.INSTANCE),
+                col("NULLABLE", ShortType.INSTANCE),
+                col("REMARKS"),
+                intCol("CHAR_OCTET_LENGTH"),
+                intCol("ORDINAL_POSITION"),
+                col("IS_NULLABLE"),
+                col("SPECIFIC_NAME")
         );
     }
 
     @Override
     public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
         return fakedEmptyResult(
-                "TABLE_CAT",
-                "TABLE_SCHEM",
-                "TABLE_NAME",
-                "COLUMN_NAME",
-                "DATA_TYPE",
-                "COLUMN_SIZE",
-                "DECIMAL_DIGITS",
-                "NUM_PREC_RADIX",
-                "COLUMN_USAGE",
-                "REMARKS",
-                "CHAR_OCTET_LENGTH",
-                "IS_NULLABLE"
+                col("TABLE_CAT"),
+                col("TABLE_SCHEM"),
+                col("TABLE_NAME"),
+                col("COLUMN_NAME"),
+                intCol("DATA_TYPE"),
+                intCol("COLUMN_SIZE"),
+                intCol("DECIMAL_DIGITS"),
+                intCol("NUM_PREC_RADIX"),
+                col("COLUMN_USAGE"),
+                col("REMARKS"),
+                intCol("CHAR_OCTET_LENGTH"),
+                col("IS_NULLABLE")
         );
     }
 
@@ -1542,7 +1662,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             case "short":
                 return Types.SMALLINT;
             case "float":
-                return Types.FLOAT;
+                return Types.REAL; // mapped to java float
             case "double":
                 return Types.DOUBLE;
             case "string":

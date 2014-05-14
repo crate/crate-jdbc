@@ -30,7 +30,7 @@ import java.util.Map;
 public class Mappings {
     public static final Map<Class<? extends DataType>, Integer> CRATE_TO_JDBC = ImmutableMap.<Class<? extends DataType>, Integer>builder()
             .put(BooleanType.class, Types.BOOLEAN)
-            .put(ByteType.class, Types.SMALLINT) // TODO: custom type
+            .put(ByteType.class, Types.TINYINT)
             .put(ShortType.class, Types.SMALLINT)
             .put(IntegerType.class, Types.INTEGER)
             .put(LongType.class, Types.BIGINT)

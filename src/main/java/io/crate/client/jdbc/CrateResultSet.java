@@ -1150,7 +1150,7 @@ public class CrateResultSet implements ResultSet {
 
     private Number getNumber(int columnIndex) throws SQLException {
         Object number = getField(columnIndex);
-        return number == null ? 0 : (Number) number;
+        return number == null ? null : (Number) number;
     }
 
     public static class Utilities {
