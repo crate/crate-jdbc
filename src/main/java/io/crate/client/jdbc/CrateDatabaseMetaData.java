@@ -828,7 +828,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][0] = null;
             rows[i][1] = sqlResponse.rows()[i][0];
             rows[i][2] = sqlResponse.rows()[i][1];
-            rows[i][3] = sqlResponse.rows()[i][2];
+            rows[i][3] = StringUtils.dottedToSqlPath((String)sqlResponse.rows()[i][2]);
             rows[i][4] = sqlTypeOfCrateType((String)sqlResponse.rows()[i][3]);
             rows[i][5] = sqlResponse.rows()[i][3];
             rows[i][6] = null;
