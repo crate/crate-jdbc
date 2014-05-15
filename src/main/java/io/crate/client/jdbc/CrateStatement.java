@@ -21,6 +21,7 @@
 
 package io.crate.client.jdbc;
 
+import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 
 import java.sql.*;
@@ -114,7 +115,9 @@ public class CrateStatement implements Statement {
     @Override
     public boolean execute(String sql) throws SQLException {
         checkClosed();
-        sqlResponse = connection.client().sql(sql).actionGet();
+        SQLRequest sqlRequest = new SQLRequest(sql);
+        sqlRequest.includeTypesOnResponse(true);
+        sqlResponse = connection.client().sql(sqlRequest).actionGet();
         if (sqlResponse.rowCount() < 0 || sqlResponse.rowCount() != sqlResponse.rows().length) {
             return false;
         }

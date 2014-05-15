@@ -19,6 +19,7 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
     public CratePreparedStatement(CrateConnection connection, String stmt) {
         super(connection);
         sqlRequest.stmt(stmt);
+        sqlRequest.includeTypesOnResponse(true);
     }
 
     @Override

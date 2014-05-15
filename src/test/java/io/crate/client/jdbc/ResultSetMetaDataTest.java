@@ -81,7 +81,7 @@ public class ResultSetMetaDataTest {
                 1,
                 System.currentTimeMillis()
         );
-        response.columnTypes(new DataType[]{
+        response.colTypes(new DataType[]{
                 BooleanType.INSTANCE,
                 IntegerType.INSTANCE,
                 LongType.INSTANCE,

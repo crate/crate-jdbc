@@ -92,7 +92,7 @@ public class CrateArray implements Array {
         response.cols(cols);
         response.rows(rows);
         response.requestStartedTime(System.currentTimeMillis());
-        response.columnTypes(new DataType[]{type});
+        response.colTypes(new DataType[]{type});
         return new CrateResultSet(null, response);
     }
 
