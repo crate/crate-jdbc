@@ -26,24 +26,16 @@ import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 public class CrateDriverTest extends AbstractIntegrationTest {
 
     @Test
     public void testDriverRegistration() throws Exception {
-        try {
-            DriverManager.getConnection("crate://localhost:44300");
-            fail("expected SQLException");
-        } catch (SQLException e) {
-        }
-
         Class.forName("io.crate.client.jdbc.CrateDriver");
-        Connection c = DriverManager.getConnection("crate://localhost:44300");
+        Connection c = DriverManager.getConnection("crate://localhost:" + transportPort);
         assertThat(c, instanceOf(CrateConnection.class));
     }
 

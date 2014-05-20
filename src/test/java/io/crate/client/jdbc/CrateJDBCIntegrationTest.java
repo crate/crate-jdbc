@@ -46,7 +46,7 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
             System.out.println(path);
         }
         Class.forName("io.crate.client.jdbc.CrateDriver");
-        connection = DriverManager.getConnection("crate://127.0.0.1:44300");
+        connection = DriverManager.getConnection("crate://127.0.0.1:" + transportPort);
     }
 
     @AfterClass
