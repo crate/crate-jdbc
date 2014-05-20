@@ -68,7 +68,8 @@ then
 fi
 
 # check if VERSION is in head of CHANGES.txt
-REV_NOTE=`grep "[0-9/]\{10\} $VERSION" CHANGES.txt`
+VERSION_NUMBER=`echo $VERSION | cut -d '-' -f 1`
+REV_NOTE=`grep "[0-9/]\{10\} $VERSION_NUMBER" CHANGES.txt`
 if [ -z "$REV_NOTE" ]
 then
     echo "No notes for revision $VERSION found in CHANGES.txt"
