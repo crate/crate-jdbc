@@ -26,10 +26,10 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 
 public class CrateDriverVersion {
 
-    public static final int V_1_00_00_ID = 10000;
-    public static final CrateDriverVersion V_1_00_00 = new CrateDriverVersion(V_1_00_00_ID, false);
+    public static final int V_1_00_01_ID = 10001;
+    public static final CrateDriverVersion V_1_00_01 = new CrateDriverVersion(V_1_00_01_ID, false);
 
-    public static final CrateDriverVersion CURRENT = V_1_00_00;
+    public static final CrateDriverVersion CURRENT = V_1_00_01;
 
     public final int id;
     public final byte major;

@@ -5,6 +5,10 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2014/05/20 1.0.1
+================
+
+ - updated build configuration for documentation
 
 2014/05/20 1.0.0
 ================
