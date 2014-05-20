@@ -4,9 +4,9 @@
    :alt: Crate
    :target: https://crate.io
 
-=================
-Crate JDBC Driver
-=================
+======================
+Crate Data JDBC Driver
+======================
 
 .. highlight:: java
 
@@ -14,6 +14,8 @@ This is the JDBC driver for `Crate Data`_.
 
 Installation
 ============
+
+.. note:: This JDBC driver requires Crate >= 0.38.0
 
 Build JAR from source
 ---------------------
@@ -28,6 +30,7 @@ and build a JAR including all dependencies::
    ./gradlew jar
 
 Afterwards a JAR file of the current version exists under ``build/lib``.
+
 
 Usage
 =====

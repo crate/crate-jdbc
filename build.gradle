@@ -1,6 +1,7 @@
 apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'signing'
 
 group = "io.crate"
 
@@ -26,6 +27,13 @@ dependencies {
 }
 
 sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+            include "io/crate/client/jdbc/*"
+            include "io/crate/client/jdbc/types/**"
+        }
+    }
     test {
         resources {
             srcDir 'src/test/java'
@@ -112,7 +120,51 @@ jar {
     }
 }
 
-install.dependsOn jar
+task myJavadocs(type: Javadoc, dependsOn: processResources) {
+    classpath = configurations.compile
+    source = sourceSets.main.allJava
+}
+
+task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+    classifier = 'javadoc'
+    from myJavadocs.destinationDir
+    manifest {
+        attributes("Implementation-Title": "Crate Data JDBC Driver")
+    }
+}
+
+task buildJavadocJar (dependsOn: [getVersion, myJavadocs] ) << {
+    ext.version = getVersion.version
+    project.version = ext.version
+    tasks.javadocJar.execute()
+}
+
+task sourceJar (type : Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+    manifest {
+        attributes("Implementation-Title": "Crate Data JDBC Driver")
+    }
+}
+
+task buildSourceJar (dependsOn: [getVersion] ) << {
+    ext.version = getVersion.version
+    project.version = ext.version
+    tasks.sourceJar.execute()
+}
+
+artifacts {
+    archives jar
+    archives javadocJar
+    archives sourceJar
+}
+
+task signJars (type : Sign, dependsOn: [jar, buildJavadocJar, buildSourceJar]) {
+    sign configurations.archives
+}
+
+
+install.dependsOn([jar, buildJavadocJar, buildSourceJar, signJars])
 install {
     repositories {
         mavenInstaller {
@@ -126,11 +178,12 @@ install {
 project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
 project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
 
-uploadArchives.dependsOn jar
+uploadArchives.dependsOn([jar, buildJavadocJar, buildSourceJar, signJars])
 uploadArchives {
     repositories{
         mavenDeployer {
             beforeDeployment {
+                MavenDeployment deployment -> signing.signPom(deployment)
                 if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
                     throw new StopExecutionException("uploadArchives cannot be called without sonatype username and password")
                 }
