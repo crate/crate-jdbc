@@ -45,6 +45,7 @@ import java.util.concurrent.TimeoutException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.*;
 
 public class ResultSetMetaDataTest {
@@ -69,13 +70,14 @@ public class ResultSetMetaDataTest {
 
     private ActionFuture<SQLResponse> fakeExecuteSQL(Object o) {
         final SQLResponse response = new SQLResponse(
-                new String[]{"boo", "i", "l", "f", "d", "s", "t", "o", "al", "ss"},
+                new String[]{"boo", "i", "l", "f", "d", "s", "t", "o", "al", "ss", "n"},
                 new Object[][]{
                         new Object[]{true, 1, 2L, 4.5F, 34734875.3345734d,
                                 "södkjfhsudkhfjvhvb", 0L,
                                 new MapBuilder<String, Object>().put("a", 123L).map(),
                                 new Long[]{ Long.MIN_VALUE, 0L, Long.MAX_VALUE },
-                                new HashSet<String>(){{ add("a"); add("b"); add("c"); }}
+                                new HashSet<String>(){{ add("a"); add("b"); add("c"); }},
+                                null
                         }
                 },
                 1,
@@ -91,7 +93,8 @@ public class ResultSetMetaDataTest {
                 TimestampType.INSTANCE,
                 ObjectType.INSTANCE,
                 new ArrayType(LongType.INSTANCE),
-                new SetType(StringType.INSTANCE)
+                new SetType(StringType.INSTANCE),
+                NullType.INSTANCE
         });
         return new PlainActionFuture<SQLResponse>() {
             @Override
@@ -109,7 +112,7 @@ public class ResultSetMetaDataTest {
     @Test
     public void testResultSetTypesStatement() throws Exception {
         Statement stmt = connection.createStatement();
-        assertThat(stmt.execute("select boo, i, l, f, d, s, t, o, al, ss from test"), is(true));
+        assertThat(stmt.execute("select boo, i, l, f, d, s, t, o, al, ss, n from test"), is(true));
         ResultSet resultSet = stmt.getResultSet();
         assertThat(resultSet.first(), is(true));
 
@@ -146,8 +149,11 @@ public class ResultSetMetaDataTest {
         assertThat(resultSet.getObject(10), instanceOf(Set.class));
         assertThat(resultSet.getObject("ss"), instanceOf(Set.class));
 
+        assertThat(resultSet.getObject(11), is(nullValue()));
+        assertThat(resultSet.getObject("n"), is(nullValue()));
+
         ResultSetMetaData metaData = resultSet.getMetaData();
-        assertThat(metaData.getColumnCount(), is(10));
+        assertThat(metaData.getColumnCount(), is(11));
 
         assertThat(metaData.getColumnName(1), is("boo"));
         assertThat(metaData.getColumnType(1), is(Types.BOOLEAN));
@@ -188,6 +194,10 @@ public class ResultSetMetaDataTest {
         assertThat(metaData.getColumnName(10), is("ss"));
         assertThat(metaData.getColumnType(10), is(Types.ARRAY));
         assertThat(metaData.getColumnLabel(10), is("ss"));
+
+        assertThat(metaData.getColumnName(11), is("n"));
+        assertThat(metaData.getColumnType(11), is(Types.NULL));
+        assertThat(metaData.getColumnLabel(11), is("n"));
     }
 
     @Test

@@ -42,5 +42,6 @@ public class Mappings {
             .put(ArrayType.class, Types.ARRAY)
             .put(SetType.class, Types.ARRAY)
             .put(ObjectType.class, Types.JAVA_OBJECT)
+            .put(NullType.class, Types.NULL)
             .build();
 }
