@@ -5,3 +5,4 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - initial version of jdbc driver

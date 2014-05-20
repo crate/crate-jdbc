@@ -54,7 +54,7 @@ fi
 
 # get the version
 echo "Getting version ..."
-VERSION=`./gradlew jar | grep version | cut -d ":" -f 2 | tr -d ','`
+VERSION=`./gradlew getVersion | grep version | cut -d ":" -f 2 | tr -d ' '`
 echo "$VERSION"
 
 # check if tag to create has already been created
@@ -77,6 +77,6 @@ then
 fi
 
 echo "Creating tag $VERSION..."
-#git tag -a "$VERSION" -m "Tag release for revision $VERSION"
-#git push --tags
+git tag -a "$VERSION" -m "Tag release for revision $VERSION"
+git push --tags
 echo "Done."
