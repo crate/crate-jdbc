@@ -77,7 +77,7 @@ then
     exit -1
 fi
 
-echo "Creating tag $VERSION..."
-git tag -a "$VERSION" -m "Tag release for revision $VERSION"
+echo "Creating tag $VERSION_NUMBER ..."
+git tag -a "$VERSION_NUMBER" -m "Tag release for revision $VERSION"
 git push --tags
 echo "Done."
