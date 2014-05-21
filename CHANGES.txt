@@ -5,7 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
-- fix: do not return nested columns at database metadata
+ - added server requirements note to documentation
+
+ - fix: do not return nested columns at database metadata
 
 2014/05/20 1.0.1
 ================

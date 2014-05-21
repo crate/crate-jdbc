@@ -178,7 +178,7 @@ install {
 project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
 project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
 
-uploadArchives.dependsOn([jar, buildJavadocJar, buildSourceJar, signJars])
+uploadArchives.dependsOn([signJars])
 uploadArchives {
     repositories{
         mavenDeployer {
