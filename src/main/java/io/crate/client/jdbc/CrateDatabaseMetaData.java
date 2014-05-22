@@ -780,7 +780,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
         String stmt = "select schema_name, table_name, column_name, data_type, ordinal_position " +
-                "from information_schema.columns";
+                "from information_schema.columns where column_name not like '%.%'";
         List<String> whereConditions = new ArrayList<String>();
         if (schemaPattern != null && schemaPattern.equals("")) {
             whereConditions.add("schema_name is null");
