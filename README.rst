@@ -15,8 +15,6 @@ This is the JDBC driver for `Crate Data`_.
 Installation
 ============
 
-.. note:: This JDBC driver requires Crate >= 0.38.0
-
 Build JAR from source
 ---------------------
 
