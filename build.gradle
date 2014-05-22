@@ -7,10 +7,10 @@ group = "io.crate"
 
 repositories {
     mavenCentral()
-
     maven {
         url "https://oss.sonatype.org/content/groups/public"
     }
+    jcenter()
 }
 
 dependencies {
@@ -175,8 +175,8 @@ install {
     }
 }
 
-project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
-project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
+project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
+project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
 uploadArchives.dependsOn([signJars])
 uploadArchives {
@@ -185,7 +185,7 @@ uploadArchives {
             beforeDeployment {
                 MavenDeployment deployment -> signing.signPom(deployment)
                 if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
-                    throw new StopExecutionException("uploadArchives cannot be called without sonatype username and password")
+                    throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
                 }
             }
             pom.whenConfigured {
@@ -217,12 +217,8 @@ uploadArchives {
                 }
             }
 
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
-            }
-
-            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
+            repository(id: 'crate-jdbc', url: 'https://api.bintray.com/maven/crate/crate/crate-jdbc') {
+                authentication(userName: project.ext.bintrayUsername, password: project.ext.bintrayPassword)
             }
         }
     }
