@@ -7,10 +7,10 @@ group = "io.crate"
 
 repositories {
     mavenCentral()
-
     maven {
         url "https://oss.sonatype.org/content/groups/public"
     }
+    jcenter()
 }
 
 dependencies {
@@ -109,13 +109,21 @@ task getVersion ( dependsOn: 'classes') << {
 jar.dependsOn getVersion
 jar {
     baseName 'crate-jdbc'
-    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
-        exclude 'META-INF/**'
-    }}
-
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate Data JDBC Driver", "Implementation-Version": project.version)
+        }
+    }
+}
+
+task jarStandalone(type: Jar, dependsOn: getVersion) {
+    baseName 'crate-jdbc-standalone'
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
+        exclude 'META-INF/**'
+    }}
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate Data JDBC Driver (Standalone)", "Implementation-Version": project.version)
         }
     }
 }
@@ -133,10 +141,25 @@ task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
+task javadocJarStandalone (type: Jar, dependsOn: [myJavadocs]) {
+    baseName 'crate-jdbc-standalone'
+    classifier = 'javadoc'
+    from myJavadocs.destinationDir
+    manifest {
+        attributes("Implementation-Title": "Crate Data JDBC Driver (Standalone)")
+    }
+}
+
 task buildJavadocJar (dependsOn: [getVersion, myJavadocs] ) << {
     ext.version = getVersion.version
     project.version = ext.version
     tasks.javadocJar.execute()
+}
+
+task buildJavadocJarStandalone (dependsOn: [getVersion, myJavadocs] ) << {
+    ext.version = getVersion.version
+    project.version = ext.version
+    tasks.javadocJarStandalone.execute()
 }
 
 task sourceJar (type : Jar) {
@@ -147,28 +170,51 @@ task sourceJar (type : Jar) {
     }
 }
 
+task sourceJarStandalone (type : Jar) {
+    baseName 'crate-jdbc-standalone'
+    classifier = 'sources'
+    from sourceSets.main.allSource
+    manifest {
+        attributes("Implementation-Title": "Crate Data JDBC Driver (Standalone)")
+    }
+}
+
 task buildSourceJar (dependsOn: [getVersion] ) << {
     ext.version = getVersion.version
     project.version = ext.version
     tasks.sourceJar.execute()
 }
 
-artifacts {
-    archives jar
-    archives javadocJar
-    archives sourceJar
+task buildSourceJarStandalone (dependsOn: [getVersion] ) << {
+    ext.version = getVersion.version
+    project.version = ext.version
+    tasks.sourceJarStandalone.execute()
 }
 
-task signJars (type : Sign, dependsOn: [jar, buildJavadocJar, buildSourceJar]) {
+artifacts {
+    archives jar
+    archives jarStandalone
+    archives javadocJar
+    archives javadocJarStandalone
+    archives sourceJar
+    archives sourceJarStandalone
+}
+
+task signJars (type : Sign, dependsOn: [jar, jarStandalone, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
     sign configurations.archives
 }
 
-
-install.dependsOn([jar, buildJavadocJar, buildSourceJar])
+install.dependsOn([jar, jarStandalone, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
 install {
     repositories {
         mavenInstaller {
-            pom.whenConfigured {
+            addFilter('crate-jdbc') {artifact, file ->
+                artifact.name == 'crate-jdbc'
+            }
+            addFilter('crate-jdbc-standalone') {artifact, file ->
+                artifact.name == 'crate-jdbc-standalone'
+            }
+            pom('crate-jdbc-standalone').whenConfigured {
                 it.dependencies.clear()
             }
         }
@@ -177,6 +223,26 @@ install {
 
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
+project.ext.url = 'https://crate.io'
+project.ext.scm = {
+    url 'https://github.com/crate/crate-jdbc'
+    connection 'scm:git:git://github.com/crate/crate-jdbc.git'
+    developerConnection 'scm:git:ssh:git@github.com:crate/crate-jdbc.git'
+}
+project.ext.licenses = {
+    license {
+        name 'The Apache Software License, Version 2.0'
+        url 'http://www.apache.org/license/LICENSE-2.0.txt'
+        distribution 'repo'
+    }
+}
+project.ext.developers = {
+    developer {
+        id 'crate'
+        name 'Crate Developers'
+        email 'office@crate.io'
+    }
+}
 
 uploadArchives.dependsOn([signJars])
 uploadArchives {
@@ -184,37 +250,38 @@ uploadArchives {
         mavenDeployer {
             beforeDeployment {
                 MavenDeployment deployment -> signing.signPom(deployment)
-                if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
+                if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
                     throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
                 }
             }
-            pom.whenConfigured {
-                it.dependencies.clear()
+
+            MavenPom pomJdbc = addFilter('crate-jdbc') {artifact, file ->
+                artifact.name == 'crate-jdbc'
             }
-            pom.project {
+            pomJdbc.project {
                 artifactId 'crate-jdbc'
                 name 'crate-jdbc'
                 description 'Crate Data JDBC Driver'
-                url 'https://crate.io'
-                scm {
-                    url 'https://github.com/crate/crate-jdbc'
-                    connection 'scm:git:git://github.com/crate/crate-jdbc.git'
-                    developerConnection 'scm:git:ssh:git@github.com:crate/crate-jdbc.git'
-                }
-                licenses {
-                    license {
-                        name 'The Apache Software License, Version 2.0'
-                        url 'http://www.apache.org/license/LICENSE-2.0.txt'
-                        distribution 'repo'
-                    }
-                }
-                developers {
-                    developer {
-                        id 'crate'
-                        name 'Crate Developers'
-                        email 'office@crate.io'
-                    }
-                }
+                url project.ext.url
+                scm project.ext.scm
+                licenses project.ext.licenses
+                developers project.ext.developers
+            }
+
+            MavenPom pomJdbcStandalone = addFilter('crate-jdbc-standalone') {artifact, file ->
+                artifact.name == 'crate-jdbc-standalone'
+            }
+            pomJdbcStandalone.whenConfigured {
+                it.dependencies.clear()
+            }
+            pomJdbcStandalone.project {
+                artifactId 'crate-jdbc-standalone'
+                name 'crate-jdbc-standalone'
+                description 'Crate Data JDBC Driver (Standalone)'
+                url project.ext.url
+                scm project.ext.scm
+                licenses project.ext.licenses
+                developers project.ext.developers
             }
 
             repository(id: 'crate-jdbc', url: 'https://api.bintray.com/maven/crate/crate/crate-jdbc') {
