@@ -7,14 +7,11 @@ group = "io.crate"
 
 repositories {
     mavenCentral()
-    maven {
-        url "https://oss.sonatype.org/content/groups/public"
-    }
     jcenter()
 }
 
 dependencies {
-    compile 'io.crate:crate-client:0.38.0-SNAPSHOT'
+    compile 'io.crate:crate-client:0.38.2'
 
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile 'junit:junit:4.11'
