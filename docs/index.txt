@@ -1,6 +1,6 @@
-=================
-Crate JDBC Driver
-=================
+======================
+Crate Data JDBC Driver
+======================
 
 JDBC is a core API of Java 1.1 and later. It provides a standard set of
 interfaces to SQL-compliant databases.
@@ -8,6 +8,48 @@ interfaces to SQL-compliant databases.
 Crate provides a type 4 JDBC driver. The driver is written in Pure Java, and
 communicates in the database system's own network protocol. Because of this,
 the driver is platform independent.
+
+.. note:: This JDBC driver requires Crate 0.38.0 or newer!
+
+Download and Setup
+==================
+
+The ``crate-jdbc`` jar files are hosted on `Bintray`_ and available via `JCenter`_.
+
+Additionally to ``crate-jdbc`` there is also a standalone version
+named ``crate-jdbc-standalone`` which already includes its dependencies.
+
+``crate-jdbc-standalone`` might want to be used e.g. as a driver for the
+``Squirrel``_ SQL client.
+
+If you want to use ``crate-jdbc`` with your Maven project you need to
+add the Bintray repository to your ``pom.xml``::
+
+    ...
+    <repositories>
+        ...
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>bintray</name>
+            <url>http://dl.bintray.com/crate/crate</url>
+        </repository>
+    </repositories>
+    ...
+    <dependencies>
+        ...
+        <dependency>
+            <groupId>io.crate</groupId>
+            <artifactId>crate-jdbc</artifactId>
+            <version>...</version>
+        </dependency>
+    </dependencies>
+    ...
+
+Alternatively you can follow the instructions on the Bintray repository overview page by clicking the "Set me up!" button.
+
 
 JDBC Driver Class
 =================
@@ -25,3 +67,10 @@ With Crate, this takes the following form:
 For example::
 
     crate://localhost:4300
+
+
+.. _`Bintray`: https://bintray.com/crate/crate/
+
+.. _`JCenter`: https://bintray.com/bintray/jcenter
+
+.. _`Squirrel`: http://squirrel-sql.sourceforge.net/

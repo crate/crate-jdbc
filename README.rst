@@ -29,6 +29,10 @@ and build a JAR including all dependencies::
 
    ./gradlew jar
 
+or
+
+   ./gradlew jarStandalone
+
 Afterwards a JAR file of the current version exists under ``build/lib``.
 
 
