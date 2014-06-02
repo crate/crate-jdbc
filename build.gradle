@@ -118,6 +118,7 @@ task jarStandalone(type: Jar, dependsOn: getVersion) {
     from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
         exclude 'META-INF/**'
     }}
+    from sourceSets.main.output
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate Data JDBC Driver (Standalone)", "Implementation-Version": project.version)

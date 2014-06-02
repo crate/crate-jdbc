@@ -29,7 +29,7 @@ and build a JAR including all dependencies::
 
    ./gradlew jar
 
-or
+or::
 
    ./gradlew jarStandalone
 
