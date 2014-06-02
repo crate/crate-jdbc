@@ -5,6 +5,11 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2014/06/03 1.0.3
+================
+
+ - fixed missing class files in jdbc-standalone jar file
+
 2014/05/23 1.0.2
 ================
 
