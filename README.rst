@@ -36,10 +36,11 @@ or::
 Afterwards a JAR file of the current version exists under ``build/lib``.
 
 
-Usage
-=====
+Documentation
+=============
 
-TBD.
+For the documentation of the latest stable version visit
+https://crate.io/docs/projects/crate-jdbc/stable/
 
 Help & Contact
 ==============
