@@ -19,8 +19,11 @@ The ``crate-jdbc`` jar files are hosted on `Bintray`_ and available via `JCenter
 Additionally to ``crate-jdbc`` there is also a standalone version
 named ``crate-jdbc-standalone`` which already includes its dependencies.
 
-``crate-jdbc-standalone`` might want to be used e.g. as a driver for the
-``Squirrel``_ SQL client.
+.. note:: ``crate-jdbc-standalone`` should not be used in Maven projects,
+    but might want to be used e.g. as a driver for the `Squirrel`_ SQL client.
+
+You can download the latest standalone version directly from the
+`Bintray Repository <https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone>`_.
 
 If you want to use ``crate-jdbc`` with your Maven project you need to
 add the Bintray repository to your ``pom.xml``::
@@ -60,7 +63,7 @@ JDBC URL Format
 ===============
 
 With JDBC, a database is represented by a URL (Uniform Resource Locator).
-With Crate, this takes the following form:
+With Crate, this takes the following form::
 
     crate://<host>:<transport-port>
 
