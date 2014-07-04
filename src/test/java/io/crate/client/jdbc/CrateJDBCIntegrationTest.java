@@ -34,6 +34,7 @@ import java.util.Map;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
 
 public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
 
@@ -148,6 +149,19 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
         assertThat(resultSet.getDouble("double_field"), is(3.456789d));
         assertThat(resultSet.getTimestamp("timestamp_field"), is(new Timestamp(0L)));
         assertThat(resultSet.getString("ip_field"), is("127.0.0.1"));
+    }
+
+    @Test
+    public void testExcludeNestedColumns() throws Exception {
+        ResultSet resultSet = connection.getMetaData().getColumns(null, "sys", "nodes", null);
+        int counter = 0;
+        while(resultSet.next()) {
+            assertFalse(resultSet.getString(4).contains("."));
+            assertFalse(resultSet.getString(4).contains("["));
+            counter++;
+        }
+        assertThat(counter, is(10));
+
     }
 }
 
