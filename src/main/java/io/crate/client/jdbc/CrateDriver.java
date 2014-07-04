@@ -29,7 +29,15 @@ import java.util.logging.Logger;
 
 public class CrateDriver implements Driver {
 
-    public static final String PREFIX = "crate://";
+    private static final String PROTOCOL = "jdbc";
+    private static final String SUB_PROTOCOL = "crate";
+    public static final String PREFIX = new StringBuilder()
+            .append(SUB_PROTOCOL).append(":")
+            .append("//").toString();
+    public static final String LONG_PREFIX = new StringBuilder()
+            .append(PROTOCOL).append(":")
+            .append(SUB_PROTOCOL).append(":")
+            .append("//").toString();
 
     static {
         try {
@@ -50,8 +58,13 @@ public class CrateDriver implements Driver {
             // throw new UnsupportedOperationException("Properties are not supported yet");
         }
 
-        if (url.startsWith(PREFIX)) {
+        if (url.startsWith(PROTOCOL+":")) {
+            url = url.substring(LONG_PREFIX.length());
+        } else if (url.startsWith(SUB_PROTOCOL+":")) {
             url = url.substring(PREFIX.length());
+        } else {
+            String[] parts = url.split("//");
+            throw new SQLException(String.format("Protocol url %s not supported. Must be one of %s or %s", parts[0]+"//", PREFIX, LONG_PREFIX));
         }
 
         CrateConnection connection = new CrateConnection(new CrateClient(url), url);

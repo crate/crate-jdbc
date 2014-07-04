@@ -58,7 +58,7 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
     }
     @Before
     public void setUpTable() {
-        CrateClient client = new CrateClient("localhost:" +  transportPort);
+        CrateClient client = new CrateClient("127.0.0.1:" +  transportPort);
 
         String stmt = "create table test (" +
                 " id integer primary key," +
@@ -160,8 +160,7 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
             assertFalse(resultSet.getString(4).contains("["));
             counter++;
         }
-        assertThat(counter, is(10));
+        assertThat(counter, is(13));
 
     }
 }
-
