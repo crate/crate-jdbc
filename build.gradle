@@ -40,7 +40,7 @@ sourceSets {
 
 ext {
     downloadDir = new File(rootDir, 'downloads')
-    crate_version = '0.39.1'
+    crate_version = '0.39.2'
 }
 
 
