@@ -5,11 +5,12 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2014/07/30 1.0.4
+================
+
  - added support for jdbc:crate: url prefix
 
  - updated crate-client version to 0.40.3
-
- - removed relative development path in buildout.cfg
 
 2014/06/03 1.0.3
 ================
