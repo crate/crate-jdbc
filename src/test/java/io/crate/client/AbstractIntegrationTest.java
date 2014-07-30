@@ -50,7 +50,7 @@ public abstract class AbstractIntegrationTest {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "bin/crate",
                 "-Des.index.storage.type=memory",
-                "-Des.cluster.name=Testing44300",
+                "-Des.cluster.name=Testing"+transportPort,
                 "-Des.http.port="+httpPort,
                 "-Des.transport.tcp.port="+transportPort
         );
@@ -103,7 +103,7 @@ public abstract class AbstractIntegrationTest {
     @AfterClass
     public static void tearDownClass() throws Exception {
         crateProcess.destroy();
-        sleep(1000);
+        crateProcess.waitFor();
         wipeDataDirectory();
         wipeLogs();
     }

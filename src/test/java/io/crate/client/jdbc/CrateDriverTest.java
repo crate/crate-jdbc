@@ -22,21 +22,35 @@
 package io.crate.client.jdbc;
 
 import io.crate.client.AbstractIntegrationTest;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
 public class CrateDriverTest extends AbstractIntegrationTest {
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Test
     public void testDriverRegistration() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
-        Connection c = DriverManager.getConnection("crate://localhost:" + transportPort);
-        assertThat(c, instanceOf(CrateConnection.class));
-    }
 
+        Connection c1 = DriverManager.getConnection("crate://127.0.0.1:" + transportPort);
+        assertThat(c1, instanceOf(CrateConnection.class));
+
+        Connection c2 = DriverManager.getConnection("jdbc:crate://127.0.0.1:" + transportPort);
+        assertThat(c2, instanceOf(CrateConnection.class));
+
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage("Protocol url jdbc-crate:// not supported. Must be one of crate:// or jdbc:crate://");
+
+        DriverManager.getConnection("jdbc-crate://127.0.0.1:" + transportPort);
+    }
 }
