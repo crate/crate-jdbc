@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - updated crate-client to 0.41.2
+
  - improved docs formatting of field lists
 
 2014/07/30 1.0.4
