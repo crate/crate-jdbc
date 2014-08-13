@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.client.AbstractIntegrationTest;
 import io.crate.client.CrateClient;
 import org.junit.*;
+import org.junit.rules.ExpectedException;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -37,6 +38,9 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 
 public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private static Connection connection;
 

@@ -45,7 +45,13 @@ public class CrateStatement implements Statement {
     @Override
     public int executeUpdate(String sql) throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement executeUpdate not supported");
+        if (execute(sql)) {
+            resultSet = null;
+            throw new SQLException("Execution of statement returned a ResultSet");
+        } else {
+            // return 0 if no affected Rows are given
+            return (int)Math.max(0L, sqlResponse.rowCount());
+        }
     }
 
     @Override

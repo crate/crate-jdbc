@@ -65,9 +65,9 @@ JDBC URL Format
 With JDBC, a database is represented by a URL (Uniform Resource Locator).
 With Crate, this takes the following form::
 
-    crate://<host>:<transport-port>
+    [jdbc:]crate://<host>:<transport-port>
 
-For example::
+The ``jdbc:`` prefix is optional. For example::
 
     crate://localhost:4300
 
