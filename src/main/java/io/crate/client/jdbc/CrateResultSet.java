@@ -89,6 +89,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public boolean next() throws SQLException {
+        checkClosed();
         if (!rowsIt.hasNext()) {
             return false;
         }
@@ -104,6 +105,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public boolean wasNull() throws SQLException {
+        checkClosed();
         return false;
     }
 
@@ -343,7 +345,15 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public int findColumn(String columnLabel) throws SQLException {
-        return columns.indexOf(columnLabel) + 1;
+        checkClosed();
+        int index = columns.indexOf(columnLabel);
+        if (index < 0) {
+            throw new SQLException(
+                    String.format(Locale.ENGLISH,
+                            "column with label '%s' does not exist in resultset",
+                            columnLabel));
+        }
+        return index + 1;
     }
 
     @Override
@@ -368,32 +378,38 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public boolean isBeforeFirst() throws SQLException {
+        checkClosed();
         return rowIdx == -1;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
+        checkClosed();
         return rowIdx >= sqlResponse.rowCount();
     }
 
     @Override
     public boolean isFirst() throws SQLException {
+        checkClosed();
         return rowIdx == 0;
     }
 
     @Override
     public boolean isLast() throws SQLException {
+        checkClosed();
         return rowIdx == sqlResponse.rows().length-1;
     }
 
     @Override
     public void beforeFirst() throws SQLException {
+        checkClosed();
         rowsIt = new ArrayIterator(sqlResponse.rows(), 0, sqlResponse.rows().length);
         rowIdx = -1;
     }
 
     @Override
     public void afterLast() throws SQLException {
+        checkClosed();
         rowIdx = sqlResponse.rows().length;
         while (rowsIt.hasNext()) {
             rowsIt.next();
@@ -402,6 +418,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public boolean first() throws SQLException {
+        checkClosed();
         if (sqlResponse.rows().length > 0) {
             rowsIt = new ArrayIterator(sqlResponse.rows(), 0, sqlResponse.rows().length);
             return next();
@@ -411,6 +428,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public boolean last() throws SQLException {
+        checkClosed();
         if (sqlResponse.rows().length > 0 && rowIdx < sqlResponse.rows().length) {
             while (rowsIt.hasNext()) {
                 next();
@@ -422,11 +440,13 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public int getRow() throws SQLException {
+        checkClosed();
         return rowIdx+1;
     }
 
     @Override
     public boolean absolute(int row) throws SQLException {
+        checkClosed();
         if (sqlResponse.rows().length > 0 && rowIdx < sqlResponse.rows().length) {
             while (getRow() != row) {
                 next();
@@ -468,26 +488,31 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public int getType() throws SQLException {
+        checkClosed();
         return TYPE_FORWARD_ONLY;
     }
 
     @Override
     public int getConcurrency() throws SQLException {
+        checkClosed();
         return CONCUR_READ_ONLY;
     }
 
     @Override
     public boolean rowUpdated() throws SQLException {
+        checkClosed();
         return false;
     }
 
     @Override
     public boolean rowInserted() throws SQLException {
+        checkClosed();
         return false;
     }
 
     @Override
     public boolean rowDeleted() throws SQLException {
+        checkClosed();
         return false;
     }
 
@@ -718,6 +743,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Statement getStatement() throws SQLException {
+        checkClosed();
         return statement;
     }
 
@@ -891,6 +917,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public int getHoldability() throws SQLException {
+        checkClosed();
         return HOLD_CURSORS_OVER_COMMIT;
     }
 
