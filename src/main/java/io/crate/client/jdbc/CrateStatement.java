@@ -21,16 +21,20 @@
 
 package io.crate.client.jdbc;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 
 import java.sql.*;
+import java.util.LinkedList;
+import java.util.List;
 
 public class CrateStatement implements Statement {
 
     protected CrateConnection connection;
     protected SQLResponse sqlResponse;
     protected ResultSet resultSet;
+    protected List<String> batch = new LinkedList<>();
 
     public CrateStatement(CrateConnection connection) {
         this.connection = connection;
@@ -123,7 +127,11 @@ public class CrateStatement implements Statement {
         checkClosed();
         SQLRequest sqlRequest = new SQLRequest(sql);
         sqlRequest.includeTypesOnResponse(true);
-        sqlResponse = connection.client().sql(sqlRequest).actionGet();
+        try {
+            sqlResponse = connection.client().sql(sqlRequest).actionGet();
+        } catch (SQLActionException e) {
+            throw new SQLException(e.getMessage(), e);
+        }
         if (sqlResponse.rowCount() < 0 || sqlResponse.rowCount() != sqlResponse.rows().length) {
             return false;
         }
@@ -180,17 +188,40 @@ public class CrateStatement implements Statement {
 
     @Override
     public void addBatch(String sql) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement: addBatch not supported");
+        checkClosed();
+        batch.add(sql);
     }
 
     @Override
     public void clearBatch() throws SQLException {
-        // no-op
+        checkClosed();
+        batch.clear();
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
-        return new int[0];
+        checkClosed();
+        if (resultSet != null) {
+            resultSet.close();
+        }
+        boolean failed = false;
+        int[] results = new int[batch.size()];
+
+        for (int i = 0, batchSize = batch.size(); i < batchSize; i++) {
+            String command = batch.get(i);
+            try {
+                int result = executeUpdate(command);
+                results[i] = (result == -1 ? SUCCESS_NO_INFO : result);
+            } catch (SQLException e) {
+                failed = true;
+                results[i] = EXECUTE_FAILED;
+            }
+        }
+        clearBatch();
+        if (failed) {
+            throw new BatchUpdateException("Error during executeBatch", results);
+        }
+        return results;
     }
 
     @Override

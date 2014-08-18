@@ -22,12 +22,15 @@
 package io.crate.client.jdbc;
 
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.types.*;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
+import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -35,8 +38,7 @@ import java.util.HashSet;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class CrateStatementTest extends AbstractCrateJDBCTest {
 
@@ -50,8 +52,12 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
                             new Object[]{true, 1, 2L, 4.5F, 34734875.3345734d,
                                     "södkjfhsudkhfjvhvb", 0L,
                                     new MapBuilder<String, Object>().put("a", 123L).map(),
-                                    new Long[]{ Long.MIN_VALUE, 0L, Long.MAX_VALUE },
-                                    new HashSet<String>(){{ add("a"); add("b"); add("c"); }},
+                                    new Long[]{Long.MIN_VALUE, 0L, Long.MAX_VALUE},
+                                    new HashSet<String>() {{
+                                        add("a");
+                                        add("b");
+                                        add("c");
+                                    }},
                                     null
                             }
                     },
@@ -71,6 +77,8 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
                     new SetType(StringType.INSTANCE),
                     NullType.INSTANCE
             });
+        } else if (request.stmt().toUpperCase().startsWith("ERROR")) {
+            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST, "");
         } else {
             response = new SQLResponse(new String[0], new Object[0][], 4L, System.currentTimeMillis());
         }
@@ -164,6 +172,50 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
         expectedException.expectMessage("ResultSet is closed");
 
         resultSet.first();
+
+    }
+
+    @Test
+    public void testBatchSelect() throws Exception {
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage("Error during executeBatch");
+
+        Statement statement = connection.createStatement();
+        statement.addBatch("select * from test");
+        statement.executeBatch();
+    }
+
+    @Test
+    public void testExecuteEmptyBatch() throws Exception {
+        Statement statement = connection.createStatement();
+        int[] results = statement.executeBatch();
+        assertThat(results.length, is(0));
+    }
+
+    @Test
+    public void testExecuteBatch() throws Exception {
+        Statement statement = connection.createStatement();
+        statement.addBatch("update test set a = 1");
+        statement.addBatch("insert into test (a=2)");
+
+        int[] results = statement.executeBatch();
+        assertArrayEquals(results, new int[]{4, 4});
+
+    }
+
+    @Test
+    public void testExecuteBatchError() throws Exception {
+        Statement statement = connection.createStatement();
+        statement.addBatch("update test set a = 1");
+        statement.addBatch("error yeah!");
+        statement.addBatch("insert into test (a=2)");
+
+        try {
+            statement.executeBatch();
+            fail("no SQLException raised");
+        } catch (BatchUpdateException e) {
+            assertArrayEquals(e.getUpdateCounts(), new int[]{4, Statement.EXECUTE_FAILED, 4});
+        }
 
     }
 

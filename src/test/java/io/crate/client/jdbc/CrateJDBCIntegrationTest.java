@@ -22,9 +22,11 @@
 package io.crate.client.jdbc;
 
 import com.google.common.base.Splitter;
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.client.AbstractIntegrationTest;
 import io.crate.client.CrateClient;
+import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
@@ -32,10 +34,13 @@ import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
 
@@ -166,5 +171,133 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
         }
         assertThat(counter, is(13));
 
+    }
+
+    /**
+     * test that SQLActionException is correctly wrapped in a SQLException
+     */
+    @Test
+    public void testException() throws Exception {
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage("line 1:1: no viable alternative at input 'ERROR'");
+        expectedException.expectCause(Matchers.is(Matchers.<Throwable>instanceOf(SQLActionException.class)));
+
+        Statement stmt = connection.createStatement();
+        stmt.executeQuery("ERROR");
+    }
+
+    @Test
+    public void testExecuteBatchStatement() throws Exception {
+        Statement stmt = connection.createStatement();
+        stmt.addBatch("insert into test (id) values (3)");
+        stmt.addBatch("insert into test (id) values (4)");
+        stmt.addBatch("insert into test (id) values (5)");
+
+        int[] results = stmt.executeBatch();
+        assertArrayEquals(results, new int[]{1,1,1});
+
+        assertFalse(stmt.execute("refresh table test"));
+        ResultSet resultSet = stmt.executeQuery("select count(*) from test");
+        resultSet.first();
+        assertThat(resultSet.getLong(1), is(4L));
+    }
+
+    @Test
+    public void testExecuteBatchStatementFail() throws Exception {
+        Statement stmt = connection.createStatement();
+        stmt.addBatch("insert into test (id) values (3)");
+        stmt.addBatch("insert (id) values (4) into test");
+        stmt.addBatch("insert into test (id) values (5)");
+        stmt.addBatch("select * from sys.cluster");
+
+        try {
+            stmt.executeBatch();
+            fail("BatchUpdateException not thrown");
+        } catch (BatchUpdateException e) {
+            assertArrayEquals(e.getUpdateCounts(), new int[]{1, Statement.EXECUTE_FAILED, 1, Statement.EXECUTE_FAILED});
+        }
+        assertFalse(stmt.execute("refresh table test"));
+        ResultSet resultSet = stmt.executeQuery("select count(*) from test");
+        resultSet.first();
+        assertThat(resultSet.getLong(1), is(3L));
+    }
+
+    @Test
+    public void testExecuteBatchPreparedStatement() throws Exception {
+        PreparedStatement stmt = connection.prepareStatement("insert into test (id, string_field) values (?, ?)");
+        stmt.setInt(1, 2);
+        stmt.setString(2, "foo");
+        stmt.addBatch();
+
+        stmt.setInt(1, 3);
+        stmt.setString(2, "bar");
+        stmt.addBatch();
+
+        stmt.setInt(1, 4);
+        stmt.setString(2, "baz");
+        stmt.addBatch();
+
+        int[] results = stmt.executeBatch();
+        assertArrayEquals(results, new int[]{1,1,1});
+
+        assertFalse(stmt.execute("refresh table test"));
+        ResultSet resultSet = stmt.executeQuery("select count(*) from test");
+        resultSet.first();
+        assertThat(resultSet.getLong(1), is(4L));
+    }
+
+    @Test
+    public void testExecuteBatchPreparedStatementFail() throws Exception {
+        PreparedStatement stmt = connection.prepareStatement("insert into test (id, string_field) values ($1, $2)");
+        stmt.setInt(1, 2);
+        stmt.setString(2, "foo");
+        stmt.addBatch();
+
+        stmt.setInt(1, 3);
+        stmt.setString(2, "bar");
+        stmt.addBatch();
+
+        stmt.setInt(1, 1);
+        stmt.setObject(2, newHashMap());
+        stmt.addBatch();
+
+        try {
+            stmt.executeBatch();
+            fail("BatchUpdateException not thrown");
+        } catch (BatchUpdateException e) {
+            assertArrayEquals(e.getUpdateCounts(), new int[]{1, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED});
+        }
+
+        assertFalse(stmt.execute("refresh table test"));
+        ResultSet resultSet = stmt.executeQuery("select count(*) from test");
+        resultSet.first();
+        assertThat(resultSet.getLong(1), is(2L));
+    }
+
+    @Test
+    public void testExecuteBatchPreparedStatementFailSyntax() throws Exception {
+        PreparedStatement stmt = connection.prepareStatement("insert test (id, string_field) values (?, ?)");
+        stmt.setInt(1, 2);
+        stmt.setString(2, "foo");
+        stmt.addBatch();
+
+        stmt.setInt(1, 3);
+        stmt.setString(2, "bar");
+        stmt.addBatch();
+
+        stmt.setInt(1, 4);
+        stmt.setString(2, "baz");
+        stmt.addBatch();
+
+        try {
+            stmt.executeBatch();
+            fail("BatchUpdateException not thrown");
+        } catch (BatchUpdateException e) {
+            assertArrayEquals(e.getUpdateCounts(), new int[]{Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED});
+        }
+        assertFalse(stmt.execute("refresh table test"));
+        ResultSet resultSet = stmt.executeQuery("select count(*) from test");
+        resultSet.first();
+        assertThat(resultSet.getLong(1), is(1L));
     }
 }
