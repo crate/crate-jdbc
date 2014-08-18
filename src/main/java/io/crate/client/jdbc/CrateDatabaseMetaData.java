@@ -1413,7 +1413,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsBatchUpdates() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
