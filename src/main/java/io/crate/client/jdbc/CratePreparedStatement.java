@@ -1,8 +1,6 @@
 package io.crate.client.jdbc;
 
-import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import org.elasticsearch.common.Nullable;
 
 import java.io.InputStream;
@@ -13,17 +11,13 @@ import java.sql.*;
 import java.sql.Date;
 import java.util.*;
 
-public class CratePreparedStatement extends CrateStatement implements PreparedStatement {
+public class CratePreparedStatement extends CrateStatementBase implements PreparedStatement {
 
     static class CratePreparedStatementParser {
         /**
          * Parses the number of parameters from the given SQL statement.
          * Is aware of '?' and '$1' kind of parameters
          * and does not consider those when occuring in strings.
-         *
-         * TODO: use a bitset to track param slots to be filled for successful
-         *       statement execution and track set paramaters by using another
-         *       bitset
          *
          * @param statement the SQL statement to get the number of parameters from
          * @return a BitSet with all the parameter slots set ($1 -> "1", (?, ?) -> "11")
@@ -86,6 +80,8 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
     private static final int[] BATCH_FAILED_RESPONSE = new int[]{EXECUTE_FAILED};
 
     private final SQLRequest sqlRequest = new SQLRequest();
+    private SQLResponse sqlResponse;
+
     private final BitSet parameterSlots;
     private BitSet paramsAdded;
 
@@ -137,12 +133,26 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
     }
 
     @Override
+    public boolean execute(String sql) throws SQLException {
+        throw new SQLException("execute(String) not supported on PreparedStatement. Use eceute().");
+    }
+
+    @Override
+    public int getUpdateCount() throws SQLException {
+        checkClosed();
+        if (resultSet == null && sqlResponse != null) {
+            return (int) sqlResponse.rowCount();
+        }
+        return -1;
+    }
+
+    @Override
     public boolean execute() throws SQLException {
         checkClosed();
         checkAllArgumentsProvided();
 
         sqlRequest.args(currentParams);
-        innerExecute();
+        executeSingle();
         if (!hasResultSet(sqlResponse)) {
             return false;
         }
@@ -150,7 +160,7 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
         return true;
     }
 
-    private void innerExecute() throws SQLException {
+    private void executeSingle() throws SQLException {
         try {
             sqlResponse = connection.client().sql(sqlRequest).actionGet();
         } catch (SQLActionException e) {
@@ -291,7 +301,6 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void clearBatch() throws SQLException {
-        super.clearBatch();
         batchParams.clear();
     }
 
@@ -310,21 +319,36 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     }
 
-    private int[] executeBatchBulk() throws SQLException {
-        int[] results = new int[batchParams.size()];
-        sqlRequest.bulkArgs(batchParams.toArray(new Object[batchParams.size()][]));
+    private int[] executeBulk(SQLBulkRequest bulkRequest) throws SQLException {
+        SQLBulkResponse bulkResponse;
         try {
-            innerExecute();
+            bulkResponse = connection.client().bulkSql(bulkRequest).actionGet();
+        } catch (SQLActionException e) {
+            throw new SQLException(e.getMessage(), e);
+        }
+        int[] results = new int[bulkResponse.results().length];
+        SQLBulkResponse.Result[] results1 = bulkResponse.results();
+        for (int i = 0, results1Length = results1.length; i < results1Length; i++) {
+            SQLBulkResponse.Result result = results1[i];
+            if (result.errorMessage() != null || result.rowCount() == -2) {
+                results[i] = EXECUTE_FAILED;
+            } else {
+                results[i] = (result.rowCount() >= 0 ? (int)result.rowCount() : SUCCESS_NO_INFO);
+            }
+        }
+        return results;
+    }
+
+    private int[] executeBatchBulk() throws SQLException {
+        SQLBulkRequest bulkRequest = new SQLBulkRequest(sqlRequest.stmt(),
+                batchParams.toArray(new Object[batchParams.size()][]));
+        bulkRequest.includeTypesOnResponse(true);
+        try {
+            return executeBulk(bulkRequest);
         } catch (SQLException e) {
             // we cannot know what batch worked and what went wrong here
             throw new BatchUpdateException(e.getMessage(), BATCH_FAILED_RESPONSE, e);
         }
-        if (results.length > 0) {
-            results[0] = (int) sqlResponse.rowCount();
-            // TODO: fill in values from MultiResponse
-            Arrays.fill(results, 1, results.length, SUCCESS_NO_INFO);
-        }
-        return results;
     }
 
     private int[] executeBatchSingle() throws SQLException {
@@ -334,7 +358,7 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
             Object[] params = batchParams.get(i);
             sqlRequest.args(params);
             try {
-                innerExecute();
+                executeSingle();
                 results[i] = (int) sqlResponse.rowCount();
             } catch (SQLException e) {
                 results[i] = EXECUTE_FAILED;

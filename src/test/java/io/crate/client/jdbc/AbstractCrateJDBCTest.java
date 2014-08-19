@@ -21,6 +21,8 @@
 
 package io.crate.client.jdbc;
 
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
@@ -77,8 +79,17 @@ public abstract class AbstractCrateJDBCTest {
                 return fakeExecuteSQL(invocation.getArguments()[0]);
             }
         };
+
+        Answer<ActionFuture<SQLBulkResponse>> sqlBulkAnswer = new Answer<ActionFuture<SQLBulkResponse>>() {
+            @Override
+            public ActionFuture<SQLBulkResponse> answer(InvocationOnMock invocation) throws Throwable {
+                assert invocation.getArguments().length == 1;
+                return fakeExecuteBulkSQL(invocation.getArguments()[0]);
+            }
+        };
         when(crateClient.sql((SQLRequest)any())).thenAnswer(sqlAnswer);
         when(crateClient.sql(anyString())).thenAnswer(sqlAnswer);
+        when(crateClient.bulkSql((SQLBulkRequest)any())).thenAnswer(sqlBulkAnswer);
         connection = new CrateTestConnection(crateClient, "localhost:4300");
         ((CrateConnection)connection).connect();
     }
@@ -108,7 +119,34 @@ public abstract class AbstractCrateJDBCTest {
         };
     }
 
+    protected ActionFuture<SQLBulkResponse> fakeExecuteBulkSQL(Object o) {
+
+        final SQLBulkResponse response;
+
+        if (o instanceof String) {
+            response = getBulkResponse(new SQLBulkRequest((String)o));
+        } else if (o instanceof SQLBulkRequest) {
+            response = getBulkResponse((SQLBulkRequest) o);
+        } else {
+            throw new IllegalArgumentException("invalid SQL Bulk request");
+        }
+
+        return new PlainActionFuture<SQLBulkResponse>() {
+            @Override
+            public SQLBulkResponse get() throws InterruptedException, ExecutionException {
+                return response;
+            }
+
+            @Override
+            public SQLBulkResponse get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, ExecutionException {
+                return response;
+            }
+        };
+    }
+
     protected abstract SQLResponse getResponse(SQLRequest request);
+
+    protected abstract SQLBulkResponse getBulkResponse(SQLBulkRequest request);
 
     protected abstract String getServerVersion();
 }

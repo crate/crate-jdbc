@@ -22,9 +22,7 @@
 package io.crate.client.jdbc;
 
 
-import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.types.*;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.rest.RestStatus;
@@ -83,6 +81,11 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
             response = new SQLResponse(new String[0], new Object[0][], 4L, System.currentTimeMillis());
         }
         return response;
+    }
+
+    @Override
+    protected SQLBulkResponse getBulkResponse(SQLBulkRequest request) {
+        return null; // never used here
     }
 
     @Override
