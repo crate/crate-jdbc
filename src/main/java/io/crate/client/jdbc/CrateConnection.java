@@ -23,6 +23,7 @@ package io.crate.client.jdbc;
 
 import io.crate.client.CrateClient;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
+import org.elasticsearch.common.Nullable;
 
 import java.sql.*;
 import java.util.Locale;
@@ -32,8 +33,11 @@ import java.util.concurrent.Executor;
 
 public class CrateConnection implements Connection {
 
+    protected static final String CRATE_BULK_ARG_VERSION = "0.42.0";
+
     private CrateClient crateClient;
     private String url;
+    private String serverVersion;
 
     public CrateConnection(CrateClient crateClient, String url) {
         this.crateClient = crateClient;
@@ -45,15 +49,30 @@ public class CrateConnection implements Connection {
     }
 
     public void connect() throws SQLException {
-        Statement statement = createStatement();
-
         try {
-            if (!statement.execute("select id from sys.cluster")) {
-                throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", url));
-            }
+            serverVersion = getLowestServerVersion();
         } catch (NoNodeAvailableException e) {
             throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", url), e);
         }
+    }
+
+    protected @Nullable String getLowestServerVersion() throws SQLException {
+        ResultSet resultSet = createStatement().executeQuery("select version['number'] from sys.nodes");
+        resultSet.first();
+        String maxVersion = null;
+        do {
+            String nodeVersion = resultSet.getString(1);
+            if (nodeVersion == null) { continue; }
+
+            if (maxVersion == null || VersionStringComparator.compareVersions(nodeVersion, maxVersion) < 0) {
+                maxVersion = nodeVersion;
+            }
+        } while (resultSet.next());
+        return maxVersion;
+    }
+
+    protected String lowestServerVersion() {
+        return serverVersion;
     }
 
     @Override

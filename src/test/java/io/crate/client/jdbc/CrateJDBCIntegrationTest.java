@@ -238,10 +238,12 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
         stmt.addBatch();
 
         int[] results = stmt.executeBatch();
-        assertArrayEquals(results, new int[]{1,1,1});
 
-        assertFalse(stmt.execute("refresh table test"));
-        ResultSet resultSet = stmt.executeQuery("select count(*) from test");
+        // TODO: fill with real results once multiresponse is ready
+        assertArrayEquals(results, new int[]{3, Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO});
+
+        assertFalse(connection.createStatement().execute("refresh table test"));
+        ResultSet resultSet = connection.createStatement().executeQuery("select count(*) from test");
         resultSet.first();
         assertThat(resultSet.getLong(1), is(4L));
     }
@@ -265,13 +267,15 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
             stmt.executeBatch();
             fail("BatchUpdateException not thrown");
         } catch (BatchUpdateException e) {
-            assertArrayEquals(e.getUpdateCounts(), new int[]{1, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED});
+            assertThat(e.getMessage(), is("argument 2 of bulk arguments contains mixed data types"));
+            // TODO: return a full array once multi response is done
+            assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
         }
 
-        assertFalse(stmt.execute("refresh table test"));
-        ResultSet resultSet = stmt.executeQuery("select count(*) from test");
+        assertFalse(connection.createStatement().execute("refresh table test"));
+        ResultSet resultSet = connection.createStatement().executeQuery("select count(*) from test");
         resultSet.first();
-        assertThat(resultSet.getLong(1), is(2L));
+        assertThat(resultSet.getLong(1), is(1L));
     }
 
     @Test
@@ -293,10 +297,11 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
             stmt.executeBatch();
             fail("BatchUpdateException not thrown");
         } catch (BatchUpdateException e) {
-            assertArrayEquals(e.getUpdateCounts(), new int[]{Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED});
+            // TODO: return a full array once multi response is done
+            assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
         }
-        assertFalse(stmt.execute("refresh table test"));
-        ResultSet resultSet = stmt.executeQuery("select count(*) from test");
+        assertFalse(connection.createStatement().execute("refresh table test"));
+        ResultSet resultSet = connection.createStatement().executeQuery("select count(*) from test");
         resultSet.first();
         assertThat(resultSet.getLong(1), is(1L));
     }

@@ -299,12 +299,24 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
     @Override
     public int[] executeBatch() throws SQLException {
         checkClosed();
-        int[] results = new int[batchParams.size()];
+        int[] results;
+        if (VersionStringComparator.compareVersions(this.connection.lowestServerVersion(), CrateConnection.CRATE_BULK_ARG_VERSION) >= 0) {
+            results = executeBatchBulk();
+        } else {
+            results = executeBatchSingle();
+        }
+        clearBatch();
+        return results;
 
+    }
+
+    private int[] executeBatchBulk() throws SQLException {
+        int[] results = new int[batchParams.size()];
         sqlRequest.bulkArgs(batchParams.toArray(new Object[batchParams.size()][]));
         try {
             innerExecute();
         } catch (SQLException e) {
+            // we cannot know what batch worked and what went wrong here
             throw new BatchUpdateException(e.getMessage(), BATCH_FAILED_RESPONSE, e);
         }
         if (results.length > 0) {
@@ -312,7 +324,26 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
             // TODO: fill in values from MultiResponse
             Arrays.fill(results, 1, results.length, SUCCESS_NO_INFO);
         }
-        clearBatch();
+        return results;
+    }
+
+    private int[] executeBatchSingle() throws SQLException {
+        int[] results = new int[batchParams.size()];
+        boolean failed = false;
+        for (int i = 0, batchParamsSize = batchParams.size(); i < batchParamsSize; i++) {
+            Object[] params = batchParams.get(i);
+            sqlRequest.args(params);
+            try {
+                innerExecute();
+                results[i] = (int) sqlResponse.rowCount();
+            } catch (SQLException e) {
+                results[i] = EXECUTE_FAILED;
+                failed = true;
+            }
+        }
+        if (failed) {
+            throw new BatchUpdateException("Error during batch update", results);
+        }
         return results;
     }
 

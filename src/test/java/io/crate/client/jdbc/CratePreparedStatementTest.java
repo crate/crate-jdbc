@@ -21,19 +21,19 @@
 
 package io.crate.client.jdbc;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.BitSet;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
@@ -45,15 +45,28 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
     private static SQLResponse ID_RESPONSE = new SQLResponse(new String[]{"id"}, new Object[][]{new Object[]{0L}}, new DataType[]{DataTypes.INTEGER}, 1L, 0L, true);
     private static SQLResponse ROWCOUNT_RESPONSE = new SQLResponse(new String[0], new Object[0][], new DataType[0], 4L, 0L, true);
 
+    private boolean supportBulkArgs = true;
+
     @Override
     protected SQLResponse getResponse(SQLRequest request) {
-        if (request.stmt().toUpperCase().startsWith("SELECT")) {
+        if (hasErrorArg(request)) {
+            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST, "");
+        } else if (request.stmt().toUpperCase().startsWith("SELECT")) {
             return ID_RESPONSE;
         } else {
             return ROWCOUNT_RESPONSE;
         }
     }
 
+    private boolean hasErrorArg(SQLRequest request) {
+        return     (request.args().length > 0 && "ERROR".equals(request.args()[0]))
+                || (request.bulkArgs().length > 0 && request.bulkArgs()[0].length > 0 && "ERROR".equals(request.bulkArgs()[0][0]));
+    }
+
+    @Override
+    protected String getServerVersion() {
+        return supportBulkArgs ? "0.42.0" : "0.41.3";
+    }
 
 
     @Test
@@ -170,7 +183,7 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
     }
 
     @Test
-    public void testExecuteBatchEmpty() throws Exception {
+    public void testExecuteBatchBulkEmpty() throws Exception {
         CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
         preparedStatement.setInt(1, 1);
         preparedStatement.setObject(2, newHashMap());
@@ -181,7 +194,22 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
     }
 
     @Test
-    public void testExecuteBatchOneRow() throws Exception {
+    public void testExecuteBatchSingleEmpty() throws Exception {
+        supportBulkArgs = false;
+
+        CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
+        preparedStatement.setInt(1, 1);
+        preparedStatement.setObject(2, newHashMap());
+        preparedStatement.setLong(1, Long.MAX_VALUE);
+
+        int[] results = preparedStatement.executeBatch();
+        assertThat(results.length, is(0));
+
+        supportBulkArgs = true;
+    }
+
+    @Test
+    public void testExecuteBatchBulkOneRow() throws Exception {
         CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
         preparedStatement.setInt(1, 1);
         preparedStatement.setObject(2, newHashMap());
@@ -194,7 +222,24 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
     }
 
     @Test
-    public void testExecuteBatchMultipleRows() throws Exception {
+    public void testExecuteBatchSingleOneRow() throws Exception {
+        supportBulkArgs = false;
+
+        CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
+        preparedStatement.setInt(1, 1);
+        preparedStatement.setObject(2, newHashMap());
+        preparedStatement.setLong(3, Long.MAX_VALUE);
+        preparedStatement.addBatch();
+
+        int[] results = preparedStatement.executeBatch();
+        assertThat(results.length, is(1));
+        assertThat(results[0], is(4));
+
+        supportBulkArgs = true;
+    }
+
+    @Test
+    public void testExecuteBatchBulkMultipleRows() throws Exception {
         CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
 
         preparedStatement.setInt(1, 1);
@@ -210,7 +255,29 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
         int[] results = preparedStatement.executeBatch();
         assertThat(results.length, is(2));
         assertArrayEquals(results, new int[]{4, Statement.SUCCESS_NO_INFO});
+    }
 
+    @Test
+    public void testExecuteBatchSingleMultipleRows() throws Exception {
+        supportBulkArgs = false;
+
+        CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
+
+        preparedStatement.setInt(1, 1);
+        preparedStatement.setObject(2, newHashMap());
+        preparedStatement.setLong(3, Long.MAX_VALUE);
+        preparedStatement.addBatch();
+
+        preparedStatement.setString(3, "foo");
+        preparedStatement.setString(2, "bar");
+        preparedStatement.setString(1, "baz");
+        preparedStatement.addBatch();
+
+        int[] results = preparedStatement.executeBatch();
+        assertThat(results.length, is(2));
+        assertArrayEquals(new int[]{4, 4}, results);
+
+        supportBulkArgs = true;
     }
 
     @Test
@@ -223,5 +290,54 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
         expectedException.expectMessage("Not all parameters have been provided a value");
 
         preparedStatement.addBatch();
+    }
+
+    @Test
+    public void testExecuteBatchBulkFail() throws Exception {
+        CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
+
+        preparedStatement.setString(1, "ERROR");  // trigger error
+        preparedStatement.setObject(2, newHashMap());
+        preparedStatement.setLong(3, Long.MAX_VALUE);
+        preparedStatement.addBatch();
+
+        preparedStatement.setString(3, "foo");
+        preparedStatement.setString(2, "bar");
+        preparedStatement.setString(1, "baz");
+        preparedStatement.addBatch();
+        try {
+            preparedStatement.executeBatch();
+            fail("BatchUpdateException not thrown");
+        } catch (BatchUpdateException e) {
+            // TODO: return a full array once multiresponse is done
+            assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
+        }
+    }
+
+    @Test
+    public void testExecuteBatchSingleFail() throws Exception {
+        supportBulkArgs = false;
+
+        CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
+
+        preparedStatement.setString(3, "foo");
+        preparedStatement.setString(2, "bar");
+        preparedStatement.setString(1, "baz");
+        preparedStatement.addBatch();
+
+        preparedStatement.setString(1, "ERROR");  // trigger error
+        preparedStatement.setObject(2, newHashMap());
+        preparedStatement.setLong(3, Long.MAX_VALUE);
+        preparedStatement.addBatch();
+
+        try {
+            preparedStatement.executeBatch();
+            fail("BatchUpdateException not thrown");
+        } catch (BatchUpdateException e) {
+            // TODO: return a full array once multiresponse is done
+            assertArrayEquals(new int[]{4, Statement.EXECUTE_FAILED}, e.getUpdateCounts());
+        }
+
+        supportBulkArgs = true;
     }
 }
