@@ -85,6 +85,11 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
         return response;
     }
 
+    @Override
+    protected String getServerVersion() {
+        return "0.42.0";
+    }
+
     @Test
     public void testExecute() throws Exception {
         Statement statement = connection.createStatement();

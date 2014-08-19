@@ -70,6 +70,11 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
         return response;
     }
 
+    @Override
+    protected String getServerVersion() {
+        return "0.42.0";
+    }
+
     @Test
     public void testResultSetTypesStatement() throws Exception {
         Statement stmt = connection.createStatement();

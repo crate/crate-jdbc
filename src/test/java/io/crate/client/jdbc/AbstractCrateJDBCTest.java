@@ -33,6 +33,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -49,6 +50,23 @@ public abstract class AbstractCrateJDBCTest {
 
     protected Connection connection;
 
+    private class CrateTestConnection extends CrateConnection {
+
+        public CrateTestConnection(CrateClient crateClient, String url) {
+            super(crateClient, url);
+        }
+
+        @Override
+        protected String getLowestServerVersion() throws SQLException {
+            return getServerVersion();
+        }
+
+        @Override
+        protected String lowestServerVersion() {
+            return getServerVersion();
+        }
+    }
+
     @Before
     public void prepare() throws Exception {
         CrateClient crateClient = mock(CrateClient.class);
@@ -61,8 +79,8 @@ public abstract class AbstractCrateJDBCTest {
         };
         when(crateClient.sql((SQLRequest)any())).thenAnswer(sqlAnswer);
         when(crateClient.sql(anyString())).thenAnswer(sqlAnswer);
-
-        connection = new CrateConnection(crateClient, "crate://localhost:4300");
+        connection = new CrateTestConnection(crateClient, "localhost:4300");
+        ((CrateConnection)connection).connect();
     }
 
     protected ActionFuture<SQLResponse> fakeExecuteSQL(Object o) {
@@ -91,4 +109,6 @@ public abstract class AbstractCrateJDBCTest {
     }
 
     protected abstract SQLResponse getResponse(SQLRequest request);
+
+    protected abstract String getServerVersion();
 }
