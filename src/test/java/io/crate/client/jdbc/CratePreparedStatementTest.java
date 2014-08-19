@@ -21,29 +21,28 @@
 
 package io.crate.client.jdbc;
 
-import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
 import java.sql.*;
+import java.util.Arrays;
 import java.util.BitSet;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
 
     private static SQLResponse ID_RESPONSE = new SQLResponse(new String[]{"id"}, new Object[][]{new Object[]{0L}}, new DataType[]{DataTypes.INTEGER}, 1L, 0L, true);
     private static SQLResponse ROWCOUNT_RESPONSE = new SQLResponse(new String[0], new Object[0][], new DataType[0], 4L, 0L, true);
+
+
 
     private boolean supportBulkArgs = true;
 
@@ -58,9 +57,26 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
         }
     }
 
+    @Override
+    protected SQLBulkResponse getBulkResponse(SQLBulkRequest request) {
+        if (hasErrorArg(request)) {
+            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST, "");
+        } else {
+            SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[request.bulkArgs().length];
+            Arrays.fill(results, new SQLBulkResponse.Result(null, 4));
+            return new SQLBulkResponse(new String[0], results,
+                    System.currentTimeMillis(), new DataType[0], true);
+        }
+    }
+
     private boolean hasErrorArg(SQLRequest request) {
-        return     (request.args().length > 0 && "ERROR".equals(request.args()[0]))
-                || (request.bulkArgs().length > 0 && request.bulkArgs()[0].length > 0 && "ERROR".equals(request.bulkArgs()[0][0]));
+        return request.args().length > 0 && "ERROR".equals(request.args()[0]);
+    }
+
+    private boolean hasErrorArg(SQLBulkRequest bulkRequest) {
+        return bulkRequest.bulkArgs().length > 0
+                && bulkRequest.bulkArgs()[0].length > 0
+                && "ERROR".equals(bulkRequest.bulkArgs()[0][0]);
     }
 
     @Override
@@ -254,7 +270,7 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
 
         int[] results = preparedStatement.executeBatch();
         assertThat(results.length, is(2));
-        assertArrayEquals(results, new int[]{4, Statement.SUCCESS_NO_INFO});
+        assertArrayEquals(new int[]{4, 4}, results);
     }
 
     @Test
@@ -309,7 +325,6 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
             preparedStatement.executeBatch();
             fail("BatchUpdateException not thrown");
         } catch (BatchUpdateException e) {
-            // TODO: return a full array once multiresponse is done
             assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
         }
     }
@@ -334,7 +349,6 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
             preparedStatement.executeBatch();
             fail("BatchUpdateException not thrown");
         } catch (BatchUpdateException e) {
-            // TODO: return a full array once multiresponse is done
             assertArrayEquals(new int[]{4, Statement.EXECUTE_FAILED}, e.getUpdateCounts());
         }
 

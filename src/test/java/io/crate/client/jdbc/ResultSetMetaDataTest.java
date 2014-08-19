@@ -21,6 +21,8 @@
 
 package io.crate.client.jdbc;
 
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.jdbc.types.CrateArray;
@@ -68,6 +70,11 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
                 NullType.INSTANCE
         });
         return response;
+    }
+
+    @Override
+    protected SQLBulkResponse getBulkResponse(SQLBulkRequest request) {
+        return null; // never used
     }
 
     @Override
