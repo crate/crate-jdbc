@@ -78,7 +78,7 @@ Compatibility
 JDBC
 ----
 
-This JDBC driver is complies to the `JDBC 4.1`_ standard as good as possible and reasonable for
+This JDBC driver complies to the `JDBC 4.1`_ standard as good as possible and reasonable for
 a Crate driver. The following mandatory features are not supported:
 
 * ``java.sql.ParameterMetaData`` as returned by e.g. ``java.sql.PreparedStatement``
