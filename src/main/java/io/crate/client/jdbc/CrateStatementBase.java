@@ -63,7 +63,7 @@ public abstract class CrateStatementBase implements Statement {
 
     @Override
     public void setMaxRows(int max) throws SQLException {
-        //throw new SQLFeatureNotSupportedException("Statement: setMaxRows not supported");
+        // no-op
     }
 
     @Override
