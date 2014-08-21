@@ -309,7 +309,10 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
     public int[] executeBatch() throws SQLException {
         checkClosed();
         int[] results;
-        if (VersionStringComparator.compareVersions(this.connection.lowestServerVersion(), CrateConnection.CRATE_BULK_ARG_VERSION) >= 0) {
+        DatabaseMetaData metaData = connection.getMetaData();
+        if (VersionStringComparator.compareVersions(
+                metaData.getDatabaseProductVersion(),
+                CrateDatabaseMetaData.CRATE_BULK_ARG_VERSION) >= 0) {
             results = executeBatchBulk();
         } else {
             results = executeBatchSingle();

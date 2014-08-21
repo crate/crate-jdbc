@@ -65,6 +65,7 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
         connection = null;
         AbstractIntegrationTest.tearDownClass();
     }
+
     @Before
     public void setUpTable() {
         CrateClient client = new CrateClient("127.0.0.1:" +  transportPort);

@@ -42,8 +42,7 @@ import java.util.concurrent.TimeoutException;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public abstract class AbstractCrateJDBCTest {
 
@@ -52,19 +51,14 @@ public abstract class AbstractCrateJDBCTest {
 
     protected Connection connection;
 
-    private class CrateTestConnection extends CrateConnection {
+    private class CrateTestDatabaseMetadata extends CrateDatabaseMetaData {
 
-        public CrateTestConnection(CrateClient crateClient, String url) {
-            super(crateClient, url);
+        public CrateTestDatabaseMetadata(CrateConnection connection) {
+            super(connection);
         }
 
         @Override
-        protected String getLowestServerVersion() throws SQLException {
-            return getServerVersion();
-        }
-
-        @Override
-        protected String lowestServerVersion() {
+        public String getDatabaseProductVersion() throws SQLException {
             return getServerVersion();
         }
     }
@@ -89,8 +83,15 @@ public abstract class AbstractCrateJDBCTest {
         };
         when(crateClient.sql((SQLRequest)any())).thenAnswer(sqlAnswer);
         when(crateClient.sql(anyString())).thenAnswer(sqlAnswer);
-        when(crateClient.bulkSql((SQLBulkRequest)any())).thenAnswer(sqlBulkAnswer);
-        connection = new CrateTestConnection(crateClient, "localhost:4300");
+        when(crateClient.bulkSql((SQLBulkRequest) any())).thenAnswer(sqlBulkAnswer);
+        CrateConnection conn = new CrateConnection(crateClient, "localhost:4300");
+        connection = spy(conn);
+        doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                return new CrateTestDatabaseMetadata((CrateConnection)connection);
+            }
+        }).when(connection).getMetaData();
         ((CrateConnection)connection).connect();
     }
 
