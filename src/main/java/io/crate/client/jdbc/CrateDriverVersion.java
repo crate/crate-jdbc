@@ -26,8 +26,8 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 
 public class CrateDriverVersion {
 
-    public static final boolean SNAPSHOT = false;
-    public static final CrateDriverVersion CURRENT = new CrateDriverVersion(10005, SNAPSHOT);
+    public static final boolean SNAPSHOT = true;
+    public static final CrateDriverVersion CURRENT = new CrateDriverVersion(10100, SNAPSHOT);
 
     public final int id;
     public final byte major;
