@@ -339,4 +339,17 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
             assertThat(metaData.getColumnType(i), instanceOf(Integer.class));
         }
     }
+
+    @Test
+    public void testSelectWhenNothingMatches() throws Exception {
+        Statement statement = connection.createStatement();
+        assertTrue(statement.execute("select * from test where string_field = 'nothing_matches_this'"));
+    }
+
+    @Test
+    public void testExecuteUpdateWhenNothingMatches() throws Exception {
+        Statement statement = connection.createStatement();
+        assertThat(statement.executeUpdate("update test set string_field = 'new_value' where string_field = 'nothing_matches_this'"), is(0));
+    }
+
 }
