@@ -124,7 +124,7 @@ public class CrateStatement implements Statement {
         SQLRequest sqlRequest = new SQLRequest(sql);
         sqlRequest.includeTypesOnResponse(true);
         sqlResponse = connection.client().sql(sqlRequest).actionGet();
-        if (sqlResponse.rowCount() < 0 || sqlResponse.rowCount() != sqlResponse.rows().length) {
+        if (sqlResponse.rowCount() <= 0 || sqlResponse.rowCount() != sqlResponse.rows().length) {
             return false;
         }
         resultSet = new CrateResultSet(this, sqlResponse);
