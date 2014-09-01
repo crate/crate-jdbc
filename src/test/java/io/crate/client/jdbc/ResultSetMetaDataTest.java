@@ -21,55 +21,28 @@
 
 package io.crate.client.jdbc;
 
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.client.CrateClient;
 import io.crate.client.jdbc.types.CrateArray;
 import io.crate.types.*;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.sql.*;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.*;
+import static org.hamcrest.Matchers.*;
 
-public class ResultSetMetaDataTest {
+public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
 
-    private Connection connection;
-
-    @Before
-    public void prepare() throws Exception {
-        CrateClient crateClient = mock(CrateClient.class);
-        Answer<ActionFuture<SQLResponse>> sqlAnswer = new Answer<ActionFuture<SQLResponse>>() {
-            @Override
-            public ActionFuture<SQLResponse> answer(InvocationOnMock invocation) throws Throwable {
-                assert invocation.getArguments().length == 1;
-                return fakeExecuteSQL(invocation.getArguments()[0]);
-            }
-        };
-        when(crateClient.sql((SQLRequest)any())).thenAnswer(sqlAnswer);
-        when(crateClient.sql(anyString())).thenAnswer(sqlAnswer);
-
-        connection = new CrateConnection(crateClient, "crate://localhost:4300");
-    }
-
-    private ActionFuture<SQLResponse> fakeExecuteSQL(Object o) {
-        final SQLResponse response = new SQLResponse(
+    @Override
+    protected SQLResponse getResponse(SQLRequest request) {
+        SQLResponse response = new SQLResponse(
                 new String[]{"boo", "i", "l", "f", "d", "s", "t", "o", "al", "ss", "n"},
                 new Object[][]{
                         new Object[]{true, 1, 2L, 4.5F, 34734875.3345734d,
@@ -96,17 +69,17 @@ public class ResultSetMetaDataTest {
                 new SetType(StringType.INSTANCE),
                 NullType.INSTANCE
         });
-        return new PlainActionFuture<SQLResponse>() {
-            @Override
-            public SQLResponse get() throws InterruptedException, ExecutionException {
-                return response;
-            }
+        return response;
+    }
 
-            @Override
-            public SQLResponse get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, ExecutionException {
-                return response;
-            }
-        };
+    @Override
+    protected SQLBulkResponse getBulkResponse(SQLBulkRequest request) {
+        return null; // never used
+    }
+
+    @Override
+    protected String getServerVersion() {
+        return "0.42.0";
     }
 
     @Test

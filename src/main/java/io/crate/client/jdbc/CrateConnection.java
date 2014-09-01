@@ -45,12 +45,8 @@ public class CrateConnection implements Connection {
     }
 
     public void connect() throws SQLException {
-        Statement statement = createStatement();
-
         try {
-            if (!statement.execute("select id from sys.cluster")) {
-                throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", url));
-            }
+            createStatement().execute("select id from sys.cluster");
         } catch (NoNodeAvailableException e) {
             throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", url), e);
         }

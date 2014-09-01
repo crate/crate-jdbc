@@ -72,8 +72,41 @@ The ``jdbc:`` prefix is optional. For example::
     crate://localhost:4300
 
 
+Compatibility
+=============
+
+JDBC
+----
+
+This JDBC driver complies to the `JDBC 4.1`_ standard as good as possible and reasonable for
+a Crate driver. The following mandatory features are not supported:
+
+* ``java.sql.ParameterMetaData`` as returned by e.g. ``java.sql.PreparedStatement``
+* ``DataSource`` is not implemented
+* ``CallableStatement`` is not implemented as CRATE has no stored procedures to call
+
+For further details about compatibility with all possible JDBC features,
+see the ``ResultSet``, ``ResultSetMetaData`` and ``DatabaseMetaData`` implementations.
+
+Though only an optional feature, it is still worth mentioning:
+
+* the ``ResultSet`` implementation is read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
+  so changes to a ``ResultSet`` are not supported. Though DDL and DML statements are supported
+  using the ``Statement`` and ``PreparedStatement`` interfaces.
+
+Crate
+-----
+
+This JDBC driver can only be used with *Crate version 0.38.0* and higher.
+
+Besides using the most recent version, it is recommended to use the JDBC driver version
+whose crate-client dependency matches the Crate server.
+
+
 .. _`Bintray`: https://bintray.com/crate/crate/
 
 .. _`JCenter`: https://bintray.com/bintray/jcenter
 
 .. _`Squirrel`: http://squirrel-sql.sourceforge.net/
+
+.. _`JDBC 4.1`: http://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf

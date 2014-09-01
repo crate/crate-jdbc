@@ -10,9 +10,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 public class CrateDatabaseMetaData implements DatabaseMetaData {
+
+    protected static final String CRATE_BULK_ARG_VERSION = "0.42.0";
 
     private final CrateConnection connection;
     private String dataBaseVersion;
@@ -73,12 +74,20 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getDatabaseProductVersion() throws SQLException {
-        String stmt = "select version from sys.nodes limit 1";
-        SQLResponse sqlResponse = connection.client().sql(stmt).actionGet();
-        if (sqlResponse.rowCount() > 0) {
-            Map<String, Object> versionMap =  (Map<String, Object>)sqlResponse.rows()[0][0];
-            dataBaseVersion = (String)versionMap.get("number");
-        }
+        ResultSet resultSet = connection.createStatement().executeQuery("select version['number'] from sys.nodes");
+        resultSet.first();
+        String minVersion = null;
+        do {
+            String nodeVersion = resultSet.getString(1);
+            if (nodeVersion == null) {
+                continue;
+            }
+
+            if (minVersion == null || VersionStringComparator.compareVersions(nodeVersion, minVersion) < 0) {
+                minVersion = nodeVersion;
+            }
+        } while (resultSet.next());
+        dataBaseVersion = minVersion;
         return dataBaseVersion;
     }
 
@@ -1413,7 +1422,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsBatchUpdates() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override

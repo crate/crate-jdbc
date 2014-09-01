@@ -21,26 +21,24 @@
 
 package io.crate.client.jdbc;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 
 import java.sql.*;
+import java.util.LinkedList;
+import java.util.List;
 
-public class CrateStatement implements Statement {
+public class CrateStatement extends CrateStatementBase {
 
-    protected CrateConnection connection;
+
     protected SQLResponse sqlResponse;
-    protected ResultSet resultSet;
+    protected List<String> batch = new LinkedList<>();
 
     public CrateStatement(CrateConnection connection) {
-        this.connection = connection;
+        super(connection);
     }
 
-    @Override
-    public ResultSet executeQuery(String sql) throws SQLException {
-        execute(sql);
-        return resultSet;
-    }
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
@@ -55,86 +53,21 @@ public class CrateStatement implements Statement {
     }
 
     @Override
-    public void close() throws SQLException {
-        connection = null;
-        if (resultSet != null) {
-            resultSet.close();
-            resultSet = null;
-        }
-    }
-
-    @Override
-    public int getMaxFieldSize() throws SQLException {
-        return 0;
-    }
-
-    @Override
-    public void setMaxFieldSize(int max) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement: setMaxFieldSize not supported");
-    }
-
-    @Override
-    public int getMaxRows() throws SQLException {
-        return 0;
-    }
-
-    @Override
-    public void setMaxRows(int max) throws SQLException {
-        //throw new SQLFeatureNotSupportedException("Statement: setMaxRows not supported");
-    }
-
-    @Override
-    public void setEscapeProcessing(boolean enable) throws SQLException {
-        // no-op
-    }
-
-    @Override
-    public int getQueryTimeout() throws SQLException {
-        return 0;
-    }
-
-    @Override
-    public void setQueryTimeout(int seconds) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement setQueryTimeout not supported");
-    }
-
-    @Override
-    public void cancel() throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: cancel not supported");
-    }
-
-    @Override
-    public SQLWarning getWarnings() throws SQLException {
-        return null;
-    }
-
-    @Override
-    public void clearWarnings() throws SQLException {
-    }
-
-    @Override
-    public void setCursorName(String name) throws SQLException {
-        // no-op
-    }
-
-    @Override
     public boolean execute(String sql) throws SQLException {
         checkClosed();
         SQLRequest sqlRequest = new SQLRequest(sql);
+
         sqlRequest.includeTypesOnResponse(true);
-        sqlResponse = connection.client().sql(sqlRequest).actionGet();
+        try {
+            sqlResponse = connection.client().sql(sqlRequest).actionGet();
+        } catch (SQLActionException e) {
+            throw new SQLException(e.getMessage(), e);
+        }
         if (sqlResponse.rowCount() < 0 || sqlResponse.rowCount() != sqlResponse.rows().length) {
             return false;
         }
         resultSet = new CrateResultSet(this, sqlResponse);
         return true;
-    }
-
-    @Override
-    public ResultSet getResultSet() throws SQLException {
-        checkClosed();
-        return resultSet;
     }
 
     @Override
@@ -144,159 +77,41 @@ public class CrateStatement implements Statement {
     }
 
     @Override
-    public boolean getMoreResults() throws SQLException {
-        return false;
-    }
-
-    @Override
-    public void setFetchDirection(int direction) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement setFetchDirection not supported");
-    }
-
-    @Override
-    public int getFetchDirection() throws SQLException {
-        return 0;
-    }
-
-    @Override
-    public void setFetchSize(int rows) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement: setFetchSize not supported");
-    }
-
-    @Override
-    public int getFetchSize() throws SQLException {
-        return 0;
-    }
-
-    @Override
-    public int getResultSetConcurrency() throws SQLException {
-        return ResultSet.CONCUR_READ_ONLY;
-    }
-
-    @Override
-    public int getResultSetType() throws SQLException {
-        return ResultSet.TYPE_FORWARD_ONLY;
-    }
-
-    @Override
     public void addBatch(String sql) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement: addBatch not supported");
+        checkClosed();
+        batch.add(sql);
     }
 
     @Override
     public void clearBatch() throws SQLException {
-        // no-op
+        checkClosed();
+        batch.clear();
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
-        return new int[0];
-    }
-
-    @Override
-    public Connection getConnection() throws SQLException {
         checkClosed();
-        return connection;
-    }
-
-    @Override
-    public boolean getMoreResults(int current) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: getMoreResults not supported");
-    }
-
-    @Override
-    public ResultSet getGeneratedKeys() throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: getGeneratedKeys not supported");
-    }
-
-    @Override
-    public int executeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: executeUpdate(String sql, int autoGeneratedKeys) not supported");
-    }
-
-    @Override
-    public int executeUpdate(String sql, int[] columnIndexes) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: executeUpdate(String sql, int[] columnIndexes) not supported");
-    }
-
-    @Override
-    public int executeUpdate(String sql, String[] columnNames) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: executeUpdate(String sql, String[] columnNames) not supported");
-    }
-
-    @Override
-    public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: execute(String sql, int autoGeneratedKeys) not supported");
-    }
-
-    @Override
-    public boolean execute(String sql, int[] columnIndexes) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: execute(String sql, int[] columnIndexes) not supported");
-    }
-
-    @Override
-    public boolean execute(String sql, String[] columnNames) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Statement: execute(String sql, String[] columnNames) not supported");
-    }
-
-    @Override
-    public int getResultSetHoldability() throws SQLException {
-        return ResultSet.HOLD_CURSORS_OVER_COMMIT;
-    }
-
-    @Override
-    public boolean isClosed() throws SQLException {
-        return connection == null;
-    }
-
-    @Override
-    public void setPoolable(boolean poolable) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement: setPoolable not supported");
-    }
-
-    @Override
-    public boolean isPoolable() throws SQLException {
-        return false;
-    }
-
-    @Override
-    public void closeOnCompletion() throws SQLException {
-        checkClosed();
-        if (resultSet.isClosed()) {
-            close();
+        if (resultSet != null) {
+            resultSet.close();
         }
-    }
+        boolean failed = false;
+        int[] results = new int[batch.size()];
 
-    @Override
-    public boolean isCloseOnCompletion() throws SQLException {
-        return true;
-    }
-
-    @Override
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass()))
-        {
-            return (T) this;
+        for (int i = 0, batchSize = batch.size(); i < batchSize; i++) {
+            String command = batch.get(i);
+            try {
+                int result = executeUpdate(command);
+                results[i] = (result == -1 ? SUCCESS_NO_INFO : result);
+            } catch (SQLException e) {
+                failed = true;
+                results[i] = EXECUTE_FAILED;
+            }
         }
-        throw new SQLException("Cannot unwrap to " + iface.getName());
-    }
-
-    @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return iface.isAssignableFrom(getClass());
-    }
-
-    protected void checkClosed() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("Statement is closed");
+        clearBatch();
+        if (failed) {
+            throw new BatchUpdateException("Error during executeBatch", results);
         }
+        return results;
     }
+
 }

@@ -1,25 +1,106 @@
 package io.crate.client.jdbc;
 
-import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.*;
+import org.elasticsearch.common.Nullable;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.util.Calendar;
-import java.util.Map;
-import java.util.TreeMap;
+import java.sql.Date;
+import java.util.*;
 
-public class CratePreparedStatement extends CrateStatement implements PreparedStatement {
+public class CratePreparedStatement extends CrateStatementBase implements PreparedStatement {
+
+    static class CratePreparedStatementParser {
+        /**
+         * Parses the number of parameters from the given SQL statement.
+         * Is aware of '?' and '$1' kind of parameters
+         * and does not consider those when occuring in strings.
+         *
+         * @param statement the SQL statement to get the number of parameters from
+         * @return a BitSet with all the parameter slots set ($1 -> "1", (?, ?) -> "11")
+         */
+        public static BitSet getParameters(String statement) {
+            BitSet paramSlots = new BitSet();
+            int count = 0;
+            boolean insideString = false;
+
+            for (int i = 0; i < statement.length(); i++) {
+                switch (statement.charAt(i)) {
+                    case '\'':
+                        insideString ^= true;
+                        break;
+                    case '$':
+                        if (!insideString) {
+                            if (statement.length() > i+1) {
+                                // numeric parameter
+                                int paramNum = getParamNumber(statement, i+1);
+                                if (paramNum > 0) {
+                                    paramSlots.set(paramNum-1);
+                                }
+                            }
+                        }
+                        break;
+                    case '?':
+                        if (!insideString) {
+                            paramSlots.set(count++);
+                        }
+                        break;
+                    default:
+
+                        break;
+                }
+            }
+            return paramSlots;
+        }
+
+        private static int getParamNumber(String statement, int pos) {
+            StringBuilder builder = new StringBuilder();
+            int i = pos,
+                length = statement.length();
+            char c;
+            while (i < length) {
+                c = statement.charAt(i++);
+                if ('0' <= c && c <= '9') {
+                    builder.append(c);
+                } else {
+                    break;
+                }
+            }
+            try {
+                return Integer.valueOf(builder.toString());
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
+    }
+
+    private static final int[] BATCH_FAILED_RESPONSE = new int[]{EXECUTE_FAILED};
 
     private final SQLRequest sqlRequest = new SQLRequest();
-    private final Map<Integer, Object> arguments = new TreeMap<>();
+    private SQLResponse sqlResponse;
+
+    private final BitSet parameterSlots;
+    private BitSet paramsAdded;
+
+    private List<Object[]> batchParams = new LinkedList<>();
+    private Object[] currentParams;
 
     public CratePreparedStatement(CrateConnection connection, String stmt) {
         super(connection);
         sqlRequest.stmt(stmt);
         sqlRequest.includeTypesOnResponse(true);
+        parameterSlots = CratePreparedStatementParser.getParameters(sqlRequest.stmt());
+        paramsAdded = new BitSet(parameterSlots.size());
+        currentParams = new Object[parameterSlots.length()];
+    }
+
+    protected void checkAllArgumentsProvided() throws SQLException {
+        if (!parameterSlots.equals(paramsAdded)) {
+            throw new SQLException("Not all parameters have been provided a value");
+        }
     }
 
     @Override
@@ -32,71 +113,124 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
     @Override
     public int executeUpdate() throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException("PreparedStatement: executeUpdate() not supported");
+        if (execute()) {
+            resultSet = null;
+            throw new SQLException("Execution of statement returned a ResultSet");
+        } else {
+            // return 0 if no affected Rows are given
+            return (int)Math.max(0L, sqlResponse.rowCount());
+        }
     }
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        checkClosed();
-        sqlRequest.stmt(sql);
-        execute();
-        return resultSet;
+        throw new SQLException("executeQuery(String) not supported on PreparedStatement. Use executeQuery().");
     }
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
+        throw new SQLException("executeUpdate(String) not supported on PreparedStatement. Use executeQuery().");
+    }
+
+    @Override
+    public boolean execute(String sql) throws SQLException {
+        throw new SQLException("execute(String) not supported on PreparedStatement. Use eceute().");
+    }
+
+    @Override
+    public int getUpdateCount() throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException();
+        if (resultSet == null && sqlResponse != null) {
+            return (int) sqlResponse.rowCount();
+        }
+        return -1;
+    }
+
+    @Override
+    public boolean execute() throws SQLException {
+        checkClosed();
+        checkAllArgumentsProvided();
+
+        sqlRequest.args(currentParams);
+        executeSingle();
+        if (!hasResultSet(sqlResponse)) {
+            return false;
+        }
+        resultSet = new CrateResultSet(this, sqlResponse);
+        return true;
+    }
+
+    private void executeSingle() throws SQLException {
+        try {
+            sqlResponse = connection.client().sql(sqlRequest).actionGet();
+        } catch (SQLActionException e) {
+            throw new SQLException(e.getMessage(), e);
+        }
+    }
+
+    private boolean hasResultSet(SQLResponse response) {
+        return response.rowCount() > 0 && response.rowCount() == response.rows().length;
+    }
+
+    private void set(int idx, @Nullable Object value) throws SQLException {
+        checkClosed();
+        try {
+            currentParams[idx-1] = value;
+            paramsAdded.set(idx-1);
+        } catch (IndexOutOfBoundsException e) {
+            throw new SQLException(
+                    String.format(Locale.ENGLISH, "invalid parameter index %d", idx));
+        }
     }
 
     @Override
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
-        arguments.put(parameterIndex, null);
+        set(parameterIndex, null);
     }
 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
     public void setShort(int parameterIndex, short x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
     public void setInt(int parameterIndex, int x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
     public void setLong(int parameterIndex, long x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
     public void setDouble(int parameterIndex, double x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
@@ -106,17 +240,17 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void setDate(int parameterIndex, Date x) throws SQLException {
-        arguments.put(parameterIndex, x.getTime());
+        set(parameterIndex, x.getTime());
     }
 
     @Override
     public void setTime(int parameterIndex, Time x) throws SQLException {
-        arguments.put(parameterIndex, x.getTime());
+        set(parameterIndex, x.getTime());
     }
 
     @Override
     public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-        arguments.put(parameterIndex, x.getTime());
+        set(parameterIndex, x.getTime());
     }
 
     @Override
@@ -136,7 +270,9 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void clearParameters() throws SQLException {
-        arguments.clear();
+        checkClosed();
+        paramsAdded.clear();
+        Arrays.fill(currentParams, null);
     }
 
     @Override
@@ -146,23 +282,96 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        arguments.put(parameterIndex, x);
+        set(parameterIndex, x);
     }
 
     @Override
-    public boolean execute() throws SQLException {
-        sqlRequest.args(arguments.values().toArray(new Object[arguments.size()]));
-        sqlResponse = connection.client().sql(sqlRequest).actionGet();
-        if (sqlResponse.rowCount() <= 0) {
-            return false;
-        }
-        resultSet = new CrateResultSet(this, sqlResponse);
-        return true;
+    public void addBatch(String sql) throws SQLException {
+        throw new SQLException("cannot call addBatch(String) on PreparedStatement.");
     }
 
     @Override
     public void addBatch() throws SQLException {
-        throw new SQLFeatureNotSupportedException("PreparedStatement: addBatch() not supported");
+        checkClosed();
+        checkAllArgumentsProvided();
+        batchParams.add(currentParams);
+        currentParams = new Object[parameterSlots.length()];
+        clearParameters(); // init new params and reset counter
+    }
+
+    @Override
+    public void clearBatch() throws SQLException {
+        batchParams.clear();
+    }
+
+
+    @Override
+    public int[] executeBatch() throws SQLException {
+        checkClosed();
+        int[] results;
+        DatabaseMetaData metaData = connection.getMetaData();
+        if (VersionStringComparator.compareVersions(
+                metaData.getDatabaseProductVersion(),
+                CrateDatabaseMetaData.CRATE_BULK_ARG_VERSION) >= 0) {
+            results = executeBatchBulk();
+        } else {
+            results = executeBatchSingle();
+        }
+        clearBatch();
+        return results;
+
+    }
+
+    private int[] executeBulk(SQLBulkRequest bulkRequest) throws SQLException {
+        SQLBulkResponse bulkResponse;
+        try {
+            bulkResponse = connection.client().bulkSql(bulkRequest).actionGet();
+        } catch (SQLActionException e) {
+            throw new SQLException(e.getMessage(), e);
+        }
+        int[] results = new int[bulkResponse.results().length];
+        SQLBulkResponse.Result[] results1 = bulkResponse.results();
+        for (int i = 0, results1Length = results1.length; i < results1Length; i++) {
+            SQLBulkResponse.Result result = results1[i];
+            if (result.errorMessage() != null || result.rowCount() == -2) {
+                results[i] = EXECUTE_FAILED;
+            } else {
+                results[i] = (result.rowCount() >= 0 ? (int)result.rowCount() : SUCCESS_NO_INFO);
+            }
+        }
+        return results;
+    }
+
+    private int[] executeBatchBulk() throws SQLException {
+        SQLBulkRequest bulkRequest = new SQLBulkRequest(sqlRequest.stmt(),
+                batchParams.toArray(new Object[batchParams.size()][]));
+        bulkRequest.includeTypesOnResponse(true);
+        try {
+            return executeBulk(bulkRequest);
+        } catch (SQLException e) {
+            // we cannot know what batch worked and what went wrong here
+            throw new BatchUpdateException(e.getMessage(), BATCH_FAILED_RESPONSE, e);
+        }
+    }
+
+    private int[] executeBatchSingle() throws SQLException {
+        int[] results = new int[batchParams.size()];
+        boolean failed = false;
+        for (int i = 0, batchParamsSize = batchParams.size(); i < batchParamsSize; i++) {
+            Object[] params = batchParams.get(i);
+            sqlRequest.args(params);
+            try {
+                executeSingle();
+                results[i] = (int) sqlResponse.rowCount();
+            } catch (SQLException e) {
+                results[i] = EXECUTE_FAILED;
+                failed = true;
+            }
+        }
+        if (failed) {
+            throw new BatchUpdateException("Error during batch update", results);
+        }
+        return results;
     }
 
     @Override
@@ -187,7 +396,7 @@ public class CratePreparedStatement extends CrateStatement implements PreparedSt
 
     @Override
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        arguments.put(parameterIndex, x.getArray());
+        set(parameterIndex, x.getArray());
     }
 
     @Override
