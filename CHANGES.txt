@@ -5,9 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
- - implemented batch execution to CrateStatement and CratePreparedStatement
+ - updated crate-client to 0.42.1
 
- - updated crate-client to 0.42.0
+ - implemented batch execution to CrateStatement and CratePreparedStatement
 
 2014/08/12 1.0.5
 ================
