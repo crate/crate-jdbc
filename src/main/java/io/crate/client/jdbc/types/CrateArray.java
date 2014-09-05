@@ -83,14 +83,12 @@ public class CrateArray implements Array {
 
     @Override
     public ResultSet getResultSet(long index, int count) throws SQLException {
-        SQLResponse response = new SQLResponse();
         String[] cols = new String[]{ name };
         Object[][] rows = new Object[count][];
         for (int i = (int)index; i < index+count; i++) {
             rows[i] = new Object[]{value[i]};
         }
-        response.cols(cols);
-        response.rows(rows);
+        SQLResponse response = new SQLResponse(cols, rows, count, System.currentTimeMillis());
         response.colTypes(new DataType[]{type});
         return new CrateResultSet(null, response);
     }
