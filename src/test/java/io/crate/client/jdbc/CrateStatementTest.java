@@ -59,26 +59,27 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
                                     null
                             }
                     },
+                    new DataType[]{
+                            BooleanType.INSTANCE,
+                            IntegerType.INSTANCE,
+                            LongType.INSTANCE,
+                            FloatType.INSTANCE,
+                            DoubleType.INSTANCE,
+                            StringType.INSTANCE,
+                            TimestampType.INSTANCE,
+                            ObjectType.INSTANCE,
+                            new ArrayType(LongType.INSTANCE),
+                            new SetType(StringType.INSTANCE),
+                            NullType.INSTANCE
+                    },
                     1,
-                    System.currentTimeMillis()
+                    System.currentTimeMillis(),
+                    true
             );
-            response.colTypes(new DataType[]{
-                    BooleanType.INSTANCE,
-                    IntegerType.INSTANCE,
-                    LongType.INSTANCE,
-                    FloatType.INSTANCE,
-                    DoubleType.INSTANCE,
-                    StringType.INSTANCE,
-                    TimestampType.INSTANCE,
-                    ObjectType.INSTANCE,
-                    new ArrayType(LongType.INSTANCE),
-                    new SetType(StringType.INSTANCE),
-                    NullType.INSTANCE
-            });
         } else if (request.stmt().toUpperCase().startsWith("ERROR")) {
             throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST, "");
         } else {
-            response = new SQLResponse(new String[0], new Object[0][], 4L, System.currentTimeMillis());
+            response = new SQLResponse(new String[0], new Object[0][], new DataType[0], 4L, System.currentTimeMillis(), true);
         }
         return response;
     }
