@@ -742,10 +742,9 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][8] = "_id";
             rows[i][9] = "SYSTEM";
         }
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
         DataType[] columnTypes = new DataType[10];
         Arrays.fill(columnTypes, StringType.INSTANCE);
-        tableResponse.colTypes(columnTypes);
+        SQLResponse tableResponse = new SQLResponse(cols, rows, columnTypes, sqlResponse.rowCount(), 0L, true);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -761,10 +760,9 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][0] = sqlResponse.rows()[i][0];
             rows[i][1] = null;
         }
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
         DataType[] columnTypes = new DataType[2];
         Arrays.fill(columnTypes, StringType.INSTANCE);
-        tableResponse.colTypes(columnTypes);
+        SQLResponse tableResponse = new SQLResponse(cols, rows, columnTypes, sqlResponse.rowCount(), 0L, true);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -781,8 +779,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         Object[][] rows = new Object[2][1];
         rows[0][0] = "SYSTEM TABLE";
         rows[1][0] = "TABLE";
-        SQLResponse tableResponse = new SQLResponse(cols, rows, 2L, 0L);
-        tableResponse.colTypes(new DataType[]{StringType.INSTANCE});
+        SQLResponse tableResponse = new SQLResponse(cols, rows, new DataType[]{StringType.INSTANCE}, 2L, 0L, true);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -864,7 +861,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][22] = "NO";
             rows[i][23] = "NO";
         }
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
         DataType[] columnTypes = new DataType[]{
                 StringType.INSTANCE,
                 StringType.INSTANCE,
@@ -891,6 +887,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
                 StringType.INSTANCE,
                 StringType.INSTANCE
         };
+        SQLResponse tableResponse = new SQLResponse(cols, rows, columnTypes, sqlResponse.rowCount(), 0L, true);
         tableResponse.colTypes(columnTypes);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
@@ -905,9 +902,12 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         }
         SQLResponse response = new SQLResponse(
                 columnNames,
-                new Object[0][], 0, System.currentTimeMillis()
+                new Object[0][],
+                columnTypes,
+                0,
+                System.currentTimeMillis(),
+                true
         );
-        response.colTypes(columnTypes);
         return new CrateResultSet(connection.createStatement(), response);
     }
 
@@ -916,9 +916,12 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         Arrays.fill(columnTypes, StringType.INSTANCE);
         SQLResponse response = new SQLResponse(
                 columns,
-                new Object[0][], 0, System.currentTimeMillis()
+                new Object[0][],
+                columnTypes,
+                0,
+                System.currentTimeMillis(),
+                true
         );
-        response.colTypes(columnTypes);
         return new CrateResultSet(connection.createStatement(), response);
     }
 
@@ -1007,7 +1010,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             }
         }
         Object[][] rows = rowList.toArray(new Object[rowList.size()][6]);
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0L);
         DataType[] types = new DataType[]{
                 StringType.INSTANCE,
                 StringType.INSTANCE,
@@ -1016,7 +1018,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
                 ShortType.INSTANCE,
                 StringType.INSTANCE
         };
-        tableResponse.colTypes(types);
+        SQLResponse tableResponse = new SQLResponse(cols, rows, types, sqlResponse.rowCount(), 0L, true);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -1330,9 +1332,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][16] = null;
             rows[i][17] = 10;
         }
-
-        SQLResponse tableResponse = new SQLResponse(cols, rows, 21L, 0L);
-
         DataType[] types = new DataType[] {
                 StringType.INSTANCE,
                 IntegerType.INSTANCE,
@@ -1353,7 +1352,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
                 IntegerType.INSTANCE,
                 IntegerType.INSTANCE
         };
-        tableResponse.colTypes(types);
+        SQLResponse tableResponse = new SQLResponse(cols, rows, types, 21L, 0L, true);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -1566,10 +1565,9 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][0] = sqlResponse.rows()[i][0];
             rows[i][1] = null;
         }
-        SQLResponse tableResponse = new SQLResponse(cols, rows, sqlResponse.rowCount(), 0);
         DataType[] types = new DataType[2];
         Arrays.fill(types, StringType.INSTANCE);
-        tableResponse.colTypes(types);
+        SQLResponse tableResponse = new SQLResponse(cols, rows, types, sqlResponse.rowCount(), 0L, true);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
