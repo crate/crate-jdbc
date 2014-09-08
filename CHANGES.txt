@@ -7,7 +7,7 @@ Unreleased
 
  - implemented batch execution to CrateStatement and CratePreparedStatement
 
- - updated crate-client to 0.42.0
+ - updated crate-client to 0.42.2
 
 2014/08/12 1.0.5
 ================

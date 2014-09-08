@@ -321,12 +321,22 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
             stmt.executeBatch();
             fail("BatchUpdateException not thrown");
         } catch (BatchUpdateException e) {
-            // TODO: return a full array once multi response is done
             assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
         }
         assertFalse(connection.createStatement().execute("refresh table test"));
         ResultSet resultSet = connection.createStatement().executeQuery("select count(*) from test");
         resultSet.first();
         assertThat(resultSet.getLong(1), is(1L));
+    }
+
+    @Test
+    public void testTypesResponseNoResult() throws Exception {
+        ResultSet result = connection.createStatement().executeQuery("select * from test where 1=0");
+        ResultSetMetaData metaData = result.getMetaData();
+        assertThat(metaData.getColumnCount(), is(12));
+        for (int i = 1; i <= result.getMetaData().getColumnCount();i++) {
+            // test that we can get the types, whatever they are
+            assertThat(metaData.getColumnType(i), instanceOf(Integer.class));
+        }
     }
 }

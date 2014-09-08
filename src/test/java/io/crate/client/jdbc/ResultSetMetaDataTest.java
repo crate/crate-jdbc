@@ -53,22 +53,23 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
                                 null
                         }
                 },
+                new DataType[]{
+                        BooleanType.INSTANCE,
+                        IntegerType.INSTANCE,
+                        LongType.INSTANCE,
+                        FloatType.INSTANCE,
+                        DoubleType.INSTANCE,
+                        StringType.INSTANCE,
+                        TimestampType.INSTANCE,
+                        ObjectType.INSTANCE,
+                        new ArrayType(LongType.INSTANCE),
+                        new SetType(StringType.INSTANCE),
+                        NullType.INSTANCE
+                },
                 1,
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                true
         );
-        response.colTypes(new DataType[]{
-                BooleanType.INSTANCE,
-                IntegerType.INSTANCE,
-                LongType.INSTANCE,
-                FloatType.INSTANCE,
-                DoubleType.INSTANCE,
-                StringType.INSTANCE,
-                TimestampType.INSTANCE,
-                ObjectType.INSTANCE,
-                new ArrayType(LongType.INSTANCE),
-                new SetType(StringType.INSTANCE),
-                NullType.INSTANCE
-        });
         return response;
     }
 
