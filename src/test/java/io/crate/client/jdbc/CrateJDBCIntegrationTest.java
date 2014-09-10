@@ -47,17 +47,15 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
     private static Connection connection;
 
     @BeforeClass
-    public static void setUpClass() throws Exception {
-        AbstractIntegrationTest.setUpClass();
+    public static void beforeClass() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
         connection = DriverManager.getConnection("crate://127.0.0.1:" + transportPort);
     }
 
     @AfterClass
-    public static void tearDownClass() throws Exception {
+    public static void afterClass() throws Exception {
         connection.close();
         connection = null;
-        AbstractIntegrationTest.tearDownClass();
     }
 
     @Before
