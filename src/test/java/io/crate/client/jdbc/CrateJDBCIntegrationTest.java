@@ -21,7 +21,6 @@
 
 package io.crate.client.jdbc;
 
-import com.google.common.base.Splitter;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.client.AbstractIntegrationTest;
@@ -38,10 +37,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
 
@@ -53,9 +49,6 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
     @BeforeClass
     public static void setUpClass() throws Exception {
         AbstractIntegrationTest.setUpClass();
-        for (String path : Splitter.on(":").split(System.getProperty("java.class.path"))) {
-            System.out.println(path);
-        }
         Class.forName("io.crate.client.jdbc.CrateDriver");
         connection = DriverManager.getConnection("crate://127.0.0.1:" + transportPort);
     }
