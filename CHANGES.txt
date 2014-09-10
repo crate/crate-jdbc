@@ -2,8 +2,11 @@
 Changes for Crate Data JDBC Client
 ==================================
 
-Unreleased
-==========
+2014/09/10 1.1.1
+================
+
+ - ensure that empty resultsets on selects
+   and zero rowcount on other statements are treated correctly
 
 2014/09/05 1.1.0
 ================
