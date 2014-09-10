@@ -40,6 +40,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
@@ -338,5 +339,17 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
             // test that we can get the types, whatever they are
             assertThat(metaData.getColumnType(i), instanceOf(Integer.class));
         }
+    }
+
+    @Test
+    public void testSelectWhenNothingMatches() throws Exception {
+        Statement statement = connection.createStatement();
+        assertTrue(statement.execute("select * from test where string_field = 'nothing_matches_this'"));
+    }
+
+    @Test
+    public void testExecuteUpdateWhenNothingMatches() throws Exception {
+        Statement statement = connection.createStatement();
+        assertThat(statement.executeUpdate("update test set string_field = 'new_value' where string_field = 'nothing_matches_this'"), is(0));
     }
 }
