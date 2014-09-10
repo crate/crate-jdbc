@@ -24,7 +24,8 @@ package io.crate.client;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -33,14 +34,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Random;
 import java.util.concurrent.*;
 
 import static org.junit.Assert.assertFalse;
 
 public abstract class AbstractIntegrationTest {
 
-    public static final int httpPort = 44200;
-    public static final int transportPort = 44300;
+    private static final int r = new Random(System.currentTimeMillis()).nextInt(1000);
+    public static final int httpPort = 44200 + r;
+    public static final int transportPort = 44300 + r;
     public static final String crateHost = "127.0.0.1";
     private static final String workingDir = System.getProperty("user.dir");
     private static Process crateProcess;
