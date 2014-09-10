@@ -40,10 +40,10 @@ public class CrateDriver implements Driver {
             .append("//").toString();
 
     static {
+        LoggingHelper.configureDefaultSafe();
         try {
             DriverManager.registerDriver(new CrateDriver());
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
