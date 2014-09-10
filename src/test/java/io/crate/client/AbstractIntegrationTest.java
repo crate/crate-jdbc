@@ -24,8 +24,7 @@ package io.crate.client;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,6 +56,29 @@ public abstract class AbstractIntegrationTest {
         processBuilder.directory(new File(workingDir+"/parts/crate/"));
         processBuilder.redirectErrorStream(true);
         crateProcess = processBuilder.start();
+    }
+
+    private static void checkEarlyTermination() throws Exception {
+        try {
+            // wait for early termination
+            Thread.sleep(100);
+            int exitValue = crateProcess.exitValue();
+            System.err.println("Crate terminated with exit code " + exitValue);
+            printCrateStdErr();
+            throw new IllegalStateException("Crate server process did not start correctly");
+        } catch (IllegalThreadStateException e) {
+            // fine, crate is running
+        }
+    }
+
+    private static void printCrateStdErr() throws IOException {
+        InputStream error = crateProcess.getErrorStream();
+        InputStreamReader errorReader = new InputStreamReader(error);
+        BufferedReader bre = new BufferedReader(errorReader);
+        String line;
+        while ((line = bre.readLine()) != null) {
+            System.err.println(line);
+        }
     }
 
     private static void deletePath(Path path) throws Exception {
@@ -98,6 +120,7 @@ public abstract class AbstractIntegrationTest {
         startCrateAsDaemon();
         // give crate time to settle
         sleep(8000);
+        checkEarlyTermination();
     }
 
     @AfterClass
