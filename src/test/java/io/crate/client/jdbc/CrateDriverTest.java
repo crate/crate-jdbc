@@ -38,6 +38,7 @@ public class CrateDriverTest extends AbstractIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+
     @Test
     public void testDriverRegistration() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
