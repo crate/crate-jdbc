@@ -49,6 +49,7 @@ public abstract class AbstractIntegrationTest {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "bin/crate",
                 "-Des.index.storage.type=memory",
+                "-Des.network.host=127.0.0.1",
                 "-Des.cluster.name=Testing"+transportPort,
                 "-Des.http.port="+httpPort,
                 "-Des.transport.tcp.port="+transportPort
