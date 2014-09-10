@@ -81,6 +81,17 @@ public abstract class AbstractIntegrationTest {
         }
     }
 
+    private static void printCrateStdOut() throws IOException {
+        InputStream error = crateProcess.getInputStream();
+        InputStreamReader errorReader = new InputStreamReader(error);
+        BufferedReader bre = new BufferedReader(errorReader);
+        String line;
+
+        while (bre.ready() && (line = bre.readLine()) != null) {
+            System.err.println(line);
+        }
+    }
+
     private static void deletePath(Path path) throws Exception {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
@@ -120,6 +131,7 @@ public abstract class AbstractIntegrationTest {
         startCrateAsDaemon();
         // give crate time to settle
         sleep(8000);
+        printCrateStdOut();
         checkEarlyTermination();
     }
 
