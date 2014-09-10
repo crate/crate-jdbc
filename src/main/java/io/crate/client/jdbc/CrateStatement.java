@@ -43,7 +43,7 @@ public class CrateStatement extends CrateStatementBase {
     @Override
     public int executeUpdate(String sql) throws SQLException {
         checkClosed();
-        if (execute(sql)) {
+        if (execute(sql) && sqlResponse.rowCount() > 0) {
             resultSet = null;
             throw new SQLException("Execution of statement returned a ResultSet");
         } else {
