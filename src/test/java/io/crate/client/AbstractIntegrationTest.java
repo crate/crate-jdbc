@@ -25,19 +25,22 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 import java.io.*;
+import java.net.InetSocketAddress;
+import java.nio.channels.SocketChannel;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.*;
 
-import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertFalse;
 
 public abstract class AbstractIntegrationTest {
 
     public static final int httpPort = 44200;
     public static final int transportPort = 44300;
+    public static final String crateHost = "127.0.0.1";
     private static final String workingDir = System.getProperty("user.dir");
     private static Process crateProcess;
 
@@ -49,7 +52,7 @@ public abstract class AbstractIntegrationTest {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "bin/crate",
                 "-Des.index.storage.type=memory",
-                "-Des.network.host=127.0.0.1",
+                "-Des.network.host=" + crateHost,
                 "-Des.cluster.name=Testing"+transportPort,
                 "-Des.http.port="+httpPort,
                 "-Des.transport.tcp.port="+transportPort
@@ -59,16 +62,37 @@ public abstract class AbstractIntegrationTest {
         crateProcess = processBuilder.start();
     }
 
-    private static void checkEarlyTermination() throws Exception {
+    /**
+     * wait until crate is ready to receive transport requests
+     * @param timeoutMillis the number of milliseconds to wait
+     * @return true if server is ready, false if a timeout or another IOException occurred
+     */
+    private static boolean waitUntilServerIsReady(final int timeoutMillis) throws IOException {
+
+        final InetSocketAddress address = new InetSocketAddress(crateHost, transportPort);
+        final SocketChannel socketChannel = SocketChannel.open();
+        socketChannel.configureBlocking(true);
+
+        FutureTask<Boolean> task = new FutureTask<>(new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws Exception {
+                boolean connected = false;
+                while (!connected) {
+                    try {
+                        socketChannel.socket().connect(address, timeoutMillis);
+                        connected = true;
+                    } catch (IOException e) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        });
+        task.run();
         try {
-            // wait for early termination
-            Thread.sleep(100);
-            int exitValue = crateProcess.exitValue();
-            System.err.println("Crate terminated with exit code " + exitValue);
-            printCrateStdErr();
-            throw new IllegalStateException("Crate server process did not start correctly");
-        } catch (IllegalThreadStateException e) {
-            // fine, crate is running
+            return task.get(timeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            return false;
         }
     }
 
@@ -131,9 +155,11 @@ public abstract class AbstractIntegrationTest {
     public static void setUpClass() throws Exception {
         startCrateAsDaemon();
         // give crate time to settle
-        sleep(8000);
-        printCrateStdOut();
-        checkEarlyTermination();
+        if (!waitUntilServerIsReady(20000)) {
+            printCrateStdOut();
+            printCrateStdErr();
+            throw new IllegalStateException("Crate Test Server not started");
+        }
     }
 
     @AfterClass
