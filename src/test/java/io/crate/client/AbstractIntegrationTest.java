@@ -24,8 +24,7 @@ package io.crate.client;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -48,6 +47,7 @@ public abstract class AbstractIntegrationTest {
     private static final String workingDir = System.getProperty("user.dir");
     private static Process crateProcess;
     private static boolean started = false;
+    private static final StringBuilder crateStdout = new StringBuilder();
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -65,6 +65,35 @@ public abstract class AbstractIntegrationTest {
         processBuilder.directory(new File(workingDir+"/parts/crate/"));
         processBuilder.redirectErrorStream(true);
         crateProcess = processBuilder.start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                InputStream is = crateProcess.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                String line = null;
+                try {
+                    line = reader.readLine();
+                    while (true) {
+                        synchronized (crateStdout) {
+                            crateStdout.append(line);
+                        }
+                        if (line == null ) {
+                            Thread.sleep(100);
+                        }
+                        line = reader.readLine();
+                        try {
+                            crateProcess.exitValue();
+                            break;
+                        } catch (IllegalThreadStateException e) {
+                            // fine
+                        }
+
+                    }
+                } catch (IOException|InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     /**
@@ -140,6 +169,12 @@ public abstract class AbstractIntegrationTest {
         }
     }
 
+    private static void printCrateStdout() {
+        synchronized (crateStdout) {
+            System.err.println(crateStdout.toString());
+        }
+    }
+
     @BeforeClass
     public static void setUpClass() throws Exception {
         if (!started) {
@@ -147,6 +182,7 @@ public abstract class AbstractIntegrationTest {
             startCrateAsDaemon();
         }
         if (!waitUntilServerIsReady(60 * 1000)) { // wait 1 minute max
+            printCrateStdout();
             crateProcess.destroy();
             started = false;
             throw new IllegalStateException("Crate Test Server not started");
