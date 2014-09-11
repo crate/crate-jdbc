@@ -19,18 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.client.jdbc;
+package io.crate.client.jdbc.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
-import io.crate.client.AbstractIntegrationTest;
 import io.crate.client.CrateClient;
+import io.crate.client.jdbc.CrateResultSet;
+import io.crate.client.jdbc.IntegrationTestSuite;
 import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static com.google.common.collect.Maps.newHashMap;
@@ -39,17 +41,22 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
-public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
+public class CrateJDBCIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     private static Connection connection;
+    private static String hostAndPort;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
-        connection = DriverManager.getConnection("crate://127.0.0.1:" + transportPort);
+        hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
+                IntegrationTestSuite.crateTestServer.crateHost,
+                IntegrationTestSuite.crateTestServer.transportPort
+        );
+        connection = DriverManager.getConnection("crate://" + hostAndPort);
     }
 
     @AfterClass
@@ -60,7 +67,7 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
 
     @Before
     public void setUpTable() {
-        CrateClient client = new CrateClient("127.0.0.1:" +  transportPort);
+        CrateClient client = new CrateClient(hostAndPort);
 
         String stmt = "create table test (" +
                 " id integer primary key," +
@@ -99,7 +106,7 @@ public class CrateJDBCIntegrationTest extends AbstractIntegrationTest {
 
     @After
     public void tearDownTable() {
-        CrateClient client = new CrateClient("localhost:" +  transportPort);
+        CrateClient client = new CrateClient(hostAndPort);
         try {
             client.sql("drop table test").actionGet();
         } catch (Exception e) {

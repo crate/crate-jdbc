@@ -19,9 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.client.jdbc;
+package io.crate.client.jdbc.integrationtests;
 
-import io.crate.client.AbstractIntegrationTest;
+import io.crate.client.jdbc.CrateConnection;
+import io.crate.client.jdbc.IntegrationTestSuite;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -29,11 +30,12 @@ import org.junit.rules.ExpectedException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Locale;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
-public class CrateDriverTest extends AbstractIntegrationTest {
+public class CrateDriverTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -43,15 +45,20 @@ public class CrateDriverTest extends AbstractIntegrationTest {
     public void testDriverRegistration() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
 
-        Connection c1 = DriverManager.getConnection("crate://127.0.0.1:" + transportPort);
+        String hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
+                IntegrationTestSuite.crateTestServer.crateHost,
+                IntegrationTestSuite.crateTestServer.transportPort
+                );
+
+        Connection c1 = DriverManager.getConnection("crate://" + hostAndPort);
         assertThat(c1, instanceOf(CrateConnection.class));
 
-        Connection c2 = DriverManager.getConnection("jdbc:crate://127.0.0.1:" + transportPort);
+        Connection c2 = DriverManager.getConnection("jdbc:crate://" + hostAndPort);
         assertThat(c2, instanceOf(CrateConnection.class));
 
         expectedException.expect(SQLException.class);
         expectedException.expectMessage("Protocol url jdbc-crate:// not supported. Must be one of crate:// or jdbc:crate://");
 
-        DriverManager.getConnection("jdbc-crate://127.0.0.1:" + transportPort);
+        DriverManager.getConnection("jdbc-crate://" + hostAndPort);
     }
 }

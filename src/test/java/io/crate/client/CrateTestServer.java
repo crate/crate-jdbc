@@ -21,8 +21,7 @@
 
 package io.crate.client;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.rules.ExternalResource;
 
 import java.io.*;
 import java.net.ConnectException;
@@ -38,22 +37,67 @@ import java.util.concurrent.*;
 
 import static org.junit.Assert.assertFalse;
 
-public abstract class AbstractIntegrationTest {
+public class CrateTestServer extends ExternalResource {
 
-    private static final int r = new Random(System.currentTimeMillis()).nextInt(1000);
-    public static final int httpPort = 44200 + r;
-    public static final int transportPort = 44300 + r;
-    public static final String crateHost = "127.0.0.1";
-    private static final String workingDir = System.getProperty("user.dir");
-    private static Process crateProcess;
-    private static boolean started = false;
-    private static final StringBuilder crateStdout = new StringBuilder();
+    public final int httpPort;
+    public final int transportPort;
+    public final String crateHost;
+    private final String workingDir;
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    private Process crateProcess;
+    private ThreadPoolExecutor executor;
+    private BlockingQueue<Runnable> workQueue;
+
+    public CrateTestServer() {
+        int randomInt = new Random(System.currentTimeMillis()).nextInt(1000);
+        httpPort = 42000 + randomInt;
+        transportPort = 44300 + randomInt;
+        crateHost = "127.0.0.1";
+        workingDir = System.getProperty("user.dir");
+        workQueue = new ArrayBlockingQueue<>(3);
+        executor = new ThreadPoolExecutor(3, 3, 10, TimeUnit.SECONDS, workQueue, new RejectedExecutionHandler() {
+            @Override
+            public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                System.err.println(r.toString() + " got rejected");
+            }
+        });
+        executor.prestartAllCoreThreads();
     }
 
-    private static void startCrateAsDaemon() throws IOException, InterruptedException {
+    @Override
+    protected void before() throws Throwable {
+        System.out.println("Starting crate server process...");
+        startCrateAsDaemon();
+        if (!waitUntilServerIsReady(60 * 1000)) { // wait 1 minute max
+            crateProcess.destroy();
+            throw new IllegalStateException("Crate Test Server not started");
+        }
+
+    }
+
+    @Override
+    protected void after() {
+        System.out.println("Stopping crate server process...");
+        crateProcess.destroy();
+        try {
+            crateProcess.waitFor();
+            wipeDataDirectory();
+            wipeLogs();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        }
+    }
+
+    private void startCrateAsDaemon() throws IOException, InterruptedException {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "bin/crate",
                 "-Des.index.storage.type=memory",
@@ -65,22 +109,20 @@ public abstract class AbstractIntegrationTest {
         processBuilder.directory(new File(workingDir+"/parts/crate/"));
         processBuilder.redirectErrorStream(true);
         crateProcess = processBuilder.start();
-        new Thread(new Runnable() {
+        // print server stdout to stdout
+        workQueue.add(new Runnable() {
             @Override
             public void run() {
                 InputStream is = crateProcess.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-                String line = null;
                 try {
-                    line = reader.readLine();
                     while (true) {
-                        synchronized (crateStdout) {
-                            crateStdout.append(line);
-                        }
-                        if (line == null ) {
+
+                        if (reader.ready()) {
+                            System.out.println(reader.readLine());
+                        } else {
                             Thread.sleep(100);
                         }
-                        line = reader.readLine();
                         try {
                             crateProcess.exitValue();
                             break;
@@ -93,7 +135,7 @@ public abstract class AbstractIntegrationTest {
                     e.printStackTrace();
                 }
             }
-        }).start();
+        });
     }
 
     /**
@@ -101,10 +143,11 @@ public abstract class AbstractIntegrationTest {
      * @param timeoutMillis the number of milliseconds to wait
      * @return true if server is ready, false if a timeout or another IOException occurred
      */
-    private static boolean waitUntilServerIsReady(final int timeoutMillis) throws IOException {
-        URL url = new URL("http", "127.0.0.1", httpPort, "/");
+    private boolean waitUntilServerIsReady(final int timeoutMillis) throws IOException {
+        URL url = new URL("http", crateHost, httpPort, "/");
         final HttpURLConnection conn = (HttpURLConnection)url.openConnection();
         conn.setConnectTimeout(timeoutMillis);
+        conn.setReadTimeout(timeoutMillis);
         FutureTask<Boolean> task = new FutureTask<>(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
@@ -125,7 +168,7 @@ public abstract class AbstractIntegrationTest {
                 return responseCode == 200;
             }
         });
-        new Thread(task).start();
+        workQueue.add(task);
         try {
             return task.get(timeoutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -135,7 +178,7 @@ public abstract class AbstractIntegrationTest {
         }
     }
 
-    private static void deletePath(Path path) throws Exception {
+    private void deletePath(Path path) throws Exception {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -153,7 +196,7 @@ public abstract class AbstractIntegrationTest {
 
     }
 
-    private static void wipeDataDirectory() throws Exception {
+    private void wipeDataDirectory() throws Exception {
         File dataDir = new File(workingDir + "/parts/crate/data");
         if (dataDir.exists()) {
             deletePath(dataDir.toPath());
@@ -161,44 +204,11 @@ public abstract class AbstractIntegrationTest {
         }
     }
 
-    private static void wipeLogs() throws Exception {
+    private void wipeLogs() throws Exception {
         File logDir = new File(workingDir + "/parts/crate/logs");
         if (logDir.exists()) {
             deletePath(logDir.toPath());
             assertFalse(logDir.exists());
         }
     }
-
-    private static void printCrateStdout() {
-        synchronized (crateStdout) {
-            System.err.println(crateStdout.toString());
-        }
-    }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        if (!started) {
-            System.out.println("Starting crate server process...");
-            startCrateAsDaemon();
-        }
-        if (!waitUntilServerIsReady(60 * 1000)) { // wait 1 minute max
-            printCrateStdout();
-            crateProcess.destroy();
-            started = false;
-            throw new IllegalStateException("Crate Test Server not started");
-        }
-        started = true;
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        System.out.println("Stopping crate server process...");
-        crateProcess.destroy();
-        crateProcess.waitFor();
-        wipeDataDirectory();
-        wipeLogs();
-        started = false;
-    }
-
-
 }
