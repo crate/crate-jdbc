@@ -20,28 +20,28 @@
  */
 
 package io.crate.client.jdbc;
-import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import io.crate.client.CrateTestServer;
+import io.crate.client.jdbc.integrationtests.CrateDriverTest;
+import io.crate.client.jdbc.integrationtests.CrateJDBCIntegrationTest;
+import org.junit.ClassRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-public class VersionStringComparatorTest {
+/**
+ * suite starting a crate server in the background
+ */
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        CrateDriverTest.class,
+        CrateJDBCIntegrationTest.class
+})
+public class IntegrationTestSuite {
 
-    @Test
-    public void testCompare() throws Exception {
-        assertCompare("", "", 0);
-        assertCompare("", "1", -1);
-        assertCompare("1", "", 1);
-        assertCompare("1", "1", 0);
-        assertCompare("0.1", "0.2", -1);
-        assertCompare("2.1", "1.1", 1);
-        assertCompare("1.2.3", "1.2.4", -1);
+    static {
+        LoggingHelper.configureDefaultSafe();
     }
 
-    private void assertCompare(String s1, String s2, int i) {
-        assertThat(
-                VersionStringComparator.compareVersions(s1, s2),
-                is(i)
-        );
-    }
+    @ClassRule
+    public static CrateTestServer crateTestServer = new CrateTestServer();
 }

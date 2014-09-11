@@ -300,6 +300,9 @@ test {
     testLogging.showStandardStreams = true
     outputs.upToDateWhen { false }
 
+    // exclude tests that are run with the IntegarationTestSuite
+    exclude "io/crate/client/jdbc/integrationtests/**"
+
     dependsOn downloadCrateRelease
 }
 
