@@ -35,6 +35,9 @@ import java.util.Locale;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
+/**
+ * to be run by IntegrationTestSuite only
+ */
 public class CrateDriverTest {
 
     @Rule

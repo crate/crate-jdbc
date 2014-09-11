@@ -21,12 +21,10 @@
 
 package io.crate.client;
 
+import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.junit.rules.ExternalResource;
 
 import java.io.*;
-import java.net.ConnectException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -144,28 +142,26 @@ public class CrateTestServer extends ExternalResource {
      * @return true if server is ready, false if a timeout or another IOException occurred
      */
     private boolean waitUntilServerIsReady(final int timeoutMillis) throws IOException {
-        URL url = new URL("http", crateHost, httpPort, "/");
-        final HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-        conn.setConnectTimeout(timeoutMillis);
-        conn.setReadTimeout(timeoutMillis);
+        final CrateClient client = new CrateClient(crateHost + ":" + transportPort);
         FutureTask<Boolean> task = new FutureTask<>(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
-                int responseCode = -1;
-                while (responseCode != 200) {
+
+                while (true) {
                     try {
-                        conn.connect();
-                        responseCode = conn.getResponseCode();
-                    } catch (ConnectException e) {
+                        client.sql("select id from sys.cluster")
+                                .actionGet(timeoutMillis, TimeUnit.MILLISECONDS);
+                        client.close();
+                        break;
+                    } catch (NoNodeAvailableException e) {
                         // carry on
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                         return false;
                     }
-                    System.out.print('.');
                     Thread.sleep(100);
                 }
-                return responseCode == 200;
+                return true;
             }
         });
         workQueue.add(task);

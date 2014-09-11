@@ -37,6 +37,11 @@ import org.junit.runners.Suite;
         CrateJDBCIntegrationTest.class
 })
 public class IntegrationTestSuite {
+
+    static {
+        LoggingHelper.configureDefaultSafe();
+    }
+
     @ClassRule
     public static CrateTestServer crateTestServer = new CrateTestServer();
 }

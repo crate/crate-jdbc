@@ -20,8 +20,6 @@
  */
 
 package io.crate.client.jdbc;
-
-import io.crate.client.jdbc.VersionStringComparator;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

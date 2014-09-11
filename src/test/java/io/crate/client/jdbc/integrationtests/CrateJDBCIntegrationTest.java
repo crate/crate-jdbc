@@ -41,6 +41,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
+/**
+ * to be run by IntegrationTestSuite only
+ */
 public class CrateJDBCIntegrationTest {
 
     @Rule
