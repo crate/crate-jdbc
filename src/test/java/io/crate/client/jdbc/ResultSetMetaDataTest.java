@@ -64,7 +64,7 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
                         ObjectType.INSTANCE,
                         new ArrayType(LongType.INSTANCE),
                         new SetType(StringType.INSTANCE),
-                        NullType.INSTANCE
+                        UndefinedType.INSTANCE
                 },
                 1,
                 System.currentTimeMillis(),
