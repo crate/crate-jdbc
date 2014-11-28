@@ -30,6 +30,8 @@ Before creating a new distribution, a new version and tag must be created:
 
  - Commit e.g. using message 'prepare release x.x.x'.
 
+ - Tag commit using the ``./devtools/create_tag.sh`` script.
+
  - Push to origin
 
 Now everything is ready for building a new distribution, either
