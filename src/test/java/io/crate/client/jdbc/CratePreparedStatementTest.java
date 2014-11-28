@@ -104,6 +104,15 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
     }
 
     @Test
+    public void testGetLongWithoutCallingNext() throws Exception {
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage("currentRow not available. Call next() first.");
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery("select * from test limit 1");
+        resultSet.getLong(0);
+    }
+
+    @Test
     public void testExecuteQuery() throws Exception {
         PreparedStatement preparedStatement = connection.prepareStatement("select * from test where a = ?");
         preparedStatement.setInt(1, 1);

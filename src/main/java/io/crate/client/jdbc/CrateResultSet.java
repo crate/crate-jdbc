@@ -1172,6 +1172,9 @@ public class CrateResultSet implements ResultSet {
 
     private Object getField(int columnIndex) throws SQLException {
         checkClosed();
+        if (currentRow == null) {
+            throw new SQLException("currentRow not available. Call next() first.");
+        }
         return currentRow.get(columnIndex-1);
     }
 

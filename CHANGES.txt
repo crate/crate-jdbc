@@ -5,6 +5,10 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - throw SQLException instead of NullPointerException if any of the
+   ``.get<Type>`` methods is called on a ResultSet before ``.next()`` has been
+   called.
+
  - added support for multiple servers in JDBC URL format.
 
  - updated crate-client to 0.45.5 
