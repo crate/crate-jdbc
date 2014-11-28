@@ -5,6 +5,10 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - added support for multiple servers in JDBC URL format.
+
+ - updated crate-client to 0.45.5 
+
 2014/10/31 1.3.0
 ================
 

@@ -43,5 +43,5 @@ public class IntegrationTestSuite {
     }
 
     @ClassRule
-    public static CrateTestServer crateTestServer = new CrateTestServer();
+    public static CrateTestServer crateTestServer = new CrateTestServer(null);
 }

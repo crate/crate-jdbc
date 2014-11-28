@@ -21,7 +21,9 @@
 
 package io.crate.client;
 
+import com.google.common.base.Objects;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
+import org.elasticsearch.common.Nullable;
 import org.junit.rules.ExternalResource;
 
 import java.io.*;
@@ -41,15 +43,17 @@ public class CrateTestServer extends ExternalResource {
     public final int transportPort;
     public final String crateHost;
     private final String workingDir;
+    private final String clusterName;
 
     private Process crateProcess;
     private ThreadPoolExecutor executor;
     private BlockingQueue<Runnable> workQueue;
 
-    public CrateTestServer() {
+    public CrateTestServer(@Nullable String clusterName) {
         int randomInt = new Random(System.currentTimeMillis()).nextInt(1000);
         httpPort = 42000 + randomInt;
         transportPort = 44300 + randomInt;
+        this.clusterName = Objects.firstNonNull(clusterName, "Testing" + transportPort);
         crateHost = "127.0.0.1";
         workingDir = System.getProperty("user.dir");
         workQueue = new ArrayBlockingQueue<>(3);
@@ -100,9 +104,9 @@ public class CrateTestServer extends ExternalResource {
                 "bin/crate",
                 "-Des.index.storage.type=memory",
                 "-Des.network.host=" + crateHost,
-                "-Des.cluster.name=Testing"+transportPort,
-                "-Des.http.port="+httpPort,
-                "-Des.transport.tcp.port="+transportPort
+                "-Des.cluster.name=" + clusterName,
+                "-Des.http.port=" + httpPort,
+                "-Des.transport.tcp.port=" + transportPort
         );
         processBuilder.directory(new File(workingDir+"/parts/crate/"));
         processBuilder.redirectErrorStream(true);

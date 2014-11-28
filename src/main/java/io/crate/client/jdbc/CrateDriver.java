@@ -67,7 +67,7 @@ public class CrateDriver implements Driver {
             throw new SQLException(String.format("Protocol url %s not supported. Must be one of %s or %s", parts[0]+"//", PREFIX, LONG_PREFIX));
         }
 
-        CrateConnection connection = new CrateConnection(new CrateClient(url), url);
+        CrateConnection connection = new CrateConnection(new CrateClient(url.split(",")), url);
         connection.connect();
 
         return connection;
