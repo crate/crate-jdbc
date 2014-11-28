@@ -58,6 +58,9 @@ def download (String url, String name){
 }
 
 def extractTopfolder(File src, String trg){
+    // delete target folder. Otherwise old files will stick around and lead to strange errors
+    new File(trg).delete()
+
     copy {
         includeEmptyDirs = false
         FileTree ft
@@ -325,5 +328,5 @@ idea {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.1'
+    gradleVersion = '2.2.1'
 }
