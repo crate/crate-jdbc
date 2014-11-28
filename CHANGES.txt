@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2014/11/28 1.4.0
+================
+
  - throw SQLException instead of NullPointerException if any of the
    ``.get<Type>`` methods is called on a ResultSet before ``.next()`` has been
    called.
