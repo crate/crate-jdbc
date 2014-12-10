@@ -7,5 +7,7 @@ env:
     global:
         _JAVA_OPTIONS="-Xmx1024m -XX:MaxPermSize=256m -XX:MaxDirectMemorySize=1024m"
 
+script: ./gradlew test -s
+
 notifications:
   email: false

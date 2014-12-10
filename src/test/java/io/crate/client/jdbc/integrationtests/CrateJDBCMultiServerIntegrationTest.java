@@ -70,11 +70,20 @@ public class CrateJDBCMultiServerIntegrationTest {
             CrateClient client = ((CrateConnection) connection).client();
             verifyAddresses(client);
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery("select count(*) from sys.nodes");
-            resultSet.next();
-            long aLong = resultSet.getLong(1);
+            int tries = 3;
+            long numNodes = 0;
+            while (tries > 0) {
+                ResultSet resultSet = statement.executeQuery("select count(*) from sys.nodes");
+                resultSet.next();
+                numNodes = resultSet.getLong(1);
 
-            assertThat(aLong, is(2L));
+                if (numNodes == 2L) {
+                    Thread.sleep(10);
+                    break;
+                }
+                tries--;
+            }
+            assertThat("nodes did not join a cluster yet", numNodes, is(2L));
         } finally {
             if (connection != null) {
                 connection.close();

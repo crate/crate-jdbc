@@ -14,6 +14,7 @@ import java.util.List;
 public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     protected static final String CRATE_BULK_ARG_VERSION = "0.42.0";
+    protected static final String CRATE_SCHEMATA_VERSION = "0.46.0";
 
     private final CrateConnection connection;
     private String dataBaseVersion;
@@ -402,7 +403,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsSchemasInTableDefinitions() throws SQLException {
-        return false;
+        return VersionStringComparator.compareVersions(getDatabaseProductVersion(), CRATE_SCHEMATA_VERSION) >= 0;
     }
 
     @Override
@@ -572,7 +573,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getMaxSchemaNameLength() throws SQLException {
-        return 0;
+        return 255;
     }
 
     @Override
@@ -607,7 +608,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getMaxTableNameLength() throws SQLException {
-        return 0;
+        return 255;
     }
 
     @Override
