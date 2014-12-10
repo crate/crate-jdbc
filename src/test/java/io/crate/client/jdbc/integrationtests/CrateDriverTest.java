@@ -21,8 +21,10 @@
 
 package io.crate.client.jdbc.integrationtests;
 
+import io.crate.client.CrateTestServer;
 import io.crate.client.jdbc.CrateConnection;
-import io.crate.client.jdbc.IntegrationTestSuite;
+import io.crate.client.jdbc.LoggingHelper;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -35,22 +37,25 @@ import java.util.Locale;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
-/**
- * to be run by IntegrationTestSuite only
- */
 public class CrateDriverTest {
 
+    static {
+        LoggingHelper.configureDefaultSafe();
+    }
+    
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @ClassRule
+    public static CrateTestServer testServer = new CrateTestServer("driver");
 
     @Test
     public void testDriverRegistration() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
 
         String hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
-                IntegrationTestSuite.crateTestServer.crateHost,
-                IntegrationTestSuite.crateTestServer.transportPort
+                testServer.crateHost,
+                testServer.transportPort
                 );
 
         Connection c1 = DriverManager.getConnection("crate://" + hostAndPort);

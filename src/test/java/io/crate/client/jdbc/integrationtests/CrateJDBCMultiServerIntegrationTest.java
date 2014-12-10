@@ -27,7 +27,7 @@ import io.crate.client.InternalCrateClient;
 import io.crate.client.jdbc.CrateConnection;
 import io.crate.client.jdbc.LoggingHelper;
 import org.elasticsearch.client.transport.TransportClientNodesService;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -42,15 +42,19 @@ import static org.hamcrest.Matchers.is;
 
 public class CrateJDBCMultiServerIntegrationTest {
 
+    @ClassRule
+    public static CrateTestServer server1;
+
+    @ClassRule
+    public static CrateTestServer server2;
+
     static {
         LoggingHelper.configureDefaultSafe();
+        CrateTestServer[] cluster = CrateTestServer.cluster("MultiServerJDBCTest", 2);
+        server1 = cluster[0];
+        server2 = cluster[1];
+
     }
-
-    @Rule
-    public CrateTestServer server1 = new CrateTestServer("MultiServerJDBCTest");
-
-    @Rule
-    public CrateTestServer server2 = new CrateTestServer("MultiServerJDBCTest");
 
     @Test
     public void testConnectToMultipleNodes() throws Exception {
