@@ -24,8 +24,9 @@ package io.crate.client.jdbc.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.client.CrateClient;
+import io.crate.client.CrateTestServer;
 import io.crate.client.jdbc.CrateResultSet;
-import io.crate.client.jdbc.IntegrationTestSuite;
+import io.crate.client.jdbc.LoggingHelper;
 import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -46,8 +47,15 @@ import static org.junit.Assert.*;
  */
 public class CrateJDBCIntegrationTest {
 
+    static {
+        LoggingHelper.configureDefaultSafe();
+    }
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    @ClassRule
+    public static CrateTestServer testServer = new CrateTestServer("jdbc");
 
     private static Connection connection;
     private static String hostAndPort;
@@ -56,8 +64,8 @@ public class CrateJDBCIntegrationTest {
     public static void beforeClass() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
         hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
-                IntegrationTestSuite.crateTestServer.crateHost,
-                IntegrationTestSuite.crateTestServer.transportPort
+                testServer.crateHost,
+                testServer.transportPort
         );
         connection = DriverManager.getConnection("crate://" + hostAndPort);
     }

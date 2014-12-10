@@ -21,18 +21,21 @@
 
 package io.crate.client;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.common.Nullable;
 import org.junit.rules.ExternalResource;
 
 import java.io.*;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Random;
+import java.util.Locale;
 import java.util.concurrent.*;
 
 import static org.junit.Assert.assertFalse;
@@ -44,19 +47,58 @@ public class CrateTestServer extends ExternalResource {
     public final String crateHost;
     private final String workingDir;
     private final String clusterName;
+    private final String[] unicastHosts;
 
     private Process crateProcess;
     private ThreadPoolExecutor executor;
-    private BlockingQueue<Runnable> workQueue;
+
+    public static CrateTestServer[] cluster(String clusterName, int numberOfNodes) {
+        int transportPorts[] = new int[numberOfNodes];
+        int httpPorts[] = new int[numberOfNodes];
+        for (int i = 0; i<numberOfNodes; i++) {
+            transportPorts[i] = randomAvailablePort();
+            httpPorts[i] = randomAvailablePort();
+        }
+        String hostAddress = InetAddress.getLoopbackAddress().getHostAddress();
+        CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
+        String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
+        for (int i = 0; i< numberOfNodes; i++) {
+            servers[i] = new CrateTestServer(clusterName, hostAddress,
+                    httpPorts[i], transportPorts[i],
+                    unicastHosts);
+        }
+        return servers;
+    }
+
+    private static String[] getUnicastHosts(String hostAddress, int[] transportPorts) {
+        String[] result = new String[transportPorts.length];
+        for (int i=0; i < transportPorts.length;i++) {
+            result[i] = String.format(Locale.ENGLISH, "%s:%d", hostAddress, transportPorts[i]);
+        }
+        return result;
+    }
 
     public CrateTestServer(@Nullable String clusterName) {
-        int randomInt = new Random(System.currentTimeMillis()).nextInt(1000);
-        httpPort = 42000 + randomInt;
-        transportPort = 44300 + randomInt;
+        this(clusterName,
+                randomAvailablePort(),
+                randomAvailablePort(),
+                System.getProperty("user.dir"),
+                InetAddress.getLoopbackAddress().getHostAddress());
+    }
+
+    public CrateTestServer(@Nullable String clusterName,String host, int httpPort, int transportPort, String ... unicastHosts) {
+        this(clusterName, httpPort, transportPort, System.getProperty("user.dir"), host, unicastHosts);
+    }
+
+    public CrateTestServer(@Nullable String clusterName, int httpPort, int transportPort,
+                           String workingDir, String host, String ... unicastHosts) {
         this.clusterName = Objects.firstNonNull(clusterName, "Testing" + transportPort);
-        crateHost = "127.0.0.1";
-        workingDir = System.getProperty("user.dir");
-        workQueue = new ArrayBlockingQueue<>(3);
+        this.crateHost = host;
+        this.httpPort = httpPort;
+        this.transportPort = transportPort;
+        this.unicastHosts = unicastHosts;
+        this.workingDir = workingDir;
+        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(3);
         executor = new ThreadPoolExecutor(3, 3, 10, TimeUnit.SECONDS, workQueue, new RejectedExecutionHandler() {
             @Override
             public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
@@ -64,6 +106,20 @@ public class CrateTestServer extends ExternalResource {
             }
         });
         executor.prestartAllCoreThreads();
+    }
+
+    /**
+     * @return a random available port for binding
+     */
+    public static int randomAvailablePort() {
+        try {
+            ServerSocket socket = new  ServerSocket(0);
+            int port = socket.getLocalPort();
+            socket.close();
+            return port;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -106,13 +162,16 @@ public class CrateTestServer extends ExternalResource {
                 "-Des.network.host=" + crateHost,
                 "-Des.cluster.name=" + clusterName,
                 "-Des.http.port=" + httpPort,
-                "-Des.transport.tcp.port=" + transportPort
+                "-Des.transport.tcp.port=" + transportPort,
+                "-Des.discovery.zen.ping.multicast.enabled=false",
+                "-Des.discovery.zen.ping.unicast.hosts=" + Joiner.on(",").join(unicastHosts)
         );
-        processBuilder.directory(new File(workingDir+"/parts/crate/"));
+        assert new File(workingDir).exists();
+        processBuilder.directory(new File(workingDir, "/parts/crate"));
         processBuilder.redirectErrorStream(true);
         crateProcess = processBuilder.start();
         // print server stdout to stdout
-        workQueue.add(new Runnable() {
+        executor.submit(new Runnable() {
             @Override
             public void run() {
                 InputStream is = crateProcess.getInputStream();
@@ -133,7 +192,7 @@ public class CrateTestServer extends ExternalResource {
                         }
 
                     }
-                } catch (IOException|InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }
@@ -168,7 +227,7 @@ public class CrateTestServer extends ExternalResource {
                 return true;
             }
         });
-        workQueue.add(task);
+        executor.submit(task);
         try {
             return task.get(timeoutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
