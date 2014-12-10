@@ -3,5 +3,9 @@ jdk:
   - openjdk7
   - oraclejdk7
 
+env:
+    global:
+        _JAVA_OPTIONS="-Xmx1024m -XX:MaxPermSize=256m -XX:MaxDirectMemorySize=1024m"
+
 notifications:
   email: false

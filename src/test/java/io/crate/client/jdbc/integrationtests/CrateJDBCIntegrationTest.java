@@ -361,4 +361,16 @@ public class CrateJDBCIntegrationTest {
         Statement statement = connection.createStatement();
         assertThat(statement.executeUpdate("update test set string_field = 'new_value' where string_field = 'nothing_matches_this'"), is(0));
     }
+
+    @Test
+    public void testGetSchemas() throws Exception {
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet result = metaData.getSchemas();
+        result.next();
+        assertThat(result.getString(1), is("doc"));
+        result.next();
+        assertThat(result.getString(1), is("information_schema"));
+        result.next();
+        assertThat(result.getString(1), is("sys"));
+    }
 }

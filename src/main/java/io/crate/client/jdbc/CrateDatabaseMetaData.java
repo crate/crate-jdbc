@@ -750,8 +750,27 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getSchemas() throws SQLException {
-        String stmt = "select schema_name from information_schema.tables group by schema_name order by schema_name";
-        SQLResponse sqlResponse = connection.client().sql(stmt).actionGet();
+        return getSchemas(null, null);
+    }
+
+    @Override
+    public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
+        getDatabaseProductVersion();
+        boolean hasSchemata = getDatabaseMinorVersion() > 45;
+        String table = (hasSchemata
+                ? "information_schema.schemata"
+                : "information_schema.tables");
+        StringBuilder stmtBuilder = new StringBuilder("select schema_name from ");
+        stmtBuilder.append(table);
+
+        if (schemaPattern != null) {
+            stmtBuilder.append(" where schema_name like '").append(schemaPattern).append("'");
+        }
+        if (!hasSchemata) {
+            stmtBuilder.append(" group by schema_name");
+        }
+        stmtBuilder.append(" order by schema_name");
+        SQLResponse sqlResponse = connection.client().sql(stmtBuilder.toString()).actionGet();
         String[] cols = new String[2];
         cols[0] = "TABLE_SCHEM";
         cols[1] = "TABLE_CATALOG";
@@ -760,9 +779,9 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][0] = sqlResponse.rows()[i][0];
             rows[i][1] = null;
         }
-        DataType[] columnTypes = new DataType[2];
-        Arrays.fill(columnTypes, StringType.INSTANCE);
-        SQLResponse tableResponse = new SQLResponse(cols, rows, columnTypes, sqlResponse.rowCount(), 0L, true);
+        DataType[] types = new DataType[2];
+        Arrays.fill(types, StringType.INSTANCE);
+        SQLResponse tableResponse = new SQLResponse(cols, rows, types, sqlResponse.rowCount(), 0L, true);
         return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
@@ -1547,28 +1566,6 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
     @Override
     public RowIdLifetime getRowIdLifetime() throws SQLException {
         return RowIdLifetime.ROWID_UNSUPPORTED;
-    }
-
-    @Override
-    public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
-        String stmt = "select schema_name from information_schema.tables";
-        if (schemaPattern != null) {
-            stmt = stmt + " where schema_name like '" + schemaPattern + "'";
-        }
-        stmt = stmt  + " group by schema_name order by schema_name";
-        SQLResponse sqlResponse = connection.client().sql(stmt).actionGet();
-        String[] cols = new String[2];
-        cols[0] = "TABLE_SCHEM";
-        cols[1] = "TABLE_CATALOG";
-        Object[][] rows = new Object[sqlResponse.rows().length][2];
-        for (int i = 0; i < sqlResponse.rows().length; i++) {
-            rows[i][0] = sqlResponse.rows()[i][0];
-            rows[i][1] = null;
-        }
-        DataType[] types = new DataType[2];
-        Arrays.fill(types, StringType.INSTANCE);
-        SQLResponse tableResponse = new SQLResponse(cols, rows, types, sqlResponse.rowCount(), 0L, true);
-        return new CrateResultSet(connection.createStatement(), tableResponse);
     }
 
     @Override
