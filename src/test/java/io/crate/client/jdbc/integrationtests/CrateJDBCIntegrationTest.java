@@ -59,6 +59,7 @@ public class CrateJDBCIntegrationTest {
 
     private static Connection connection;
     private static String hostAndPort;
+    private static CrateClient client;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -68,6 +69,7 @@ public class CrateJDBCIntegrationTest {
                 testServer.transportPort
         );
         connection = DriverManager.getConnection("crate://" + hostAndPort);
+        client = new CrateClient(hostAndPort);
     }
 
     @AfterClass
@@ -78,8 +80,6 @@ public class CrateJDBCIntegrationTest {
 
     @Before
     public void setUpTable() {
-        CrateClient client = new CrateClient(hostAndPort);
-
         String stmt = "create table test (" +
                 " id integer primary key," +
                 " string_field string," +
