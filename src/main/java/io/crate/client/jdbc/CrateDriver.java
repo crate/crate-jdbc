@@ -31,13 +31,8 @@ public class CrateDriver implements Driver {
 
     private static final String PROTOCOL = "jdbc";
     private static final String SUB_PROTOCOL = "crate";
-    public static final String PREFIX = new StringBuilder()
-            .append(SUB_PROTOCOL).append(":")
-            .append("//").toString();
-    public static final String LONG_PREFIX = new StringBuilder()
-            .append(PROTOCOL).append(":")
-            .append(SUB_PROTOCOL).append(":")
-            .append("//").toString();
+    public static final String PREFIX = SUB_PROTOCOL + ":" + "//";
+    public static final String LONG_PREFIX = PROTOCOL + ":" + SUB_PROTOCOL + ":" + "//";
 
     static {
         LoggingHelper.configureDefaultSafe();
@@ -75,7 +70,7 @@ public class CrateDriver implements Driver {
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
-        return url.startsWith(PREFIX);
+        return url.startsWith(PREFIX) || url.startsWith(LONG_PREFIX);
     }
 
     @Override

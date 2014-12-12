@@ -23,6 +23,7 @@ package io.crate.client.jdbc.integrationtests;
 
 import io.crate.client.CrateTestServer;
 import io.crate.client.jdbc.CrateConnection;
+import io.crate.client.jdbc.CrateDriver;
 import io.crate.client.jdbc.LoggingHelper;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -35,6 +36,7 @@ import java.sql.SQLException;
 import java.util.Locale;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class CrateDriverTest {
@@ -68,5 +70,14 @@ public class CrateDriverTest {
         expectedException.expectMessage("Protocol url jdbc-crate:// not supported. Must be one of crate:// or jdbc:crate://");
 
         DriverManager.getConnection("jdbc-crate://" + hostAndPort);
+    }
+
+    @Test
+    public void testAccepts() throws Exception {
+        CrateDriver crateDriver = new CrateDriver();
+        assertThat(crateDriver.acceptsURL("crate://"), is(true));
+        assertThat(crateDriver.acceptsURL("jdbc:crate://"), is(true));
+        assertThat(crateDriver.acceptsURL("crt://"), is(false));
+        assertThat(crateDriver.acceptsURL("jdbc:mysql://"), is(false));
     }
 }
