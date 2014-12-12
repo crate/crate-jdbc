@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Fixed URL handling: In some cases the long format ``jdbc:crate`` wasn't
+   accepted.
+
  - use ``information_schema.schemata`` for crate servers newer than or
    equal to version 0.46
 
