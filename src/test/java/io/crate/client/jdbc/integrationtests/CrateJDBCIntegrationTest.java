@@ -92,7 +92,9 @@ public class CrateJDBCIntegrationTest {
                 " double_field double," +
                 " timestamp_field timestamp," +
                 " object_field object as (\"inner\" string)," +
-                " ip_field ip" +
+                " ip_field ip," +
+                " array1 array(string)," +
+                " obj_array array(object)" +
                 ") clustered by (id) into 1 shards with(number_of_replicas=0)";
         try {
             client.sql("drop table test").actionGet();
@@ -105,11 +107,13 @@ public class CrateJDBCIntegrationTest {
 
         SQLRequest sqlRequest = new SQLRequest("insert into test (id, string_field, boolean_field, byte_field, short_field, integer_field," +
                 "long_field, float_field, double_field, object_field," +
-                "timestamp_field, ip_field) values " +
-                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
+                "timestamp_field, ip_field, array1, obj_array) values " +
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
                 1, "Youri", true, 120, 1000, 1200000,
                 120000000000L, 1.4, 3.456789, objectField,
-                "1970-01-01", "127.0.0.1"
+                "1970-01-01", "127.0.0.1",
+                new Object[]{ "a", "b", "c", "d" },
+                new Object[]{ new HashMap<String, Object>() {{ put("bla", "blubb"); }} }
         });
         client.sql(sqlRequest).actionGet();
         client.sql("refresh table test").actionGet();
@@ -148,6 +152,17 @@ public class CrateJDBCIntegrationTest {
 
         Map<String, Object> objectField = new HashMap<String, Object>(){{put("inner", "Zoon");}};
         assertThat((Map<String, Object>)resultSet.getObject("object_field"), is(objectField));
+
+        Array array1 = resultSet.getArray("array1");
+        assertThat(array1.getArray().getClass().isArray(), is(true));
+        Assert.assertThat(array1.getBaseType(), is(Types.VARCHAR));
+        assertThat((Object[])array1.getArray(), Matchers.<Object>arrayContaining("a", "b", "c", "d"));
+
+        Array objArray = resultSet.getArray("obj_array");
+        assertThat(objArray.getArray().getClass().isArray(), is(true));
+        Assert.assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
+        Object firstObject = ((Object[])objArray.getArray())[0];
+        Assert.assertThat(firstObject, instanceOf(Map.class));
     }
 
     @Test

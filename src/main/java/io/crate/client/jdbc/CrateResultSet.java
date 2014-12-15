@@ -773,6 +773,8 @@ public class CrateResultSet implements ResultSet {
         Object a = getField(columnIndex);
         if (a == null) {
             return null;
+        } else if (a instanceof List) {
+            a = ((List)a).toArray();
         }
         DataType type = sqlResponse.columnTypes()[columnIndex-1];
         if (type.id() != ArrayType.ID) {
