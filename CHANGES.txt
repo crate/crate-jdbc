@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Fix: support arrays that might be returned as ``java.util.List``
+
  - Fixed URL handling: In some cases the long format ``jdbc:crate`` wasn't
    accepted.
 

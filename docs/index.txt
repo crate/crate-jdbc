@@ -114,6 +114,70 @@ Besides using the most recent version, it is recommended to use the JDBC driver 
 whose crate-client dependency matches the Crate server.
 
 
+Types
+=====
+
+JDBC maps SQL types to POJOs. While this mapping is straightforward
+for some crate types, for some it is not. This table shows how the crate types
+are mapped by JDBC and how they should be fetched from a ``ResultSet`` instance:
+
+.. csv-table:: Frozen Delights!
+   :header: "Crate type", "JDBC type", "ResultSet method used to get a value"
+
+   "boolean", "BOOLEAN", "``getBoolean``"
+   "byte", "TINYINT", "``getByte``"
+   "short", "SMALLINT", "``getShort``"
+   "integer", "INTEGER", "``getInteger``"
+   "long", "BIGINT", "``getLong``"
+   "float", "REAL", "``getFloat``"
+   "double", "DOUBLE", "``getDouble``"
+   "string", "VARCHAR", "``getString``"
+   "timestamp", "TIMESTAMP", "``getDate``, ``getTime``, ``getTimestamp``"
+   "ip", "VARCHAR", "``getString``"
+   "array", "ARRAY", "``getArray``"
+   "object", "JAVA_OBJECT", "``getObject``"
+
+Array Types
+-----------
+
+Array types map to ``java.sql.Array`` instances. Use the ``.getArray()`` to get
+the underlying java array (it is usually safe to cast it to ``Object[]``) if you prefer.
+Otherwise, to have JDBC handle the type mapping stuff for you, you can use ``.getResultSet()``
+and use the related ``ResultSetMetaData`` or another way to get the array values
+converted to Java POJOs. The ``ResultSet`` will have one column with the inner array type
+and the name of the array field (``Array.getBaseType()``) and as much rows as
+there are elements in the array.
+
+.. code-block:: java
+
+    Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery("select array_field from my_table");
+    resultSet.first();
+    Array arrayFieldArray = resultSet.getArray("array_field");
+    Object[] arrayFieldValue = arrayFieldValue.getArray();
+
+    ResultSet arrayFieldResultSet = arrayFieldArray.getResultSet();
+    arrayFieldResultSet.first();
+    String firstValue = arrayFieldResultSet.getString("array_field");
+
+
+Object Types
+------------
+
+Object columns map to a ``java.util.Map<String, Object>``. You can fetch them
+using ``ResultSet.getObject()`` and cast the result to ``Map<String, Object>``.
+Be aware that it can be ``null``. This map will contain all the nested columns
+defined in that object:
+
+.. code-block:: java
+
+    Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery("select object_field from my_table");
+    resultSet.first();
+    Map<String, Object> objValue = (Map<String, Object>)resultSet.getObject("object_field");
+    Object nestedValue = objField.get("nested_field");
+
+
 .. _`Bintray`: https://bintray.com/crate/crate/
 
 .. _`JCenter`: https://bintray.com/bintray/jcenter
