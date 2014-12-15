@@ -358,7 +358,7 @@ public class CrateJDBCIntegrationTest {
     public void testTypesResponseNoResult() throws Exception {
         ResultSet result = connection.createStatement().executeQuery("select * from test where 1=0");
         ResultSetMetaData metaData = result.getMetaData();
-        assertThat(metaData.getColumnCount(), is(12));
+        assertThat(metaData.getColumnCount(), is(14));
         for (int i = 1; i <= result.getMetaData().getColumnCount();i++) {
             // test that we can get the types, whatever they are
             assertThat(metaData.getColumnType(i), instanceOf(Integer.class));
