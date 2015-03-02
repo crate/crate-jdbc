@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Fix: do not throw exception when setting CrateConnection to read-only mode
+
  - Fix: support arrays that might be returned as ``java.util.List``
 
  - Fixed URL handling: In some cases the long format ``jdbc:crate`` wasn't

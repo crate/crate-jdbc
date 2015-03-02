@@ -34,10 +34,12 @@ public class CrateConnection implements Connection {
 
     private CrateClient crateClient;
     private String url;
+    private boolean readOnly;
 
     public CrateConnection(CrateClient crateClient, String url) {
         this.crateClient = crateClient;
         this.url = url;
+        this.readOnly = false;
     }
 
     public CrateClient client() {
@@ -121,14 +123,18 @@ public class CrateConnection implements Connection {
     @Override
     public void setReadOnly(boolean readOnly) throws SQLException {
         checkClosed();
-        if (!readOnly) {
-            throw new SQLFeatureNotSupportedException("Write mode is not supported");
-        }
+        this.readOnly = readOnly;
     }
 
+    /**
+     * Crate does not distinguish between read-only and write mode.
+     * A CrateConnection is always in write mode, even the readOnly flag is set.
+     * @return
+     * @throws SQLException
+     */
     @Override
     public boolean isReadOnly() throws SQLException {
-        return true;
+        return this.readOnly;
     }
 
     @Override
@@ -140,7 +146,6 @@ public class CrateConnection implements Connection {
     @Override
     public String getCatalog() throws SQLException {
         checkClosed();
-        //throw new SQLFeatureNotSupportedException();
         return null;
     }
 
