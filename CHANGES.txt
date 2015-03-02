@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2015/03/01 1.5.0
+================
+
  - updated crate client to 0.47.4
 
  - Fix: do not throw exception when setting CrateConnection to read-only mode
