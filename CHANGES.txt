@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - updated crate client to 0.47.4
+
  - Fix: do not throw exception when setting CrateConnection to read-only mode
 
  - Fix: support arrays that might be returned as ``java.util.List``

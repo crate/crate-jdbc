@@ -292,7 +292,7 @@ public class CrateJDBCIntegrationTest {
             stmt.executeBatch();
             fail("BatchUpdateException not thrown");
         } catch (BatchUpdateException e) {
-            assertThat(e.getMessage(), is("argument 2 of bulk arguments contains mixed data types"));
+            assertThat(e.getMessage(), is("Validation failed for string_field: cannot cast {} to string"));
             assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
         }
 
@@ -381,6 +381,8 @@ public class CrateJDBCIntegrationTest {
     public void testGetSchemas() throws Exception {
         DatabaseMetaData metaData = connection.getMetaData();
         ResultSet result = metaData.getSchemas();
+        result.next();
+        assertThat(result.getString(1), is("blob"));
         result.next();
         assertThat(result.getString(1), is("doc"));
         result.next();
