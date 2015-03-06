@@ -1,20 +1,20 @@
-.. image:: https://cdn.crate.io/web/1.0.0/img/logo-solid.png
-   :width: 155px
-   :height: 45px
-   :alt: Crate
+.. image:: https://cdn.crate.io/web/2.0/img/crate-avatar_100x100.png
+   :width: 100px
+   :height: 100px
+   :alt: Crate.IO
    :target: https://crate.io
 
 .. image:: https://travis-ci.org/crate/crate-jdbc.svg?branch=master
         :target: https://travis-ci.org/crate/crate-jdbc
         :alt: Test
 
-======================
-Crate Data JDBC Driver
-======================
+=================
+Crate JDBC Driver
+=================
 
 .. highlight:: java
 
-This is the JDBC driver for `Crate Data`_.
+This is the JDBC driver for `Crate`_.
 
 Installation
 ============
@@ -82,4 +82,5 @@ software solely pursuant to the terms of the relevant commercial agreement.
 
 
 
-.. _Crate Data: https://github.com/crate/crate
+.. _Crate: https://github.com/crate/crate
+
