@@ -3,9 +3,15 @@ jdk:
   - openjdk7
   - oraclejdk7
 
+cache:
+  directories:
+    - $HOME/.m2
+
+sudo: false
+
 env:
-    global:
-        _JAVA_OPTIONS="-Xmx1024m -XX:MaxPermSize=256m -XX:MaxDirectMemorySize=1024m"
+  global:
+    _JAVA_OPTIONS="-Xmx1g -XX:MaxPermSize=256m"
 
 script: ./gradlew test -s
 
