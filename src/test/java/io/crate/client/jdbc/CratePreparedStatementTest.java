@@ -24,14 +24,14 @@ package io.crate.client.jdbc;
 import io.crate.action.sql.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.rest.RestStatus;
+import io.crate.shade.org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
 import java.sql.*;
 import java.util.Arrays;
 import java.util.BitSet;
 
-import static com.google.common.collect.Maps.newHashMap;
+import static io.crate.shade.com.google.common.collect.Maps.newHashMap;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -41,8 +41,6 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
 
     private static SQLResponse ID_RESPONSE = new SQLResponse(new String[]{"id"}, new Object[][]{new Object[]{0L}}, new DataType[]{DataTypes.INTEGER}, 1L, 0L, true);
     private static SQLResponse ROWCOUNT_RESPONSE = new SQLResponse(new String[0], new Object[0][], new DataType[0], 4L, 0L, true);
-
-
 
     private boolean supportBulkArgs = true;
 

@@ -21,7 +21,7 @@
 
 package io.crate.client.jdbc;
 
-import com.google.common.collect.Lists;
+import io.crate.shade.com.google.common.collect.Lists;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.jdbc.types.CrateArray;
 import io.crate.types.ArrayType;

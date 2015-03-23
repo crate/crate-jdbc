@@ -21,7 +21,7 @@
 
 package io.crate.client.jdbc.types;
 
-import com.google.common.collect.ImmutableMap;
+import io.crate.shade.com.google.common.collect.ImmutableMap;
 import io.crate.types.*;
 
 import java.sql.Types;

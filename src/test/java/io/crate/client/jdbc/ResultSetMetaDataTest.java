@@ -27,7 +27,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.jdbc.types.CrateArray;
 import io.crate.types.*;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.shade.org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
 import java.sql.*;

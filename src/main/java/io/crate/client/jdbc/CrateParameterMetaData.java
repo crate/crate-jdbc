@@ -21,7 +21,7 @@
 
 package io.crate.client.jdbc;
 
-import com.google.common.base.Preconditions;
+import io.crate.shade.com.google.common.base.Preconditions;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;

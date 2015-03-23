@@ -1,7 +1,7 @@
 package io.crate.client.jdbc;
 
 import io.crate.action.sql.*;
-import org.elasticsearch.common.Nullable;
+import io.crate.shade.org.elasticsearch.common.Nullable;
 
 import java.io.InputStream;
 import java.io.Reader;

@@ -21,10 +21,10 @@
 
 package io.crate.client;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
-import org.elasticsearch.client.transport.NoNodeAvailableException;
-import org.elasticsearch.common.Nullable;
+import io.crate.shade.com.google.common.base.Joiner;
+import io.crate.shade.com.google.common.base.Objects;
+import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
+import io.crate.shade.org.elasticsearch.common.Nullable;
 import org.junit.rules.ExternalResource;
 
 import java.io.*;
@@ -156,7 +156,7 @@ public class CrateTestServer extends ExternalResource {
     }
 
     private void startCrateAsDaemon() throws IOException, InterruptedException {
-        ProcessBuilder processBuilder = new ProcessBuilder(
+        String[] command = new String[]{
                 "bin/crate",
                 "-Des.index.storage.type=memory",
                 "-Des.network.host=" + crateHost,
@@ -165,7 +165,11 @@ public class CrateTestServer extends ExternalResource {
                 "-Des.transport.tcp.port=" + transportPort,
                 "-Des.discovery.zen.ping.multicast.enabled=false",
                 "-Des.discovery.zen.ping.unicast.hosts=" + Joiner.on(",").join(unicastHosts)
+        };
+        ProcessBuilder processBuilder = new ProcessBuilder(
+            command
         );
+        System.out.println(Joiner.on(' ').join(command));
         assert new File(workingDir).exists();
         processBuilder.directory(new File(workingDir, "/parts/crate"));
         processBuilder.redirectErrorStream(true);

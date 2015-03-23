@@ -21,8 +21,8 @@
 
 package io.crate.client.jdbc;
 
-import org.apache.log4j.*;
-import org.apache.log4j.varia.NullAppender;
+import io.crate.shade.org.apache.log4j.*;
+import io.crate.shade.org.apache.log4j.varia.NullAppender;
 
 import java.util.Enumeration;
 

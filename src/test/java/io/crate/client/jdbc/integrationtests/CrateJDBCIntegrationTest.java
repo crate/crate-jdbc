@@ -36,7 +36,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import static com.google.common.collect.Maps.newHashMap;
+import static io.crate.shade.com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;

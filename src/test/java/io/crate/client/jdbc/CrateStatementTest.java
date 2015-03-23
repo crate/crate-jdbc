@@ -24,8 +24,8 @@ package io.crate.client.jdbc;
 
 import io.crate.action.sql.*;
 import io.crate.types.*;
-import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.rest.RestStatus;
+import io.crate.shade.org.elasticsearch.common.collect.MapBuilder;
+import io.crate.shade.org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
 import java.sql.BatchUpdateException;

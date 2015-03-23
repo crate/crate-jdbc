@@ -26,7 +26,7 @@ import io.crate.client.CrateTestServer;
 import io.crate.client.InternalCrateClient;
 import io.crate.client.jdbc.CrateConnection;
 import io.crate.client.jdbc.LoggingHelper;
-import org.elasticsearch.client.transport.TransportClientNodesService;
+import io.crate.shade.org.elasticsearch.client.transport.TransportClientNodesService;
 import org.junit.ClassRule;
 import org.junit.Test;
 

@@ -1,10 +1,10 @@
 package io.crate.client.jdbc;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
+import io.crate.shade.com.google.common.base.Joiner;
+import io.crate.shade.com.google.common.base.Splitter;
 import io.crate.action.sql.SQLResponse;
 import io.crate.types.*;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.shade.org.elasticsearch.common.collect.Tuple;
 
 import java.sql.*;
 import java.util.ArrayList;

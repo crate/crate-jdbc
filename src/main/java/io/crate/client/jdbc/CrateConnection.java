@@ -22,7 +22,7 @@
 package io.crate.client.jdbc;
 
 import io.crate.client.CrateClient;
-import org.elasticsearch.client.transport.NoNodeAvailableException;
+import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 
 import java.sql.*;
 import java.util.Locale;
