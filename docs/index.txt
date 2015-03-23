@@ -26,7 +26,9 @@ You can download the latest standalone version directly from the
 `Bintray Repository <https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone>`_.
 
 If you want to use ``crate-jdbc`` with your Maven project you need to
-add the Bintray repository to your ``pom.xml``::
+add the Bintray repository to your ``pom.xml``:
+
+.. code-block:: xml
 
     ...
     <repositories>
@@ -50,6 +52,21 @@ add the Bintray repository to your ``pom.xml``::
         </dependency>
     </dependencies>
     ...
+
+
+Using Gradle:
+
+.. code-block:: groovy
+
+    repositories {
+        ...
+        jcenter()
+    }
+
+    dependencies {
+        compile 'io.crate:crate-jdbc:...'
+        ...
+    }
 
 Alternatively you can follow the instructions on the Bintray repository overview page by clicking the "Set me up!" button.
 
