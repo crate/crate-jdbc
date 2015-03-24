@@ -25,7 +25,6 @@ import io.crate.client.CrateClient;
 import io.crate.client.CrateTestServer;
 import io.crate.client.InternalCrateClient;
 import io.crate.client.jdbc.CrateConnection;
-import io.crate.client.jdbc.LoggingHelper;
 import io.crate.shade.org.elasticsearch.client.transport.TransportClientNodesService;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -49,7 +48,6 @@ public class CrateJDBCMultiServerIntegrationTest {
     public static CrateTestServer server2;
 
     static {
-        LoggingHelper.configureDefaultSafe();
         CrateTestServer[] cluster = CrateTestServer.cluster("MultiServerJDBCTest", 2);
         server1 = cluster[0];
         server2 = cluster[1];

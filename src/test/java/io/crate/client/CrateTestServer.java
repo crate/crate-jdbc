@@ -22,7 +22,7 @@
 package io.crate.client;
 
 import io.crate.shade.com.google.common.base.Joiner;
-import io.crate.shade.com.google.common.base.Objects;
+import io.crate.shade.com.google.common.base.MoreObjects;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 import io.crate.shade.org.elasticsearch.common.Nullable;
 import org.junit.rules.ExternalResource;
@@ -92,7 +92,7 @@ public class CrateTestServer extends ExternalResource {
 
     public CrateTestServer(@Nullable String clusterName, int httpPort, int transportPort,
                            String workingDir, String host, String ... unicastHosts) {
-        this.clusterName = Objects.firstNonNull(clusterName, "Testing" + transportPort);
+        this.clusterName = MoreObjects.firstNonNull(clusterName, "Testing" + transportPort);
         this.crateHost = host;
         this.httpPort = httpPort;
         this.transportPort = transportPort;
@@ -169,7 +169,6 @@ public class CrateTestServer extends ExternalResource {
         ProcessBuilder processBuilder = new ProcessBuilder(
             command
         );
-        System.out.println(Joiner.on(' ').join(command));
         assert new File(workingDir).exists();
         processBuilder.directory(new File(workingDir, "/parts/crate"));
         processBuilder.redirectErrorStream(true);

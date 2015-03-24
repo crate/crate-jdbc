@@ -24,7 +24,6 @@ package io.crate.client.jdbc.integrationtests;
 import io.crate.client.CrateTestServer;
 import io.crate.client.jdbc.CrateConnection;
 import io.crate.client.jdbc.CrateDriver;
-import io.crate.client.jdbc.LoggingHelper;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,10 +40,6 @@ import static org.junit.Assert.assertThat;
 
 public class CrateDriverTest {
 
-    static {
-        LoggingHelper.configureDefaultSafe();
-    }
-    
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

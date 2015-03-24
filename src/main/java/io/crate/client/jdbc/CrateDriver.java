@@ -35,7 +35,6 @@ public class CrateDriver implements Driver {
     public static final String LONG_PREFIX = PROTOCOL + ":" + SUB_PROTOCOL + ":" + "//";
 
     static {
-        LoggingHelper.configureDefaultSafe();
         try {
             DriverManager.registerDriver(new CrateDriver());
         } catch (SQLException e) {
@@ -48,11 +47,6 @@ public class CrateDriver implements Driver {
 
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
-        if (info != null && info.size() > 0) {
-            // just ignore them for now
-            // throw new UnsupportedOperationException("Properties are not supported yet");
-        }
-
         if (url.startsWith(PROTOCOL+":")) {
             url = url.substring(LONG_PREFIX.length());
         } else if (url.startsWith(SUB_PROTOCOL+":")) {

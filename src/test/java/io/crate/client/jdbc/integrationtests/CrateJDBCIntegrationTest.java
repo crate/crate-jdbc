@@ -26,7 +26,6 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.client.CrateClient;
 import io.crate.client.CrateTestServer;
 import io.crate.client.jdbc.CrateResultSet;
-import io.crate.client.jdbc.LoggingHelper;
 import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -46,10 +45,6 @@ import static org.junit.Assert.*;
  * to be run by IntegrationTestSuite only
  */
 public class CrateJDBCIntegrationTest {
-
-    static {
-        LoggingHelper.configureDefaultSafe();
-    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
