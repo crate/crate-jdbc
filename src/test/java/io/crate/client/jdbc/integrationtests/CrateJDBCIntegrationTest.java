@@ -31,9 +31,7 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import static io.crate.shade.com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -71,6 +69,37 @@ public class CrateJDBCIntegrationTest {
     public static void afterClass() throws Exception {
         connection.close();
         connection = null;
+    }
+
+    @Test
+    public void testConnectionWithCustomSchema() throws Exception {
+        Connection fooConn = DriverManager.getConnection(String.format("crate://%s/foo", hostAndPort));
+        assertThat(fooConn.getSchema(), is("foo"));
+        Statement statement = fooConn.createStatement();
+        statement.execute("create table t (x string) with (number_of_replicas = 0)");
+        statement.execute("insert into t (x) values ('a')");
+        statement.execute("refresh table t");
+        ResultSet resultSet = statement.executeQuery("select count(*) from t");
+        resultSet.next();
+        assertThat(resultSet.getLong(1), is(1L));
+
+        Connection barConnection = DriverManager.getConnection(String.format("crate://%s/bar", hostAndPort));
+        assertThat(barConnection.getSchema(), is("bar"));
+        statement = barConnection.createStatement();
+        statement.execute("create table t (x string) with (number_of_replicas = 0)");
+        statement.execute("insert into t (x) values ('a')");
+        statement.execute("refresh table t");
+        resultSet = statement.executeQuery("select count(*) from t");
+        resultSet.next();
+        assertThat(resultSet.getLong(1), is(1L));
+
+        resultSet = statement.executeQuery(
+                "select collect_set(schema_name) from information_schema.tables where table_name = 't'");
+        resultSet.next();
+
+        Object[] objects = (Object[]) resultSet.getObject(1);
+        String[] schemas = Arrays.copyOf(objects, objects.length, String[].class);
+        assertThat(schemas, Matchers.arrayContainingInAnyOrder("foo", "bar"));
     }
 
     @Before
@@ -119,6 +148,8 @@ public class CrateJDBCIntegrationTest {
         CrateClient client = new CrateClient(hostAndPort);
         try {
             client.sql("drop table test").actionGet();
+            client.sql("drop table if exists foo.t").actionGet();
+            client.sql("drop table if exists bar.t").actionGet();
         } catch (Exception e) {
             // ignore
         }
