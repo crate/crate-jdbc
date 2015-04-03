@@ -86,6 +86,10 @@ task downloadCrateRelease << {
     extractTopfolder(dest, 'parts/crate')
 }
 
+task deleteCrateDownloadFolder(type: Delete) {
+    delete "${project.rootDir}/parts/crate"
+}
+
 task getVersion ( dependsOn: 'classes') << {
     def stdout = new ByteArrayOutputStream()
     javaexec {
@@ -299,6 +303,10 @@ test {
     outputs.upToDateWhen { false }
 
     dependsOn downloadCrateRelease
+}
+
+clean {
+    dependsOn deleteCrateDownloadFolder
 }
 
 idea {
