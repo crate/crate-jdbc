@@ -1,6 +1,7 @@
 package io.crate.client.jdbc;
 
 import io.crate.action.sql.*;
+import io.crate.shade.com.google.common.base.Throwables;
 import io.crate.shade.org.elasticsearch.common.Nullable;
 
 import java.io.InputStream;
@@ -90,6 +91,11 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
 
     public CratePreparedStatement(CrateConnection connection, String stmt) {
         super(connection);
+        try {
+            sqlRequest.setDefaultSchema(connection.getSchema());
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
         sqlRequest.stmt(stmt);
         sqlRequest.includeTypesOnResponse(true);
         parameterSlots = CratePreparedStatementParser.getParameters(sqlRequest.stmt());

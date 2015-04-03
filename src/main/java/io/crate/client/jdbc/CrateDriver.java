@@ -56,9 +56,22 @@ public class CrateDriver implements Driver {
             throw new SQLException(String.format("Protocol url %s not supported. Must be one of %s or %s", parts[0]+"//", PREFIX, LONG_PREFIX));
         }
 
-        CrateConnection connection = new CrateConnection(new CrateClient(url.split(",")), url);
-        connection.connect();
+        CrateConnection connection;
+        if (url.equals("/")) {
+            connection = new CrateConnection(new CrateClient(), url);
+        } else {
+            String[] urlParts = url.split("/");
+            String hosts = urlParts[0];
+            connection = new CrateConnection(new CrateClient(hosts.split(",")), url);
+            if (urlParts.length == 2) {
+                connection.setSchema(urlParts[1]);
+            } else if (urlParts.length > 2) {
+                throw new SQLException("URL format is invalid. " +
+                        "Valid format is: [jdbc:]crate://[host1:port1][, host2:port2 ...]/[schema]");
+            }
+        }
 
+        connection.connect();
         return connection;
     }
 
