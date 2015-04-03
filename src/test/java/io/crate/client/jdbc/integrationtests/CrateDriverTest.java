@@ -46,14 +46,11 @@ public class CrateDriverTest {
     @ClassRule
     public static CrateTestServer testServer = new CrateTestServer("driver");
 
+    public String hostAndPort = String.format(Locale.ENGLISH, "%s:%d", testServer.crateHost, testServer.transportPort);
+
     @Test
     public void testDriverRegistration() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
-
-        String hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
-                testServer.crateHost,
-                testServer.transportPort
-                );
 
         Connection c1 = DriverManager.getConnection("crate://" + hostAndPort);
         assertThat(c1, instanceOf(CrateConnection.class));
@@ -68,9 +65,26 @@ public class CrateDriverTest {
     }
 
     @Test
+    public void testDriverRegistrationWithSchemaName() throws Exception {
+        Class.forName("io.crate.client.jdbc.CrateDriver");
+        Connection connection = DriverManager.getConnection(String.format("crate://%s/foo", hostAndPort));
+        assertThat(connection.getSchema(), is("foo"));
+    }
+
+    @Test
+    public void testInvalidURI() throws Exception {
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage("URL format is invalid.");
+        Class.forName("io.crate.client.jdbc.CrateDriver");
+        DriverManager.getConnection(String.format("crate://%s/foo/bla", hostAndPort));
+    }
+
+    @Test
     public void testAccepts() throws Exception {
         CrateDriver crateDriver = new CrateDriver();
         assertThat(crateDriver.acceptsURL("crate://"), is(true));
+        assertThat(crateDriver.acceptsURL("crate://localhost/foo"), is(true));
+        assertThat(crateDriver.acceptsURL("crate:///foo"), is(true));
         assertThat(crateDriver.acceptsURL("jdbc:crate://"), is(true));
         assertThat(crateDriver.acceptsURL("crt://"), is(false));
         assertThat(crateDriver.acceptsURL("jdbc:mysql://"), is(false));

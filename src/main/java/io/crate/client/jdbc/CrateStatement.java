@@ -56,7 +56,7 @@ public class CrateStatement extends CrateStatementBase {
     public boolean execute(String sql) throws SQLException {
         checkClosed();
         SQLRequest sqlRequest = new SQLRequest(sql);
-
+        sqlRequest.setDefaultSchema(connection.getSchema());
         sqlRequest.includeTypesOnResponse(true);
         try {
             sqlResponse = connection.client().sql(sqlRequest).actionGet();

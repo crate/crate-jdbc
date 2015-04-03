@@ -35,6 +35,8 @@ public class CrateConnection implements Connection {
     private CrateClient crateClient;
     private String url;
     private boolean readOnly;
+    private String schema = null;
+
 
     public CrateConnection(CrateClient crateClient, String url) {
         this.crateClient = crateClient;
@@ -335,12 +337,13 @@ public class CrateConnection implements Connection {
     @Override
     public void setSchema(String schema) throws SQLException {
         checkClosed();
+        this.schema = schema;
     }
 
     @Override
     public String getSchema() throws SQLException {
         checkClosed();
-        return null;
+        return schema;
     }
 
     @Override
