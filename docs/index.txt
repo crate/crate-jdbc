@@ -82,7 +82,7 @@ JDBC URL Format
 With JDBC, a database is represented by a URL (Uniform Resource Locator).
 With Crate, this takes the following form::
 
-    [jdbc:]crate://<host>:<transport-port>[,<host>:<transport-port> , ...]
+    [jdbc:]crate://<host>:<transport-port>[,<host>:<transport-port> , ...][/<schemaName>]
 
 The ``jdbc:`` prefix is optional. For example. To connect to a single server
 the following two formats are both allowed::
@@ -98,6 +98,25 @@ In order to connect to multiple servers multiple ``<host>:<transport-port>``
 pairs can be specified by delimit them using a comma::
 
     crate://host1.example.com:4300,host2.example.com:4300
+
+The optional ``/<schemaName>`` part can be used to use the specified schema by
+default instead of the ``doc`` schema which Crate would use otherwise if no
+schemaName is specified.
+
+This will implicitly call ``setSchema`` on the ``Connection`` class. So the
+following two statements are equivalent::
+
+    Connection conn = new CrateConnection("crate://localhost:4300/foo");
+
+Is the same as::
+
+    Connection conn = new CrateConnection("crate://localhost:4300");
+    conn.setSchema("foo");
+
+
+.. note::
+
+    Default schema support requires at least Crate 0.48.1
 
 
 Compatibility
