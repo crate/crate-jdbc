@@ -24,17 +24,28 @@ package io.crate.client.jdbc;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
+import io.crate.client.jdbc.testing.Stubs;
+import io.crate.shade.com.google.common.base.MoreObjects;
 import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
+import io.crate.shade.org.elasticsearch.common.Nullable;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
+
 
 public class CustomSchemaTest {
 
@@ -49,16 +60,33 @@ public class CustomSchemaTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        conn = new CrateConnection(crateClient, "localhost:4300");
-        conn.setSchema("foo");
+    }
 
-        PlainActionFuture<SQLResponse> response = new PlainActionFuture<>();
-        response.onResponse(new SQLResponse());
-        when(crateClient.sql(requestCaptor.capture())).thenReturn(response);
+    private void setUpConnection(String version) throws SQLException {
+        mockDummyResponse(new SQLResponse(
+                new String[] { "version['number']" },
+                new Object[][] { new Object[] { version } },
+                new DataType[] {DataTypes.STRING },
+                1L,
+                0,
+                false
+        ));
+        conn = new CrateConnection(crateClient, "localhost:4300");
+        conn.connect();
+        conn.setSchema("foo");
+    }
+
+    private void mockDummyResponse(@Nullable SQLResponse response) {
+        PlainActionFuture<SQLResponse> responseFuture = new PlainActionFuture<>();
+        responseFuture.onResponse(MoreObjects.firstNonNull(response, Stubs.DUMMY_RESPONSE));
+        when(crateClient.sql(requestCaptor.capture())).thenReturn(responseFuture);
     }
 
     @Test
     public void testStatementExecute() throws Exception {
+        setUpConnection("0.48.1");
+        mockDummyResponse(null);
+
         Statement statement = conn.createStatement();
         statement.execute("select * from t");
 
@@ -68,11 +96,27 @@ public class CustomSchemaTest {
 
     @Test
     public void testPreparedStatement() throws Exception {
+        setUpConnection("0.48.1");
+        mockDummyResponse(null);
+
         PreparedStatement preparedStatement = conn.prepareStatement("select * from t where x = ?");
         preparedStatement.setInt(1, 10);
         preparedStatement.execute();
 
         SQLRequest request = requestCaptor.getValue();
         assertThat(request.getDefaultSchema(), is("foo"));
+    }
+
+    @Test
+    public void testSetSchemaIsIgnoredIfServerVersionIsTooLow() throws Exception {
+        setUpConnection("0.47.7");
+        mockDummyResponse(null);
+
+        PreparedStatement preparedStatement = conn.prepareStatement("select * from t where x = ?");
+        preparedStatement.setInt(1, 10);
+        preparedStatement.execute();
+
+        SQLRequest request = requestCaptor.getValue();
+        assertThat(request.getDefaultSchema(), nullValue());
     }
 }
