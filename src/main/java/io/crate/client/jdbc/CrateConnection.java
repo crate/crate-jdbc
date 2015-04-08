@@ -36,6 +36,8 @@ public class CrateConnection implements Connection {
     private String url;
     private boolean readOnly;
     private String schema = null;
+    private CrateDatabaseMetaData metaData;
+    private String databaseVersion;
 
 
     public CrateConnection(CrateClient crateClient, String url) {
@@ -50,7 +52,8 @@ public class CrateConnection implements Connection {
 
     public void connect() throws SQLException {
         try {
-            createStatement().execute("select id from sys.cluster");
+            metaData = new CrateDatabaseMetaData(this);
+            databaseVersion = metaData.getDatabaseProductVersion();
         } catch (NoNodeAvailableException e) {
             throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", url), e);
         }
@@ -113,13 +116,13 @@ public class CrateConnection implements Connection {
 
     @Override
     public boolean isClosed() throws SQLException {
-        return crateClient == null;
+        return crateClient == null || metaData == null;
     }
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
         checkClosed();
-        return new CrateDatabaseMetaData(this);
+        return metaData;
     }
 
     @Override
@@ -131,7 +134,6 @@ public class CrateConnection implements Connection {
     /**
      * Crate does not distinguish between read-only and write mode.
      * A CrateConnection is always in write mode, even the readOnly flag is set.
-     * @return
      * @throws SQLException
      */
     @Override
@@ -337,6 +339,10 @@ public class CrateConnection implements Connection {
     @Override
     public void setSchema(String schema) throws SQLException {
         checkClosed();
+        if (VersionStringComparator.compareVersions(databaseVersion, CrateDatabaseMetaData.CRATE_REQUEST_DEFAULT_SCHEMA) < 0) {
+            // according to JDBC java docs the driver should silently ignore it if it is not supported.
+            return;
+        }
         this.schema = schema;
     }
 

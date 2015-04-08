@@ -59,10 +59,14 @@ public class CrateDriver implements Driver {
         CrateConnection connection;
         if (url.equals("/")) {
             connection = new CrateConnection(new CrateClient(), url);
+            connection.connect();
         } else {
             String[] urlParts = url.split("/");
             String hosts = urlParts[0];
+
             connection = new CrateConnection(new CrateClient(hosts.split(",")), url);
+            connection.connect();
+
             if (urlParts.length == 2) {
                 connection.setSchema(urlParts[1]);
             } else if (urlParts.length > 2) {
@@ -70,8 +74,6 @@ public class CrateDriver implements Driver {
                         "Valid format is: [jdbc:]crate://[host1:port1][, host2:port2 ...]/[schema]");
             }
         }
-
-        connection.connect();
         return connection;
     }
 

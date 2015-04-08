@@ -15,6 +15,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     protected static final String CRATE_BULK_ARG_VERSION = "0.42.0";
     protected static final String CRATE_SCHEMATA_VERSION = "0.46.0";
+    protected static final String CRATE_REQUEST_DEFAULT_SCHEMA = "0.48.1";
 
     private final CrateConnection connection;
     private String dataBaseVersion;

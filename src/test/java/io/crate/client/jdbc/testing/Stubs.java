@@ -19,35 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.client.jdbc;
+package io.crate.client.jdbc.testing;
 
-import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.client.CrateClient;
-import io.crate.client.jdbc.testing.Stubs;
-import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
-import org.junit.Test;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+public class Stubs {
 
-public class CrateConnectionTest {
-
-    @Test
-    public void testReadOnlyConnection() throws Exception {
-        CrateClient crateClient = mock(CrateClient.class);
-        PlainActionFuture<SQLResponse> response = new PlainActionFuture<>();
-        response.onResponse(Stubs.DUMMY_RESPONSE);
-        when(crateClient.sql(any(SQLRequest.class))).thenReturn(response);
-
-        CrateConnection conn = new CrateConnection(crateClient, "localhost:4300");
-        conn.connect();
-        assertFalse(conn.isReadOnly());
-        conn.setReadOnly(true);
-        assertTrue(conn.isReadOnly());
-    }
-
+    public static final SQLResponse DUMMY_RESPONSE = new SQLResponse(
+            new String[] { "dummy" },
+            new Object[][] { new Object[] { "foo" } },
+            new DataType[] {DataTypes.STRING }, 1L, 0, false );
 }
