@@ -116,7 +116,9 @@ Is the same as::
 
 .. note::
 
-    Default schema support requires at least Crate 0.48.1
+    Default schema support requires at least Crate 0.48.1. If the Crate server
+    that is used has a version that is lower than 0.48.1 the specified schema
+    will be ignored and the default ``doc`` schema will be used instead.
 
 
 Compatibility
