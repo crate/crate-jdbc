@@ -2,6 +2,12 @@
 Changes for Crate Data JDBC Client
 ==================================
 
+2015/04/09 1.6.0
+================
+
+ - Added support for setting the default schema in the JDBC URL.
+   This works for Crate 0.48.1 and later.
+
 2015/04/03 1.5.1
 ================
 
