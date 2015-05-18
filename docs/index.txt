@@ -76,6 +76,10 @@ JDBC Driver Class
 
 The Crate JDBC driver class is ``io.crate.client.jdbc.CrateDriver``.
 
+A connection is obtained from the DriverManager, e.g.::
+
+    Connection conn = DriverManager.getConnection("crate://localhost:4300");
+
 JDBC URL Format
 ===============
 
@@ -106,11 +110,11 @@ schemaName is specified.
 This will implicitly call ``setSchema`` on the ``Connection`` class. So the
 following two statements are equivalent::
 
-    Connection conn = new CrateConnection("crate://localhost:4300/foo");
+    Connection conn = DriverManager.getConnection("crate://localhost:4300/foo");
 
 Is the same as::
 
-    Connection conn = new CrateConnection("crate://localhost:4300");
+    Connection conn = DriverManager.getConnection("crate://localhost:4300");
     conn.setSchema("foo");
 
 
