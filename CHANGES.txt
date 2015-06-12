@@ -2,6 +2,9 @@
 Changes for Crate Data JDBC Client
 ==================================
 
+ - Do not throw exception when ``createStatement`` and ``prepareStatement`` are
+   invoked with supported result set type, concurrency and holdability
+
 2015/04/09 1.6.0
 ================
 

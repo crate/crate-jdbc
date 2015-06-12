@@ -177,14 +177,21 @@ public class CrateConnection implements Connection {
 
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Connection: createStatement(int resultSetType, int resultSetConcurrency) not supported");
+        if (!metaData.supportsResultSetConcurrency(resultSetType, resultSetConcurrency)) {
+            throw new SQLFeatureNotSupportedException(String.format("Connection: createStatement(int resultSetType, int resultSetConcurrency) is not supported " +
+                    "with arguments: resultSetType=%d, resultSetConcurrency=%d", resultSetType, resultSetConcurrency));
+        }
+        return createStatement();
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Connection: prepareStatement(String sql, int resultSetType, int resultSetConcurrency) not supported");
+        if (!metaData.supportsResultSetConcurrency(resultSetType, resultSetConcurrency)) {
+            throw new SQLFeatureNotSupportedException(String.format("Connection: prepareStatement(String sql, int resultSetType, int resultSetConcurrency) is not supported " +
+                            "with arguments: sql=\"%s\", resultSetType=%d, resultSetConcurrency=%d",
+                    sql, resultSetType, resultSetConcurrency));
+        }
+        return prepareStatement(sql);
     }
 
     @Override
@@ -240,14 +247,23 @@ public class CrateConnection implements Connection {
 
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Connection: createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) not supported");
+        if (!metaData.supportsResultSetConcurrency(resultSetType, resultSetConcurrency) ||
+                !metaData.supportsResultSetHoldability(resultSetHoldability)) {
+            throw new SQLFeatureNotSupportedException(String.format("Connection: createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) is not supported " +
+                    "with arguments: resultSetType=%d, resultSetConcurrency=%d, resultSetHoldability=%d", resultSetType, resultSetConcurrency, resultSetHoldability));
+        }
+        return createStatement();
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        checkClosed();
-        throw new SQLFeatureNotSupportedException("Connection: prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) not supported");
+        if (!metaData.supportsResultSetConcurrency(resultSetType, resultSetConcurrency) ||
+                !metaData.supportsResultSetHoldability(resultSetHoldability)) {
+            throw new SQLFeatureNotSupportedException(String.format("Connection: prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) is not supported " +
+                    "with arguments: sql=\"%s\", resultSetType=%d, resultSetConcurrency=%d, resultSetHoldability=%d",
+                    sql, resultSetType, resultSetConcurrency, resultSetHoldability));
+        }
+        return prepareStatement(sql);
     }
 
     @Override
