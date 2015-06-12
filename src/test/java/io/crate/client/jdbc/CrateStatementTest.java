@@ -28,10 +28,7 @@ import io.crate.shade.org.elasticsearch.common.collect.MapBuilder;
 import io.crate.shade.org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
-import java.sql.BatchUpdateException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.HashSet;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -93,6 +90,86 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
     protected String getServerVersion() {
         return "0.42.0";
     }
+
+    @Test
+    public void testCreateStatement() throws Exception {
+        Statement statement = connection.createStatement();
+        assertFalse(statement.isClosed());
+        statement.close();
+
+        statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY);
+        assertFalse(statement.isClosed());
+        statement.close();
+
+        statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT);
+        assertFalse(statement.isClosed());
+        statement.close();
+    }
+
+    @Test
+    public void testCreateStatementWithInvalidResultSetType() throws Exception {
+        expectedException.expect(SQLFeatureNotSupportedException.class);
+        expectedException.expectMessage("Connection: createStatement(int resultSetType, int resultSetConcurrency) is not supported with arguments: resultSetType=1004, resultSetConcurrency=1007");
+        connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    }
+
+    @Test
+    public void testCreateStatementWithInvalidResultSetConcurrency() throws Exception {
+        expectedException.expect(SQLFeatureNotSupportedException.class);
+        expectedException.expectMessage("Connection: createStatement(int resultSetType, int resultSetConcurrency) is not supported with arguments: resultSetType=1003, resultSetConcurrency=1008");
+        connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    }
+
+    @Test
+    public void testCreateStatementWithInvalidResultSetHoldability() throws Exception {
+        expectedException.expect(SQLFeatureNotSupportedException.class);
+        expectedException.expectMessage("Connection: createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) is not supported with arguments: resultSetType=1003, resultSetConcurrency=1007, resultSetHoldability=2");
+        connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+    }
+
+    @Test
+    public void testPrepareStatement() throws Exception {
+        String query = "select count(*) from test where x = ?";
+        PreparedStatement stmt = connection.prepareStatement(query);
+        assertFalse(stmt.isClosed());
+        stmt.close();
+
+        stmt = connection.prepareStatement(query, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        assertFalse(stmt.isClosed());
+        stmt.close();
+
+        stmt = connection.prepareStatement(query, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+        assertFalse(stmt.isClosed());
+        stmt.close();
+    }
+
+    @Test
+    public void testPrepareStatementWithInvalidResultSetType() throws Exception {
+        expectedException.expect(SQLFeatureNotSupportedException.class);
+        expectedException.expectMessage("Connection: prepareStatement(String sql, int resultSetType, int resultSetConcurrency) is not supported with arguments: sql=\"select count(*) from test where x = ?\", resultSetType=1004, resultSetConcurrency=1007");
+        connection.prepareStatement("select count(*) from test where x = ?",
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    }
+
+    @Test
+    public void testPrepareStatementWithInvalidResultSetConcurrency() throws Exception {
+        expectedException.expect(SQLFeatureNotSupportedException.class);
+        expectedException.expectMessage("Connection: prepareStatement(String sql, int resultSetType, int resultSetConcurrency) is not supported with arguments: sql=\"select count(*) from test where x = ?\", resultSetType=1003, resultSetConcurrency=1008");
+        connection.prepareStatement("select count(*) from test where x = ?",
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    }
+
+    @Test
+    public void testPrepareStatementWithInvalidResultSetHoldability() throws Exception {
+        expectedException.expect(SQLFeatureNotSupportedException.class);
+        expectedException.expectMessage("Connection: prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) is not supported with arguments: sql=\"select count(*) from test where x = ?\", resultSetType=1003, resultSetConcurrency=1007, resultSetHoldability=2");
+        connection.prepareStatement("select count(*) from test where x = ?",
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+    }
+
 
     @Test
     public void testExecute() throws Exception {
@@ -174,14 +251,11 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
     public void testCloseStatementResultSetsClosed() throws Exception {
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery("select * from test");
-
-
         statement.close();
         expectedException.expect(SQLException.class);
         expectedException.expectMessage("ResultSet is closed");
 
         resultSet.first();
-
     }
 
     @Test
