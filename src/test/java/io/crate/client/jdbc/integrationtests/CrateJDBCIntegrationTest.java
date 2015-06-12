@@ -221,7 +221,7 @@ public class CrateJDBCIntegrationTest {
             assertFalse(resultSet.getString(4).contains("["));
             counter++;
         }
-        assertThat(counter, is(13));
+        assertThat(counter, is(14));
 
     }
 
