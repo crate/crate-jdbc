@@ -104,7 +104,7 @@ public abstract class AbstractCrateJDBCTest {
         } else if (o instanceof SQLRequest) {
             response = getResponse((SQLRequest) o);
         } else {
-            throw new IllegalArgumentException("invalid SQL requuest");
+            throw new IllegalArgumentException("invalid SQL request");
         }
 
         return new PlainActionFuture<SQLResponse>() {
