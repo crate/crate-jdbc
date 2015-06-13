@@ -146,7 +146,7 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
     @Override
     public int getUpdateCount() throws SQLException {
         checkClosed();
-        if (resultSet == null && sqlResponse != null) {
+        if (resultSet.isBeforeFirst() && sqlResponse != null) {
             return (int) sqlResponse.rowCount();
         }
         return -1;
@@ -159,10 +159,10 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
 
         sqlRequest.args(currentParams);
         executeSingle();
+        resultSet = new CrateResultSet(this, sqlResponse);
         if (!hasResultSet(sqlResponse)) {
             return false;
         }
-        resultSet = new CrateResultSet(this, sqlResponse);
         return true;
     }
 

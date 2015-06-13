@@ -7,6 +7,9 @@ Changes for Crate Data JDBC Client
  - Do not throw exception when ``createStatement`` and ``prepareStatement`` are
    invoked with supported result set type, concurrency and holdability
 
+ - Fix: do not return ``null`` but an empty ``ResultSet`` if there are no
+   matches for a ``PreparedStatement``
+
 2015/04/09 1.6.0
 ================
 
