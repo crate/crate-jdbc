@@ -41,6 +41,7 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
 
     private static SQLResponse ID_RESPONSE = new SQLResponse(new String[]{"id"}, new Object[][]{new Object[]{0L}}, new DataType[]{DataTypes.INTEGER}, 1L, 0L, true);
     private static SQLResponse ROWCOUNT_RESPONSE = new SQLResponse(new String[0], new Object[0][], new DataType[0], 4L, 0L, true);
+    private static SQLResponse EMPTY_RESPONSE = new SQLResponse(new String[0], new Object[0][], new DataType[0], 0L, 0L, true);
 
     private boolean supportBulkArgs = true;
 
@@ -48,6 +49,8 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
     protected SQLResponse getResponse(SQLRequest request) {
         if (hasErrorArg(request)) {
             throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST, "");
+        } else if (request.args().length > 0 && request.args()[0].equals("does_not_exist")) {
+            return EMPTY_RESPONSE;
         } else if (request.stmt().toUpperCase().startsWith("SELECT")) {
             return ID_RESPONSE;
         } else {
@@ -120,6 +123,15 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
         assertThat(resultSet.getRow(), is(1));
         resultSet.first();
         assertThat(resultSet.getLong(1), is(0L));
+    }
+
+    @Test
+    public void testExecuteQueryWithEmptyResult() throws Exception {
+        PreparedStatement preparedStatement = connection.prepareStatement("select * from test where a = ?");
+        preparedStatement.setString(1, "does_not_exist");
+        ResultSet resultSet = preparedStatement.executeQuery();
+        assertThat(resultSet.getMetaData().getColumnCount(), is(0));
+        assertThat(resultSet.isBeforeFirst(), is(false));
     }
 
     @Test

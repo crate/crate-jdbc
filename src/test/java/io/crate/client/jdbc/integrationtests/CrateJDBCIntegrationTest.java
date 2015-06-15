@@ -37,6 +37,8 @@ import static io.crate.shade.com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.*;
 
 /**
@@ -189,6 +191,17 @@ public class CrateJDBCIntegrationTest {
         Assert.assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
         Object firstObject = ((Object[])objArray.getArray())[0];
         Assert.assertThat(firstObject, instanceOf(Map.class));
+    }
+
+    @Test
+    public void testSelectWithoutResultUsingPreparedStatement() throws Exception {
+        PreparedStatement preparedStatement = connection.prepareStatement("select * from test where id = ?");
+        preparedStatement.setInt(1,2);
+
+        ResultSet resultSet = preparedStatement.executeQuery();
+
+        assertThat(resultSet, notNullValue());
+        assertThat(resultSet.isBeforeFirst(), is(false));
     }
 
     @Test

@@ -379,7 +379,7 @@ public class CrateResultSet implements ResultSet {
     @Override
     public boolean isBeforeFirst() throws SQLException {
         checkClosed();
-        return rowIdx == -1;
+        return rowIdx == -1 && sqlResponse.rowCount() > 0;
     }
 
     @Override
