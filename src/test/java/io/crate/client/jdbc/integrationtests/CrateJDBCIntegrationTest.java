@@ -38,7 +38,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.*;
 
 /**
@@ -102,6 +101,41 @@ public class CrateJDBCIntegrationTest {
         Object[] objects = (Object[]) resultSet.getObject(1);
         String[] schemas = Arrays.copyOf(objects, objects.length, String[].class);
         assertThat(schemas, Matchers.arrayContainingInAnyOrder("foo", "bar"));
+    }
+
+    @Test
+    public void testConnectionWithCustomSchemaPrepareStatement() throws Exception {
+        String schemaName = "s1";
+        String tableName = "t1";
+        Connection conn = DriverManager.getConnection(String.format("jdbc:crate://%s/%s", hostAndPort, schemaName));
+
+        PreparedStatement pstmt = conn.prepareStatement(
+                String.format("create table %s (first_column integer, second_column string)", tableName));
+        assertThat(pstmt.execute(), is(false));
+        pstmt = conn.prepareStatement(
+                String.format("insert into %s (first_column, second_column) values (?, ?)", tableName));
+        pstmt.setInt(1, 42);
+        pstmt.setString(2, "testing");
+        assertThat(pstmt.execute(), is(false));
+        pstmt = conn.prepareStatement(
+                String.format("refresh table %s", tableName));
+        pstmt.execute();
+        pstmt = conn.prepareStatement(
+                String.format("select * from %s", tableName));
+        assertThat(pstmt.execute(), is(true)); // there should be a return value
+        ResultSet rSet2 = pstmt.getResultSet();
+        assertThat(rSet2.next(), is(true)); // there should be a result
+        assertThat(rSet2.getInt(1), is(42));
+        assertThat(rSet2.getString(2), is("testing"));
+        pstmt = conn.prepareStatement("select schema_name, table_name from information_schema.tables " +
+                "where schema_name = ? and table_name = ?");
+        pstmt.setString(1, schemaName);
+        pstmt.setString(2, tableName);
+        assertThat(pstmt.execute(), is(true)); // there should be a return value
+        ResultSet rSet = pstmt.getResultSet();
+        assertThat(rSet.next(), is(true)); // there should be a result
+        assertThat(rSet.getString(1), is(schemaName));
+        assertThat(rSet.getString(2), is(tableName));
     }
 
     @Before
@@ -259,7 +293,7 @@ public class CrateJDBCIntegrationTest {
         stmt.addBatch("insert into test (id) values (5)");
 
         int[] results = stmt.executeBatch();
-        assertArrayEquals(results, new int[]{1,1,1});
+        assertArrayEquals(results, new int[]{1, 1, 1});
 
         assertFalse(stmt.execute("refresh table test"));
         ResultSet resultSet = stmt.executeQuery("select count(*) from test");
@@ -429,4 +463,5 @@ public class CrateJDBCIntegrationTest {
         result.next();
         assertThat(result.getString(1), is("sys"));
     }
+
 }
