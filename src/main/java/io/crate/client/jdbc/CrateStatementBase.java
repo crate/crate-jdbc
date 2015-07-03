@@ -26,6 +26,7 @@ import java.sql.*;
 public abstract class CrateStatementBase implements Statement {
     protected CrateConnection connection;
     protected ResultSet resultSet;
+    private int queryTimeout = 0;
 
     public CrateStatementBase(CrateConnection connection) {
         this.connection = connection;
@@ -73,12 +74,12 @@ public abstract class CrateStatementBase implements Statement {
 
     @Override
     public int getQueryTimeout() throws SQLException {
-        return 0;
+        return queryTimeout;
     }
 
     @Override
     public void setQueryTimeout(int seconds) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement setQueryTimeout not supported");
+        queryTimeout = seconds;
     }
 
     @Override

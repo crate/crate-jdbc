@@ -2,6 +2,7 @@ package io.crate.client.jdbc;
 
 import io.crate.action.sql.*;
 import io.crate.shade.com.google.common.base.Throwables;
+import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.common.Nullable;
 
 import java.io.InputStream;
@@ -11,6 +12,7 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class CratePreparedStatement extends CrateStatementBase implements PreparedStatement {
 
@@ -168,7 +170,12 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
 
     private void executeSingle() throws SQLException {
         try {
-            sqlResponse = connection.client().sql(sqlRequest).actionGet();
+            ActionFuture<SQLResponse> future = connection.client().sql(sqlRequest);
+            if (getQueryTimeout() > 0) {
+                sqlResponse = future.actionGet(getQueryTimeout(), TimeUnit.SECONDS);
+            } else {
+                sqlResponse = future.actionGet();
+            }
         } catch (SQLActionException e) {
             throw new SQLException(e.getMessage(), e);
         }
@@ -331,7 +338,12 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
     private int[] executeBulk(SQLBulkRequest bulkRequest) throws SQLException {
         SQLBulkResponse bulkResponse;
         try {
-            bulkResponse = connection.client().bulkSql(bulkRequest).actionGet();
+            ActionFuture<SQLBulkResponse> future = connection.client().bulkSql(bulkRequest);
+            if (getQueryTimeout() > 0) {
+                bulkResponse = future.actionGet(getQueryTimeout(), TimeUnit.SECONDS);
+            } else {
+                bulkResponse = future.actionGet();
+            }
         } catch (SQLActionException e) {
             throw new SQLException(e.getMessage(), e);
         }

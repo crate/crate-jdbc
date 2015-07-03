@@ -22,6 +22,8 @@
 package io.crate.client.jdbc;
 
 import io.crate.action.sql.*;
+import io.crate.shade.org.elasticsearch.action.ActionFuture;
+import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.shade.org.elasticsearch.rest.RestStatus;
@@ -30,12 +32,16 @@ import org.junit.Test;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.shade.com.google.common.collect.Maps.newHashMap;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.*;
 
 public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
 
@@ -372,5 +378,47 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
         }
 
         supportBulkArgs = true;
+    }
+
+    @Test
+    public void textExecuteBatchBulkTimeout() throws Exception {
+        ActionFuture<SQLBulkResponse> future = mock(PlainActionFuture.class);
+        SQLBulkResponse res = getBulkResponse(new SQLBulkRequest("update test where c = ? and a = ? and b = $3"));
+        when(future.actionGet()).thenReturn(res);
+        when(future.actionGet(anyLong(), any(TimeUnit.class))).thenReturn(res);
+
+        nextSQLBulkResponse = future;
+        CratePreparedStatement statement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
+        statement.setString(3, "foo");
+        statement.setString(2, "bar");
+        statement.executeBatch();
+        verify(future).actionGet(); // no timeout is set
+
+        nextSQLBulkResponse = future;
+        statement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
+        statement.setQueryTimeout(5);
+        statement.setString(3, "foo");
+        statement.setString(2, "bar");
+        statement.executeBatch();
+        verify(future).actionGet(5, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void textExecuteBatchSingleTimeout() throws Exception {
+        supportBulkArgs = false;
+
+        ActionFuture<SQLResponse> future = mock(PlainActionFuture.class);
+        when(future.actionGet()).thenReturn(new SQLResponse());
+        when(future.actionGet(anyLong(), any(TimeUnit.class))).thenReturn(new SQLResponse());
+
+        nextSQLResponse = future;
+        CratePreparedStatement statement = (CratePreparedStatement) connection.prepareStatement("update test where c = ? and a = ? and b = $3");
+        statement.setQueryTimeout(10);
+        statement.setString(3, "foo");
+        statement.setString(2, "bar");
+        statement.setString(1, "baz");
+        statement.addBatch();
+        statement.executeBatch();
+        verify(future).actionGet(10, TimeUnit.SECONDS);
     }
 }

@@ -24,10 +24,13 @@ package io.crate.client.jdbc;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
+import io.crate.shade.org.elasticsearch.action.ActionFuture;
 
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class CrateStatement extends CrateStatementBase {
 
@@ -59,7 +62,12 @@ public class CrateStatement extends CrateStatementBase {
         sqlRequest.setDefaultSchema(connection.getSchema());
         sqlRequest.includeTypesOnResponse(true);
         try {
-            sqlResponse = connection.client().sql(sqlRequest).actionGet();
+            ActionFuture<SQLResponse> future = connection.client().sql(sqlRequest);
+            if (getQueryTimeout() > 0) {
+                sqlResponse = future.actionGet(getQueryTimeout(), TimeUnit.SECONDS);
+            } else {
+                sqlResponse = future.actionGet();
+            }
         } catch (SQLActionException e) {
             throw new SQLException(e.getMessage(), e);
         }

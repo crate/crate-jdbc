@@ -51,6 +51,9 @@ public abstract class AbstractCrateJDBCTest {
 
     protected Connection connection;
 
+    protected ActionFuture<SQLResponse> nextSQLResponse;
+    protected ActionFuture<SQLBulkResponse> nextSQLBulkResponse;
+
     private class CrateTestDatabaseMetadata extends CrateDatabaseMetaData {
 
         public CrateTestDatabaseMetadata(CrateConnection connection) {
@@ -107,6 +110,12 @@ public abstract class AbstractCrateJDBCTest {
             throw new IllegalArgumentException("invalid SQL request");
         }
 
+        if (nextSQLResponse != null) {
+            ActionFuture<SQLResponse> res = nextSQLResponse;
+            nextSQLResponse = null;
+            return res;
+        }
+
         return new PlainActionFuture<SQLResponse>() {
             @Override
             public SQLResponse get() throws InterruptedException, ExecutionException {
@@ -130,6 +139,12 @@ public abstract class AbstractCrateJDBCTest {
             response = getBulkResponse((SQLBulkRequest) o);
         } else {
             throw new IllegalArgumentException("invalid SQL Bulk request");
+        }
+
+        if (nextSQLBulkResponse != null) {
+            ActionFuture<SQLBulkResponse> res = nextSQLBulkResponse;
+            nextSQLResponse = null;
+            return res;
         }
 
         return new PlainActionFuture<SQLBulkResponse>() {

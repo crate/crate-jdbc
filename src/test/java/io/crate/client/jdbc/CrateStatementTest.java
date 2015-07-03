@@ -23,17 +23,26 @@ package io.crate.client.jdbc;
 
 
 import io.crate.action.sql.*;
-import io.crate.types.*;
+import io.crate.shade.org.elasticsearch.action.ActionFuture;
+import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
 import io.crate.shade.org.elasticsearch.common.collect.MapBuilder;
 import io.crate.shade.org.elasticsearch.rest.RestStatus;
+import io.crate.types.*;
 import org.junit.Test;
 
 import java.sql.*;
 import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 
 public class CrateStatementTest extends AbstractCrateJDBCTest {
 
@@ -300,5 +309,23 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
             assertArrayEquals(e.getUpdateCounts(), new int[]{4, Statement.EXECUTE_FAILED, 4});
         }
 
+    }
+
+    @Test
+    public void testQueryTimeout() throws Exception {
+        ActionFuture<SQLResponse> future = mock(PlainActionFuture.class);
+        when(future.actionGet()).thenReturn(new SQLResponse());
+        when(future.actionGet(anyLong(), any(TimeUnit.class))).thenReturn(new SQLResponse());
+
+        nextSQLResponse = future;
+        Statement statement = connection.createStatement();
+        statement.execute("select count(*) from test");
+        verify(future).actionGet(); // no timeout is set
+
+        nextSQLResponse = future;
+        statement = connection.createStatement();
+        statement.setQueryTimeout(5);
+        statement.execute("select count(*) from test");
+        verify(future).actionGet(5, TimeUnit.SECONDS);
     }
 }

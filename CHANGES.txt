@@ -2,6 +2,8 @@
 Changes for Crate Data JDBC Client
 ==================================
 
+ - Added support for setting the QueryTimeout
+
 2015/06/15 1.7.0
 ================
 
