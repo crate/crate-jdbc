@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
  Unreleased
  ==========
 
+ - Updated Crate client to ``0.49.5``
+
  - Fix: executeBatch() method on a prepared statement did not take
    custom schema from connection into account and therefore caused
    TableUnknownException
