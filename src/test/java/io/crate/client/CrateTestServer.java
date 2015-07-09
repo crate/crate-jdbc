@@ -158,7 +158,7 @@ public class CrateTestServer extends ExternalResource {
     private void startCrateAsDaemon() throws IOException, InterruptedException {
         String[] command = new String[]{
                 "bin/crate",
-                "-Des.index.storage.type=memory",
+                "-Des.index.store.type=memory",
                 "-Des.network.host=" + crateHost,
                 "-Des.cluster.name=" + clusterName,
                 "-Des.http.port=" + httpPort,

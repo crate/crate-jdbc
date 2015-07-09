@@ -23,6 +23,7 @@ package io.crate.client.jdbc.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.client.CrateTestServer;
 import io.crate.client.jdbc.CrateResultSet;
@@ -32,6 +33,7 @@ import org.junit.rules.ExpectedException;
 
 import java.sql.*;
 import java.util.*;
+import java.util.Date;
 
 import static io.crate.shade.com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -105,8 +107,8 @@ public class CrateJDBCIntegrationTest {
 
     @Test
     public void testConnectionWithCustomSchemaPrepareStatement() throws Exception {
-        String schemaName = "s1";
-        String tableName = "t1";
+        String schemaName = "my";
+        String tableName = "test_a";
         Connection conn = DriverManager.getConnection(String.format("jdbc:crate://%s/%s", hostAndPort, schemaName));
 
         PreparedStatement pstmt = conn.prepareStatement(
@@ -138,8 +140,31 @@ public class CrateJDBCIntegrationTest {
         assertThat(rSet.getString(2), is(tableName));
     }
 
-    @Before
-    public void setUpTable() {
+    @Test
+    public void testConnectionWithCustomSchemaBatchPrepareStatement() throws Exception {
+        String schemaName = "my";
+        String tableName = "test_b";
+        Connection conn = DriverManager.getConnection(String.format("jdbc:crate://%s/%s", hostAndPort, schemaName));
+
+        PreparedStatement stmt = conn.prepareStatement(
+                String.format("create table %s (id long, ts timestamp, info string)", tableName));
+        stmt.execute();
+        stmt = conn.prepareStatement(
+                String.format("INSERT INTO %s (id, ts, info) values (?, ?, ?)", tableName));
+        String text = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor.";
+        for (long i = 1; i < 10 + 1; i++) {
+            stmt.setLong(1, i);
+            stmt.setTimestamp(2, new Timestamp(new Date().getTime()));
+            stmt.setString(3, text);
+            stmt.addBatch();
+            if (i % 5 == 0) {
+                assertThat(stmt.executeBatch(), is(new int[]{1,1,1,1,1}));
+            }
+        }
+    }
+
+    @BeforeClass
+    public static void setUpTables() {
         String stmt = "create table test (" +
                 " id integer primary key," +
                 " string_field string," +
@@ -156,15 +181,12 @@ public class CrateJDBCIntegrationTest {
                 " array1 array(string)," +
                 " obj_array array(object)" +
                 ") clustered by (id) into 1 shards with(number_of_replicas=0)";
-        try {
-            client.sql("drop table test").actionGet();
-        } catch (Exception e) {
-            // ignore
-        }
         client.sql(stmt).actionGet();
+    }
 
+    @Before
+    public void insertIntoTable() {
         Map<String, Object> objectField = new HashMap<String, Object>(){{put("inner", "Zoon");}};
-
         SQLRequest sqlRequest = new SQLRequest("insert into test (id, string_field, boolean_field, byte_field, short_field, integer_field," +
                 "long_field, float_field, double_field, object_field," +
                 "timestamp_field, ip_field, array1, obj_array) values " +
@@ -180,14 +202,21 @@ public class CrateJDBCIntegrationTest {
     }
 
     @After
-    public void tearDownTable() {
+    public void deleteFromTable() {
+        client.sql("delete from test").actionGet();
+        client.sql("refresh table test").actionGet();
+    }
+
+    @AfterClass
+    public static void tearDownTables() {
         CrateClient client = new CrateClient(hostAndPort);
-        try {
-            client.sql("drop table test").actionGet();
-            client.sql("drop table if exists foo.t").actionGet();
-            client.sql("drop table if exists bar.t").actionGet();
-        } catch (Exception e) {
-            // ignore
+        SQLResponse response = client.sql("select schema_name, table_name from information_schema.tables where schema_name in ('doc', 'my', 'foo', 'bar')").actionGet();
+        for (Object[] row : response.rows()) {
+            try {
+                client.sql(String.format("drop table \"%s\".\"%s\"", row[0], row[1]));
+            } catch (Exception e) {
+                // ignore
+            }
         }
     }
 

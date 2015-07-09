@@ -363,6 +363,7 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
     private int[] executeBatchBulk() throws SQLException {
         SQLBulkRequest bulkRequest = new SQLBulkRequest(sqlRequest.stmt(),
                 batchParams.toArray(new Object[batchParams.size()][]));
+        bulkRequest.setDefaultSchema(connection.getSchema());
         bulkRequest.includeTypesOnResponse(true);
         try {
             return executeBulk(bulkRequest);
