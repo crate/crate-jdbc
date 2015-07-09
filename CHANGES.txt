@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
  Unreleased
  ==========
 
+2015/07/09 1.8.1
+================
+
  - Updated Crate client to ``0.49.5``
 
  - Fix: executeBatch() method on a prepared statement did not take
