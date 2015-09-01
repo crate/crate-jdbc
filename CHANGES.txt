@@ -5,6 +5,11 @@ Changes for Crate Data JDBC Client
  Unreleased
  ==========
 
+ - Fixed an issue which caused the crate driver to take over jdbc
+   urls from none crate urls
+
+ - Updated Crate client to ``0.50.5``
+
 2015/07/09 1.8.1
 ================
 

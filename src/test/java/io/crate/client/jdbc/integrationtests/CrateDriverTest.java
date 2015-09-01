@@ -33,8 +33,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Locale;
+import java.util.Properties;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -47,6 +49,8 @@ public class CrateDriverTest {
     public static CrateTestServer testServer = new CrateTestServer("driver");
 
     public String hostAndPort = String.format(Locale.ENGLISH, "%s:%d", testServer.crateHost, testServer.transportPort);
+    private static final CrateDriver CRATE_DRIVER = new CrateDriver();
+    private static final Properties PROP = new Properties();
 
     @Test
     public void testDriverRegistration() throws Exception {
@@ -59,9 +63,8 @@ public class CrateDriverTest {
         assertThat(c2, instanceOf(CrateConnection.class));
 
         expectedException.expect(SQLException.class);
-        expectedException.expectMessage("Protocol url jdbc-crate:// not supported. Must be one of crate:// or jdbc:crate://");
-
-        DriverManager.getConnection("jdbc-crate://" + hostAndPort);
+        expectedException.expectMessage(String.format("No suitable driver found for %s", "jdbc:mysql://" + hostAndPort));
+        DriverManager.getConnection("jdbc:mysql://" + hostAndPort);
     }
 
     @Test
@@ -81,12 +84,27 @@ public class CrateDriverTest {
 
     @Test
     public void testAccepts() throws Exception {
-        CrateDriver crateDriver = new CrateDriver();
-        assertThat(crateDriver.acceptsURL("crate://"), is(true));
-        assertThat(crateDriver.acceptsURL("crate://localhost/foo"), is(true));
-        assertThat(crateDriver.acceptsURL("crate:///foo"), is(true));
-        assertThat(crateDriver.acceptsURL("jdbc:crate://"), is(true));
-        assertThat(crateDriver.acceptsURL("crt://"), is(false));
-        assertThat(crateDriver.acceptsURL("jdbc:mysql://"), is(false));
+        assertThat(CRATE_DRIVER.acceptsURL("crate://"), is(true));
+        assertThat(CRATE_DRIVER.acceptsURL("crate://localhost/foo"), is(true));
+        assertThat(CRATE_DRIVER.acceptsURL("crate:///foo"), is(true));
+        assertThat(CRATE_DRIVER.acceptsURL("jdbc:crate://"), is(true));
+        assertThat(CRATE_DRIVER.acceptsURL("crt://"), is(false));
+        assertThat(CRATE_DRIVER.acceptsURL("jdbc:mysql://"), is(false));
+    }
+
+    @Test
+    public void testConnectDriver() throws Exception {
+        assertThat(CRATE_DRIVER.connect("jdbc:crate://" + hostAndPort, PROP), instanceOf(CrateConnection.class));
+        assertThat(CRATE_DRIVER.connect("crate://" + hostAndPort, new Properties()), instanceOf(CrateConnection.class));
+
+        assertThat(CRATE_DRIVER.connect("crt://" + hostAndPort, PROP), is(nullValue()));
+        assertThat(CRATE_DRIVER.connect("jdbc:mysql://" + hostAndPort, PROP), is(nullValue()));
+
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage(String.format("Connect to '/foo%s' failed", hostAndPort.toString()));
+        assertThat(CRATE_DRIVER.connect("crate:///foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
+
+        expectedException.expectMessage(String.format("Connect to 'localhost/foo%s' failed", hostAndPort.toString()));
+        assertThat(CRATE_DRIVER.connect("crate://localhost/foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
     }
 }
