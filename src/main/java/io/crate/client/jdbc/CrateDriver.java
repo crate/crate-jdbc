@@ -47,13 +47,12 @@ public class CrateDriver implements Driver {
 
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
-        if (url.startsWith(PROTOCOL+":")) {
+        if (url.startsWith(LONG_PREFIX)) {
             url = url.substring(LONG_PREFIX.length());
-        } else if (url.startsWith(SUB_PROTOCOL+":")) {
+        } else if (url.startsWith(PREFIX)) {
             url = url.substring(PREFIX.length());
         } else {
-            String[] parts = url.split("//");
-            throw new SQLException(String.format("Protocol url %s not supported. Must be one of %s or %s", parts[0]+"//", PREFIX, LONG_PREFIX));
+            return null;
         }
 
         CrateConnection connection;
