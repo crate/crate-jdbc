@@ -1,10 +1,10 @@
 package io.crate.client.jdbc;
 
+import io.crate.action.sql.SQLResponse;
 import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.com.google.common.base.Splitter;
-import io.crate.action.sql.SQLResponse;
-import io.crate.types.*;
 import io.crate.shade.org.elasticsearch.common.collect.Tuple;
+import io.crate.types.*;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -861,7 +861,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][1] = sqlResponse.rows()[i][0];
             rows[i][2] = sqlResponse.rows()[i][1];
             rows[i][3] = sqlResponse.rows()[i][2];
-            rows[i][4] = sqlTypeOfCrateType((String)sqlResponse.rows()[i][3]);
+            rows[i][4] = sqlTypeOfCrateType((String) sqlResponse.rows()[i][3]);
             rows[i][5] = sqlResponse.rows()[i][3];
             rows[i][6] = null;
             rows[i][7] = null;
@@ -873,7 +873,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][13] = null;
             rows[i][14] = null;
             rows[i][15] = null;
-            rows[i][16] = ((Number)sqlResponse.rows()[i][4]).intValue();
+            rows[i][16] = ((Number) sqlResponse.rows()[i][4]).intValue();
             rows[i][17] = "YES";
             rows[i][18] = null;
             rows[i][19] = null;
@@ -917,7 +917,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
     private final ResultSet fakedEmptyResult(Tuple<String, DataType>... columns) throws SQLException {
         String[] columnNames = new String[columns.length];
         DataType[] columnTypes = new DataType[columns.length];
-        for (int i = 0; i<columns.length; i++) {
+        for (int i = 0; i < columns.length; i++) {
             columnNames[i] = columns[i].v1();
             columnTypes[i] = columns[i].v2();
         }
@@ -932,7 +932,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         return new CrateResultSet(connection.createStatement(), response);
     }
 
-    private ResultSet fakedEmptyResult(String ... columns) throws SQLException {
+    private ResultSet fakedEmptyResult(String... columns) throws SQLException {
         DataType[] columnTypes = new DataType[columns.length];
         Arrays.fill(columnTypes, StringType.INSTANCE);
         SQLResponse response = new SQLResponse(
@@ -987,8 +987,8 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
     @Override
     public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException {
         return fakedEmptyResult("SCOPE", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME",
-                        "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS",
-                        "PSEUDO_COLUMNS");
+                "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS",
+                "PSEUDO_COLUMNS");
     }
 
     @Override
@@ -1018,7 +1018,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         cols[5] = "PK_NAME";
         List<Object[]> rowList = new ArrayList<>();
         for (int i = 0; i < sqlResponse.rows().length; i++) {
-            Object[] pks = (Object[])sqlResponse.rows()[i][0];
+            Object[] pks = (Object[]) sqlResponse.rows()[i][0];
             for (int j = 0; j < pks.length; j++) {
                 Object[] row = new Object[6];
                 row[0] = null;
@@ -1046,19 +1046,19 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
     @Override
     public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
         return fakedEmptyResult("PKTABLE_CAT",
-                        "PKTABLE_SCHEM",
-                        "PKTABLE_NAME",
-                        "PKCOLUMN_NAME",
-                        "FKTABLE_CAT",
-                        "FKTABLE_SCHEM",
-                        "FKTABLE_NAME",
-                        "FKCOLUMN_NAME",
-                        "KEY_SEQ",
-                        "UPDATE_RULE",
-                        "DELETE_RULE",
-                        "FK_NAME",
-                        "PK_NAME",
-                        "DEFERRABILITY");
+                "PKTABLE_SCHEM",
+                "PKTABLE_NAME",
+                "PKCOLUMN_NAME",
+                "FKTABLE_CAT",
+                "FKTABLE_SCHEM",
+                "FKTABLE_NAME",
+                "FKCOLUMN_NAME",
+                "KEY_SEQ",
+                "UPDATE_RULE",
+                "DELETE_RULE",
+                "FK_NAME",
+                "PK_NAME",
+                "DEFERRABILITY");
     }
 
     @Override
@@ -1334,7 +1334,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
                 "integer_array", "short_array", "boolean_array", "byte_array",
                 "float_array", "double_array", "object_array"};
         for (int i = 11; i < 11 + arrayTypes.length; i++) {
-            rows[i][0] = arrayTypes[i-11];
+            rows[i][0] = arrayTypes[i - 11];
             rows[i][1] = Types.ARRAY;
             rows[i][2] = null;
             rows[i][3] = null;
@@ -1353,7 +1353,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
             rows[i][16] = null;
             rows[i][17] = 10;
         }
-        DataType[] types = new DataType[] {
+        DataType[] types = new DataType[]{
                 StringType.INSTANCE,
                 IntegerType.INSTANCE,
                 IntegerType.INSTANCE,
@@ -1650,8 +1650,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass()))
-        {
+        if (iface.isAssignableFrom(getClass())) {
             return (T) this;
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());

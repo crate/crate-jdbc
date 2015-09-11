@@ -21,8 +21,8 @@
 
 package io.crate.client.jdbc;
 
-import io.crate.shade.com.google.common.base.Preconditions;
 import io.crate.client.jdbc.types.Mappings;
+import io.crate.shade.com.google.common.base.Preconditions;
 import io.crate.types.*;
 
 import java.lang.reflect.Array;
@@ -124,7 +124,7 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public int getColumnType(int column) throws SQLException {
-        DataType type = types.get(column-1);
+        DataType type = types.get(column - 1);
         Integer jdbcType = Mappings.CRATE_TO_JDBC.get(type.getClass());
         if (jdbcType == null) {
             throw new SQLDataException(
@@ -136,7 +136,7 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public String getColumnTypeName(int column) throws SQLException {
-        return types.get(column-1).getName();
+        return types.get(column - 1).getName();
     }
 
     @Override
@@ -157,7 +157,7 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public String getColumnClassName(int column) throws SQLException {
-        DataType type = types.get(column - 1 );
+        DataType type = types.get(column - 1);
         switch (type.id()) {
             case BooleanType.ID:
                 return Boolean.class.getName();
@@ -194,8 +194,7 @@ public class CrateResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass()))
-        {
+        if (iface.isAssignableFrom(getClass())) {
             return (T) this;
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());

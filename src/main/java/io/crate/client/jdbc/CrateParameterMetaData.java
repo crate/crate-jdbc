@@ -75,7 +75,7 @@ public class CrateParameterMetaData implements ParameterMetaData {
     @Override
     public String getParameterClassName(int param) throws SQLException {
         Preconditions.checkArgument(param > 0, "invalid parameter");
-        Object parameter = parameters.get(param-1);
+        Object parameter = parameters.get(param - 1);
         if (parameter != null) {
             return parameter.getClass().getName();
         }
@@ -90,8 +90,7 @@ public class CrateParameterMetaData implements ParameterMetaData {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass()))
-        {
+        if (iface.isAssignableFrom(getClass())) {
             return (T) this;
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());

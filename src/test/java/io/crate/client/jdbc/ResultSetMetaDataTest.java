@@ -26,8 +26,8 @@ import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.jdbc.types.CrateArray;
-import io.crate.types.*;
 import io.crate.shade.org.elasticsearch.common.collect.MapBuilder;
+import io.crate.types.*;
 import org.junit.Test;
 
 import java.sql.*;
@@ -48,8 +48,12 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
                         new Object[]{true, 1, 2L, 4.5F, 34734875.3345734d,
                                 "södkjfhsudkhfjvhvb", 0L,
                                 new MapBuilder<String, Object>().put("a", 123L).map(),
-                                new Long[]{ Long.MIN_VALUE, 0L, Long.MAX_VALUE },
-                                new HashSet<String>(){{ add("a"); add("b"); add("c"); }},
+                                new Long[]{Long.MIN_VALUE, 0L, Long.MAX_VALUE},
+                                new HashSet<String>() {{
+                                    add("a");
+                                    add("b");
+                                    add("c");
+                                }},
                                 null
                         }
                 },

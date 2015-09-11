@@ -84,7 +84,7 @@ public abstract class AbstractCrateJDBCTest {
                 return fakeExecuteBulkSQL(invocation.getArguments()[0]);
             }
         };
-        when(crateClient.sql((SQLRequest)any())).thenAnswer(sqlAnswer);
+        when(crateClient.sql((SQLRequest) any())).thenAnswer(sqlAnswer);
         when(crateClient.sql(anyString())).thenAnswer(sqlAnswer);
         when(crateClient.bulkSql((SQLBulkRequest) any())).thenAnswer(sqlBulkAnswer);
         CrateConnection conn = new CrateConnection(crateClient, "localhost:4300");
@@ -92,10 +92,10 @@ public abstract class AbstractCrateJDBCTest {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                return new CrateTestDatabaseMetadata((CrateConnection)connection);
+                return new CrateTestDatabaseMetadata((CrateConnection) connection);
             }
         }).when(connection).getMetaData();
-        ((CrateConnection)connection).connect();
+        ((CrateConnection) connection).connect();
     }
 
     protected ActionFuture<SQLResponse> fakeExecuteSQL(Object o) {
@@ -103,7 +103,7 @@ public abstract class AbstractCrateJDBCTest {
         final SQLResponse response;
 
         if (o instanceof String) {
-            response = getResponse(new SQLRequest((String)o));
+            response = getResponse(new SQLRequest((String) o));
         } else if (o instanceof SQLRequest) {
             response = getResponse((SQLRequest) o);
         } else {
@@ -134,7 +134,7 @@ public abstract class AbstractCrateJDBCTest {
         final SQLBulkResponse response;
 
         if (o instanceof String) {
-            response = getBulkResponse(new SQLBulkRequest((String)o));
+            response = getBulkResponse(new SQLBulkRequest((String) o));
         } else if (o instanceof SQLBulkRequest) {
             response = getBulkResponse((SQLBulkRequest) o);
         } else {

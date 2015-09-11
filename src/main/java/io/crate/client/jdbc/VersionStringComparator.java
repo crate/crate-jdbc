@@ -35,18 +35,19 @@ public class VersionStringComparator implements Comparator<String> {
         return INSTANCE.compare(o1, o2);
     }
 
-    private VersionStringComparator() {}
+    private VersionStringComparator() {
+    }
 
     @Override
     public int compare(String o1, String o2) {
         Scanner o1Scanner = new Scanner(o1).useDelimiter("\\.");
         Scanner o2Scanner = new Scanner(o2).useDelimiter("\\.");
-        while(o1Scanner.hasNextInt() && o2Scanner.hasNextInt()) {
+        while (o1Scanner.hasNextInt() && o2Scanner.hasNextInt()) {
             int v1 = o1Scanner.nextInt();
             int v2 = o2Scanner.nextInt();
-            if(v1 < v2) {
+            if (v1 < v2) {
                 return -1;
-            } else if(v1 > v2) {
+            } else if (v1 > v2) {
                 return 1;
             }
         }

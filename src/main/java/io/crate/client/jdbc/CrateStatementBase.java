@@ -232,8 +232,7 @@ public abstract class CrateStatementBase implements Statement {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass()))
-        {
+        if (iface.isAssignableFrom(getClass())) {
             return (T) this;
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());

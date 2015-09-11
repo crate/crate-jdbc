@@ -25,7 +25,9 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.client.jdbc.CrateResultSet;
 import io.crate.types.DataType;
 
-import java.sql.*;
+import java.sql.Array;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -63,7 +65,7 @@ public class CrateArray implements Array {
 
     @Override
     public Object getArray(long index, int count) throws SQLException {
-        return Arrays.copyOfRange(value, (int)index, (int)(index+count));
+        return Arrays.copyOfRange(value, (int) index, (int) (index + count));
     }
 
     @Override
@@ -84,9 +86,9 @@ public class CrateArray implements Array {
     @Override
     public ResultSet getResultSet(long index, int count) throws SQLException {
         SQLResponse response = new SQLResponse();
-        String[] cols = new String[]{ name };
+        String[] cols = new String[]{name};
         Object[][] rows = new Object[count][];
-        for (int i = (int)index; i < index+count; i++) {
+        for (int i = (int) index; i < index + count; i++) {
             rows[i] = new Object[]{value[i]};
         }
         response.cols(cols);

@@ -37,9 +37,7 @@ import java.util.Date;
 
 import static io.crate.shade.com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -158,7 +156,7 @@ public class CrateJDBCIntegrationTest {
             stmt.setString(3, text);
             stmt.addBatch();
             if (i % 5 == 0) {
-                assertThat(stmt.executeBatch(), is(new int[]{1,1,1,1,1}));
+                assertThat(stmt.executeBatch(), is(new int[]{1, 1, 1, 1, 1}));
             }
         }
     }
@@ -186,7 +184,9 @@ public class CrateJDBCIntegrationTest {
 
     @Before
     public void insertIntoTable() {
-        Map<String, Object> objectField = new HashMap<String, Object>(){{put("inner", "Zoon");}};
+        Map<String, Object> objectField = new HashMap<String, Object>() {{
+            put("inner", "Zoon");
+        }};
         SQLRequest sqlRequest = new SQLRequest("insert into test (id, string_field, boolean_field, byte_field, short_field, integer_field," +
                 "long_field, float_field, double_field, object_field," +
                 "timestamp_field, ip_field, array1, obj_array) values " +
@@ -194,8 +194,10 @@ public class CrateJDBCIntegrationTest {
                 1, "Youri", true, 120, 1000, 1200000,
                 120000000000L, 1.4, 3.456789, objectField,
                 "1970-01-01", "127.0.0.1",
-                new Object[]{ "a", "b", "c", "d" },
-                new Object[]{ new HashMap<String, Object>() {{ put("bla", "blubb"); }} }
+                new Object[]{"a", "b", "c", "d"},
+                new Object[]{new HashMap<String, Object>() {{
+                    put("bla", "blubb");
+                }}}
         });
         client.sql(sqlRequest).actionGet();
         client.sql("refresh table test").actionGet();
@@ -227,7 +229,7 @@ public class CrateJDBCIntegrationTest {
         ResultSet resultSet = statement.executeQuery("select * from test");
 
         assertThat(resultSet, instanceOf(CrateResultSet.class));
-        assertThat(((CrateResultSet)resultSet).getCount(), is(1L));
+        assertThat(((CrateResultSet) resultSet).getCount(), is(1L));
         resultSet.next();
         assertThat(resultSet.getInt("id"), is(1));
         assertThat(resultSet.getString("string_field"), is("Youri"));
@@ -241,25 +243,27 @@ public class CrateJDBCIntegrationTest {
         assertThat(resultSet.getTimestamp("timestamp_field"), is(new Timestamp(0L)));
         assertThat(resultSet.getString("ip_field"), is("127.0.0.1"));
 
-        Map<String, Object> objectField = new HashMap<String, Object>(){{put("inner", "Zoon");}};
-        assertThat((Map<String, Object>)resultSet.getObject("object_field"), is(objectField));
+        Map<String, Object> objectField = new HashMap<String, Object>() {{
+            put("inner", "Zoon");
+        }};
+        assertThat((Map<String, Object>) resultSet.getObject("object_field"), is(objectField));
 
         Array array1 = resultSet.getArray("array1");
         assertThat(array1.getArray().getClass().isArray(), is(true));
         Assert.assertThat(array1.getBaseType(), is(Types.VARCHAR));
-        assertThat((Object[])array1.getArray(), Matchers.<Object>arrayContaining("a", "b", "c", "d"));
+        assertThat((Object[]) array1.getArray(), Matchers.<Object>arrayContaining("a", "b", "c", "d"));
 
         Array objArray = resultSet.getArray("obj_array");
         assertThat(objArray.getArray().getClass().isArray(), is(true));
         Assert.assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
-        Object firstObject = ((Object[])objArray.getArray())[0];
+        Object firstObject = ((Object[]) objArray.getArray())[0];
         Assert.assertThat(firstObject, instanceOf(Map.class));
     }
 
     @Test
     public void testSelectWithoutResultUsingPreparedStatement() throws Exception {
         PreparedStatement preparedStatement = connection.prepareStatement("select * from test where id = ?");
-        preparedStatement.setInt(1,2);
+        preparedStatement.setInt(1, 2);
 
         ResultSet resultSet = preparedStatement.executeQuery();
 
@@ -292,7 +296,7 @@ public class CrateJDBCIntegrationTest {
     public void testExcludeNestedColumns() throws Exception {
         ResultSet resultSet = connection.getMetaData().getColumns(null, "sys", "nodes", null);
         int counter = 0;
-        while(resultSet.next()) {
+        while (resultSet.next()) {
             assertFalse(resultSet.getString(4).contains("."));
             assertFalse(resultSet.getString(4).contains("["));
             counter++;
@@ -461,7 +465,7 @@ public class CrateJDBCIntegrationTest {
         ResultSet result = connection.createStatement().executeQuery("select * from test where 1=0");
         ResultSetMetaData metaData = result.getMetaData();
         assertThat(metaData.getColumnCount(), is(14));
-        for (int i = 1; i <= result.getMetaData().getColumnCount();i++) {
+        for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) {
             // test that we can get the types, whatever they are
             assertThat(metaData.getColumnType(i), instanceOf(Integer.class));
         }

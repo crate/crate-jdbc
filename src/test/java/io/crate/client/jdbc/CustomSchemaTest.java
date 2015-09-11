@@ -64,9 +64,9 @@ public class CustomSchemaTest {
 
     private void setUpConnection(String version) throws SQLException {
         mockDummyResponse(new SQLResponse(
-                new String[] { "version['number']" },
-                new Object[][] { new Object[] { version } },
-                new DataType[] {DataTypes.STRING },
+                new String[]{"version['number']"},
+                new Object[][]{new Object[]{version}},
+                new DataType[]{DataTypes.STRING},
                 1L,
                 0,
                 false

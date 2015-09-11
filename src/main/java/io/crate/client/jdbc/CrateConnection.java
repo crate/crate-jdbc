@@ -134,6 +134,7 @@ public class CrateConnection implements Connection {
     /**
      * Crate does not distinguish between read-only and write mode.
      * A CrateConnection is always in write mode, even the readOnly flag is set.
+     *
      * @throws SQLException
      */
     @Override
@@ -260,7 +261,7 @@ public class CrateConnection implements Connection {
         if (!metaData.supportsResultSetConcurrency(resultSetType, resultSetConcurrency) ||
                 !metaData.supportsResultSetHoldability(resultSetHoldability)) {
             throw new SQLFeatureNotSupportedException(String.format("Connection: prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) is not supported " +
-                    "with arguments: sql=\"%s\", resultSetType=%d, resultSetConcurrency=%d, resultSetHoldability=%d",
+                            "with arguments: sql=\"%s\", resultSetType=%d, resultSetConcurrency=%d, resultSetHoldability=%d",
                     sql, resultSetType, resultSetConcurrency, resultSetHoldability));
         }
         return prepareStatement(sql);
@@ -385,8 +386,7 @@ public class CrateConnection implements Connection {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass()))
-        {
+        if (iface.isAssignableFrom(getClass())) {
             return (T) this;
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());

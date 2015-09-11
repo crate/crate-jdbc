@@ -51,7 +51,7 @@ public class CrateStatement extends CrateStatementBase {
             throw new SQLException("Execution of statement returned a ResultSet");
         } else {
             // return 0 if no affected Rows are given
-            return (int)Math.max(0L, sqlResponse.rowCount());
+            return (int) Math.max(0L, sqlResponse.rowCount());
         }
     }
 

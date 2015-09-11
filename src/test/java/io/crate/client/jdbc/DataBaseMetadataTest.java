@@ -23,10 +23,10 @@ package io.crate.client.jdbc;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -55,7 +55,7 @@ public class DataBaseMetadataTest {
                 stmts.add((String) invocation.getArguments()[0]);
                 final SQLResponse res = new SQLResponse(new String[]{"schema_name"},
                         new Object[][]{new Object[]{"doc"}},
-                        new DataType[] {DataTypes.STRING},
+                        new DataType[]{DataTypes.STRING},
                         1L, 0L, true);
                 return new PlainActionFuture<SQLResponse>() {
                     @Override

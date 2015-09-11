@@ -55,14 +55,14 @@ public class CrateTestServer extends ExternalResource {
     public static CrateTestServer[] cluster(String clusterName, int numberOfNodes) {
         int transportPorts[] = new int[numberOfNodes];
         int httpPorts[] = new int[numberOfNodes];
-        for (int i = 0; i<numberOfNodes; i++) {
+        for (int i = 0; i < numberOfNodes; i++) {
             transportPorts[i] = randomAvailablePort();
             httpPorts[i] = randomAvailablePort();
         }
         String hostAddress = InetAddress.getLoopbackAddress().getHostAddress();
         CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
         String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
-        for (int i = 0; i< numberOfNodes; i++) {
+        for (int i = 0; i < numberOfNodes; i++) {
             servers[i] = new CrateTestServer(clusterName, hostAddress,
                     httpPorts[i], transportPorts[i],
                     unicastHosts);
@@ -72,7 +72,7 @@ public class CrateTestServer extends ExternalResource {
 
     private static String[] getUnicastHosts(String hostAddress, int[] transportPorts) {
         String[] result = new String[transportPorts.length];
-        for (int i=0; i < transportPorts.length;i++) {
+        for (int i = 0; i < transportPorts.length; i++) {
             result[i] = String.format(Locale.ENGLISH, "%s:%d", hostAddress, transportPorts[i]);
         }
         return result;
@@ -86,12 +86,12 @@ public class CrateTestServer extends ExternalResource {
                 InetAddress.getLoopbackAddress().getHostAddress());
     }
 
-    public CrateTestServer(@Nullable String clusterName,String host, int httpPort, int transportPort, String ... unicastHosts) {
+    public CrateTestServer(@Nullable String clusterName, String host, int httpPort, int transportPort, String... unicastHosts) {
         this(clusterName, httpPort, transportPort, System.getProperty("user.dir"), host, unicastHosts);
     }
 
     public CrateTestServer(@Nullable String clusterName, int httpPort, int transportPort,
-                           String workingDir, String host, String ... unicastHosts) {
+                           String workingDir, String host, String... unicastHosts) {
         this.clusterName = MoreObjects.firstNonNull(clusterName, "Testing" + transportPort);
         this.crateHost = host;
         this.httpPort = httpPort;
@@ -113,7 +113,7 @@ public class CrateTestServer extends ExternalResource {
      */
     public static int randomAvailablePort() {
         try {
-            ServerSocket socket = new  ServerSocket(0);
+            ServerSocket socket = new ServerSocket(0);
             int port = socket.getLocalPort();
             socket.close();
             return port;
@@ -167,7 +167,7 @@ public class CrateTestServer extends ExternalResource {
                 "-Des.discovery.zen.ping.unicast.hosts=" + Joiner.on(",").join(unicastHosts)
         };
         ProcessBuilder processBuilder = new ProcessBuilder(
-            command
+                command
         );
         assert new File(workingDir).exists();
         processBuilder.directory(new File(workingDir, "/parts/crate"));
@@ -204,6 +204,7 @@ public class CrateTestServer extends ExternalResource {
 
     /**
      * wait until crate is ready
+     *
      * @param timeoutMillis the number of milliseconds to wait
      * @return true if server is ready, false if a timeout or another IOException occurred
      */

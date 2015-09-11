@@ -37,11 +37,11 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
                         break;
                     case '$':
                         if (!insideString) {
-                            if (statement.length() > i+1) {
+                            if (statement.length() > i + 1) {
                                 // numeric parameter
-                                int paramNum = getParamNumber(statement, i+1);
+                                int paramNum = getParamNumber(statement, i + 1);
                                 if (paramNum > 0) {
-                                    paramSlots.set(paramNum-1);
+                                    paramSlots.set(paramNum - 1);
                                 }
                             }
                         }
@@ -62,7 +62,7 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
         private static int getParamNumber(String statement, int pos) {
             StringBuilder builder = new StringBuilder();
             int i = pos,
-                length = statement.length();
+                    length = statement.length();
             char c;
             while (i < length) {
                 c = statement.charAt(i++);
@@ -126,7 +126,7 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
             throw new SQLException("Execution of statement returned a ResultSet");
         } else {
             // return 0 if no affected Rows are given
-            return (int)Math.max(0L, sqlResponse.rowCount());
+            return (int) Math.max(0L, sqlResponse.rowCount());
         }
     }
 
@@ -188,8 +188,8 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
     private void set(int idx, @Nullable Object value) throws SQLException {
         checkClosed();
         try {
-            currentParams[idx-1] = value;
-            paramsAdded.set(idx-1);
+            currentParams[idx - 1] = value;
+            paramsAdded.set(idx - 1);
         } catch (IndexOutOfBoundsException e) {
             throw new SQLException(
                     String.format(Locale.ENGLISH, "invalid parameter index %d", idx));
@@ -354,7 +354,7 @@ public class CratePreparedStatement extends CrateStatementBase implements Prepar
             if (result.errorMessage() != null || result.rowCount() == -2) {
                 results[i] = EXECUTE_FAILED;
             } else {
-                results[i] = (result.rowCount() >= 0 ? (int)result.rowCount() : SUCCESS_NO_INFO);
+                results[i] = (result.rowCount() >= 0 ? (int) result.rowCount() : SUCCESS_NO_INFO);
             }
         }
         return results;

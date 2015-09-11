@@ -66,7 +66,7 @@ public class CrateDriverVersion {
 
     public static void main(String[] args) {
         System.out.println("Version: " + CrateDriverVersion.CURRENT +
-                ", JVM: " + JvmInfo.jvmInfo().version() );
+                ", JVM: " + JvmInfo.jvmInfo().version());
     }
 
     @Override

@@ -24,9 +24,9 @@ package io.crate.client.jdbc;
 import io.crate.action.sql.*;
 import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
+import io.crate.shade.org.elasticsearch.rest.RestStatus;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.shade.org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
 import java.sql.*;
@@ -190,7 +190,7 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
      */
     private BitSet newBitSet(String bits) {
         BitSet bs = new BitSet(bits.length());
-        for (int i = 0; i< bits.length(); i++) {
+        for (int i = 0; i < bits.length(); i++) {
             if (bits.charAt(i) != '0') {
                 bs.set(i);
             }
@@ -216,9 +216,9 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
 
     @Test
     public void testParameters() throws Exception {
-        CratePreparedStatement preparedStatement = (CratePreparedStatement)connection.prepareStatement("select *, ? from test where a = ? and b = $3");
+        CratePreparedStatement preparedStatement = (CratePreparedStatement) connection.prepareStatement("select *, ? from test where a = ? and b = $3");
         preparedStatement.setObject(1, "hallo");
-        preparedStatement.setByte(2, (byte)4);
+        preparedStatement.setByte(2, (byte) 4);
         preparedStatement.setInt(3, 1);
         assertTrue(preparedStatement.execute());
     }

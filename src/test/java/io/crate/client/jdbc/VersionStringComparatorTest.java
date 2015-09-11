@@ -20,6 +20,7 @@
  */
 
 package io.crate.client.jdbc;
+
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

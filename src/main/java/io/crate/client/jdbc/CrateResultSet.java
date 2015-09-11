@@ -21,9 +21,9 @@
 
 package io.crate.client.jdbc;
 
-import io.crate.shade.com.google.common.collect.Lists;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.jdbc.types.CrateArray;
+import io.crate.shade.com.google.common.collect.Lists;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
@@ -126,7 +126,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public byte getByte(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return number.byteValue();
         }
@@ -135,7 +135,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return number.shortValue();
         }
@@ -144,7 +144,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return number.intValue();
         }
@@ -153,7 +153,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return number.longValue();
         }
@@ -162,7 +162,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return number.floatValue();
         }
@@ -171,7 +171,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return number.doubleValue();
         }
@@ -190,7 +190,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return new Date(number.longValue());
         }
@@ -199,7 +199,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return new Time(number.longValue());
         }
@@ -208,7 +208,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        Number number =  getNumber(columnIndex);
+        Number number = getNumber(columnIndex);
         if (number != null) {
             return new Timestamp(number.longValue());
         }
@@ -397,7 +397,7 @@ public class CrateResultSet implements ResultSet {
     @Override
     public boolean isLast() throws SQLException {
         checkClosed();
-        return rowIdx == sqlResponse.rows().length-1;
+        return rowIdx == sqlResponse.rows().length - 1;
     }
 
     @Override
@@ -441,7 +441,7 @@ public class CrateResultSet implements ResultSet {
     @Override
     public int getRow() throws SQLException {
         checkClosed();
-        return rowIdx+1;
+        return rowIdx + 1;
     }
 
     @Override
@@ -774,14 +774,14 @@ public class CrateResultSet implements ResultSet {
         if (a == null) {
             return null;
         } else if (a instanceof List) {
-            a = ((List)a).toArray();
+            a = ((List) a).toArray();
         }
-        DataType type = sqlResponse.columnTypes()[columnIndex-1];
+        DataType type = sqlResponse.columnTypes()[columnIndex - 1];
         if (type.id() != ArrayType.ID) {
             throw new SQLDataException("no array");
         }
-        String name = sqlResponse.cols()[columnIndex-1];
-        return new CrateArray(((ArrayType)type).innerType(), (Object[])a, name);
+        String name = sqlResponse.cols()[columnIndex - 1];
+        return new CrateArray(((ArrayType) type).innerType(), (Object[]) a, name);
     }
 
     @Override
@@ -1011,7 +1011,7 @@ public class CrateResultSet implements ResultSet {
     @Override
     public void updateAsciiStream(int columnIndex, InputStream x, long length) throws SQLException {
         throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
-   }
+    }
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
@@ -1150,8 +1150,7 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass()))
-        {
+        if (iface.isAssignableFrom(getClass())) {
             return (T) this;
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());
@@ -1177,7 +1176,7 @@ public class CrateResultSet implements ResultSet {
         if (currentRow == null) {
             throw new SQLException("currentRow not available. Call next() first.");
         }
-        return currentRow.get(columnIndex-1);
+        return currentRow.get(columnIndex - 1);
     }
 
     private Number getNumber(int columnIndex) throws SQLException {

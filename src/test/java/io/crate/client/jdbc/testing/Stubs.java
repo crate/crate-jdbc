@@ -28,7 +28,7 @@ import io.crate.types.DataTypes;
 public class Stubs {
 
     public static final SQLResponse DUMMY_RESPONSE = new SQLResponse(
-            new String[] { "dummy" },
-            new Object[][] { new Object[] { "foo" } },
-            new DataType[] {DataTypes.STRING }, 1L, 0, false );
+            new String[]{"dummy"},
+            new Object[][]{new Object[]{"foo"}},
+            new DataType[]{DataTypes.STRING}, 1L, 0, false);
 }
