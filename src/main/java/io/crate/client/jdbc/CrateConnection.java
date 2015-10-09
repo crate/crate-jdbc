@@ -111,6 +111,7 @@ public class CrateConnection implements Connection {
 
     @Override
     public void close() throws SQLException {
+        crateClient.close();
         crateClient = null;
     }
 
