@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2015/10/12 1.9.1
+================
+
  - Updated Crate client to ``0.51.6``
 
  - Fix: close JDBC connection correctly before raising exception for invalid
