@@ -97,6 +97,12 @@ public class CrateDriverTest {
         assertThat(CRATE_DRIVER.connect("jdbc:crate://" + hostAndPort, PROP), instanceOf(CrateConnection.class));
         assertThat(CRATE_DRIVER.connect("crate://" + hostAndPort, new Properties()), instanceOf(CrateConnection.class));
 
+        assertThat(CRATE_DRIVER.connect("jdbc:crate://" + hostAndPort + "/db", PROP), instanceOf(CrateConnection.class));
+        assertThat(CRATE_DRIVER.connect("crate://" + hostAndPort + "/db", new Properties()), instanceOf(CrateConnection.class));
+
+        assertThat(CRATE_DRIVER.connect("jdbc:crate://" + hostAndPort + "/db?asdf=abcd", PROP), instanceOf(CrateConnection.class));
+        assertThat(CRATE_DRIVER.connect("crate://" + hostAndPort + "/db?asdf=abcd", new Properties()), instanceOf(CrateConnection.class));
+
         assertThat(CRATE_DRIVER.connect("crt://" + hostAndPort, PROP), is(nullValue()));
         assertThat(CRATE_DRIVER.connect("jdbc:mysql://" + hostAndPort, PROP), is(nullValue()));
 
@@ -106,5 +112,6 @@ public class CrateDriverTest {
 
         expectedException.expectMessage(String.format("Connect to 'localhost/foo%s' failed", hostAndPort.toString()));
         assertThat(CRATE_DRIVER.connect("crate://localhost/foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
+
     }
 }
