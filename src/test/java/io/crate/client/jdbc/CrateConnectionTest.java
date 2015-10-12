@@ -26,28 +26,43 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.client.jdbc.testing.Stubs;
 import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class CrateConnectionTest {
 
-    @Test
-    public void testReadOnlyConnection() throws Exception {
+    public CrateClient client() throws Exception {
         CrateClient crateClient = mock(CrateClient.class);
         PlainActionFuture<SQLResponse> response = new PlainActionFuture<>();
         response.onResponse(Stubs.DUMMY_RESPONSE);
         when(crateClient.sql(any(SQLRequest.class))).thenReturn(response);
+        return crateClient;
+    }
 
-        CrateConnection conn = new CrateConnection(crateClient, "localhost:4300");
+    @Test
+    public void testReadOnlyConnection() throws Exception {
+        CrateConnection conn = new CrateConnection(client(), "localhost:4300");
         conn.connect();
         assertFalse(conn.isReadOnly());
         conn.setReadOnly(true);
         assertTrue(conn.isReadOnly());
     }
 
+    @Test
+    public void testCloseConnection() throws Exception {
+        CrateClient crateClient = client();
+        doNothing().when(crateClient).close();
+
+        CrateConnection conn = new CrateConnection(crateClient, "localhost:4300");
+        conn.connect();
+        conn.close();
+        verify(crateClient, times(1)).close();
+        assertTrue(conn.isClosed());
+    }
 }
