@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Updated Crate client to ``0.51.6``
+
  - Fix: close JDBC connection correctly before raising exception for invalid
    URL format in order to prevent memory leak
 
