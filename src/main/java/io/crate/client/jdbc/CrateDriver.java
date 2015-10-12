@@ -70,6 +70,7 @@ public class CrateDriver implements Driver {
                 String[] pathAndParams = urlParts[1].split("\\?");
                 connection.setSchema(pathAndParams[0]);
             } else if (urlParts.length > 2) {
+                connection.close();
                 throw new SQLException("URL format is invalid. " +
                         "Valid format is: [jdbc:]crate://[host1:port1][, host2:port2 ...]/[schema][?param=value]");
             }

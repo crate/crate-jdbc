@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Fix: close JDBC connection correctly before raising exception for invalid
+   URL format in order to prevent memory leak
+
  - Fix: URL parameters after the schema name are ignored
 
  - Fix: close Crate client to shut down remaining thread pools and connections
