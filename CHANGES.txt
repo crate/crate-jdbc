@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2015/10/23 1.9.2
+================
+
  - Updated Crate client to ``0.51.7`` which fixes following issues:
 
     - Fixed the issue which causes overloading of the first configured node
