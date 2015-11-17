@@ -25,8 +25,8 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
-import io.crate.client.CrateTestServer;
 import io.crate.client.jdbc.CrateResultSet;
+import io.crate.testing.CrateTestServer;
 import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -49,7 +49,7 @@ public class CrateJDBCIntegrationTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @ClassRule
-    public static CrateTestServer testServer = new CrateTestServer("jdbc");
+    public static CrateTestServer testServer = new CrateTestServer("jdbc", "0.52.2");
 
     private static Connection connection;
     private static String hostAndPort;
@@ -301,7 +301,7 @@ public class CrateJDBCIntegrationTest {
             assertFalse(resultSet.getString(4).contains("["));
             counter++;
         }
-        assertThat(counter, is(14));
+        assertThat(counter, is(15));
 
     }
 
@@ -398,7 +398,7 @@ public class CrateJDBCIntegrationTest {
             stmt.executeBatch();
             fail("BatchUpdateException not thrown");
         } catch (BatchUpdateException e) {
-            assertThat(e.getMessage(), is("Validation failed for string_field: cannot cast {} to string"));
+            assertThat(e.getMessage(), is("Validation failed for string_field: {} can not be cast to 'string'"));
             assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
         }
 

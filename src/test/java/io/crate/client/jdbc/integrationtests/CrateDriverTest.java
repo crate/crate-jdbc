@@ -21,9 +21,9 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import io.crate.client.CrateTestServer;
 import io.crate.client.jdbc.CrateConnection;
 import io.crate.client.jdbc.CrateDriver;
+import io.crate.testing.CrateTestServer;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,7 +46,7 @@ public class CrateDriverTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @ClassRule
-    public static CrateTestServer testServer = new CrateTestServer("driver");
+    public static CrateTestServer testServer = new CrateTestServer("driver", "0.52.2");
 
     public String hostAndPort = String.format(Locale.ENGLISH, "%s:%d", testServer.crateHost, testServer.transportPort);
     private static final CrateDriver CRATE_DRIVER = new CrateDriver();
