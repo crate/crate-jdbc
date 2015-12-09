@@ -24,7 +24,9 @@ package io.crate.client.jdbc.integrationtests;
 import io.crate.client.CrateClient;
 import io.crate.client.InternalCrateClient;
 import io.crate.client.jdbc.CrateConnection;
+import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.org.elasticsearch.client.transport.TransportClientNodesService;
+import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -34,6 +36,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Locale;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -42,29 +46,20 @@ import static org.hamcrest.Matchers.is;
 public class CrateJDBCMultiServerIntegrationTest {
 
     @ClassRule
-    public static CrateTestServer server1;
-
-    @ClassRule
-    public static CrateTestServer server2;
-
-    static {
-        CrateTestServer[] cluster = CrateTestServer.cluster("MultiServerJDBCTest", "0.52.", 2);
-        server1 = cluster[0];
-        server2 = cluster[1];
-
-    }
+    public static final CrateTestCluster cluster = CrateTestCluster.builder("MultiServerJdbcTest")
+            .fromVersion("0.52.4")
+            .numberOfNodes(2)
+            .build();
 
     @Test
     public void testConnectToMultipleNodes() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
 
-        String hosts = String.format(Locale.ENGLISH, "%s:%d,%s:%d",
-                server1.crateHost, server1.transportPort,
-                server2.crateHost, server2.transportPort);
+        Collection<String> hosts = getUnicastHosts();
 
         Connection connection = null;
         try {
-            connection = DriverManager.getConnection("crate://" + hosts);
+            connection = DriverManager.getConnection("crate://" + Joiner.on(",").join(hosts));
             CrateClient client = ((CrateConnection) connection).client();
             verifyAddresses(client);
             Statement statement = connection.createStatement();
@@ -87,6 +82,14 @@ public class CrateJDBCMultiServerIntegrationTest {
                 connection.close();
             }
         }
+    }
+
+    private Collection<String> getUnicastHosts() {
+        Collection<String> hosts = new ArrayList<>();
+        for (CrateTestServer server : cluster.servers()) {
+            hosts.add(String.format(Locale.ENGLISH, "%s:%s", server.crateHost, server.transportPort));
+        }
+        return hosts;
     }
 
     private void verifyAddresses(CrateClient client) throws NoSuchFieldException, IllegalAccessException {

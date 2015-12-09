@@ -165,7 +165,7 @@ public class CrateConnection implements Connection {
     @Override
     public int getTransactionIsolation() throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException("Connection: getTransactionIsolation not supported");
+        return Connection.TRANSACTION_NONE;
     }
 
     @Override
