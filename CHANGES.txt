@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2015/12/10 1.9.3
+================
+
  - Implemented getTransactionIsolation to adhere JDBC spec
 
 2015/10/23 1.9.2

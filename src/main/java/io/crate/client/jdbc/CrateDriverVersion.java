@@ -27,7 +27,7 @@ import io.crate.shade.org.elasticsearch.monitor.jvm.JvmInfo;
 public class CrateDriverVersion {
 
     public static final boolean SNAPSHOT = false;
-    public static final CrateDriverVersion CURRENT = new CrateDriverVersion(10902, SNAPSHOT);
+    public static final CrateDriverVersion CURRENT = new CrateDriverVersion(10903, SNAPSHOT);
 
     public final int id;
     public final byte major;
