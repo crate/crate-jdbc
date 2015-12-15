@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - upgrade CrateTestServer to version 0.1.1
+
 2015/12/10 1.9.3
 ================
 
