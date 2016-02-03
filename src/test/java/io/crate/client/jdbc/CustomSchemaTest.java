@@ -44,6 +44,7 @@ import java.sql.Statement;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
@@ -56,10 +57,13 @@ public class CustomSchemaTest {
 
     @Captor
     ArgumentCaptor<SQLRequest> requestCaptor;
+    private CrateDriver.ClientHandle clientHandle;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        clientHandle = mock(CrateDriver.ClientHandle.class);
+        when(clientHandle.client()).thenReturn(crateClient);
     }
 
     private void setUpConnection(String version) throws SQLException {
@@ -71,7 +75,7 @@ public class CustomSchemaTest {
                 0,
                 false
         ));
-        conn = new CrateConnection(crateClient, "localhost:4300");
+        conn = new CrateConnection(clientHandle);
         conn.connect();
         conn.setSchema("foo");
     }

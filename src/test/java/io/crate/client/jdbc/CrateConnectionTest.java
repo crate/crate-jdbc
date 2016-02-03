@@ -26,28 +26,29 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.client.jdbc.testing.Stubs;
 import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 public class CrateConnectionTest {
 
-    public CrateClient client() throws Exception {
+    public CrateDriver.ClientHandle clientHandle() throws Exception {
         CrateClient crateClient = mock(CrateClient.class);
         PlainActionFuture<SQLResponse> response = new PlainActionFuture<>();
         response.onResponse(Stubs.DUMMY_RESPONSE);
         when(crateClient.sql(any(SQLRequest.class))).thenReturn(response);
-        return crateClient;
+        CrateDriver.ClientHandle clientHandle = mock(CrateDriver.ClientHandle.class);
+        when(clientHandle.client()).thenReturn(crateClient);
+
+        return clientHandle;
     }
 
     @Test
     public void testReadOnlyConnection() throws Exception {
-        CrateConnection conn = new CrateConnection(client(), "localhost:4300");
+        CrateConnection conn = new CrateConnection(clientHandle());
         conn.connect();
         assertFalse(conn.isReadOnly());
         conn.setReadOnly(true);
@@ -56,13 +57,13 @@ public class CrateConnectionTest {
 
     @Test
     public void testCloseConnection() throws Exception {
-        CrateClient crateClient = client();
-        doNothing().when(crateClient).close();
+        CrateDriver.ClientHandle handle = clientHandle();
+        doNothing().when(handle).connectionClosed();
 
-        CrateConnection conn = new CrateConnection(crateClient, "localhost:4300");
+        CrateConnection conn = new CrateConnection(handle);
         conn.connect();
         conn.close();
-        verify(crateClient, times(1)).close();
+        verify(handle, times(1)).connectionClosed();
         assertTrue(conn.isClosed());
     }
 }

@@ -24,7 +24,9 @@ package io.crate.client.jdbc;
 import io.crate.client.CrateClient;
 
 import java.sql.*;
+import java.util.Collection;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 public class CrateDriver implements Driver {
@@ -33,6 +35,7 @@ public class CrateDriver implements Driver {
     private static final String SUB_PROTOCOL = "crate";
     public static final String PREFIX = SUB_PROTOCOL + ":" + "//";
     public static final String LONG_PREFIX = PROTOCOL + ":" + SUB_PROTOCOL + ":" + "//";
+    private final ConcurrentHashMap<String, ClientHandle> clientHandles = new ConcurrentHashMap<>();
 
     static {
         try {
@@ -42,8 +45,54 @@ public class CrateDriver implements Driver {
         }
     }
 
+    public Collection<String> clientURLs() {
+        return clientHandles.keySet();
+    }
+
+    class ClientHandle {
+
+        private int refCount;
+        private final CrateClient client;
+        private final String url;
+
+        ClientHandle(String url) {
+            refCount = 1;
+            this.url = url;
+            if (url.equals("/")) {
+                client = new CrateClient();
+            } else {
+                String[] urlParts = url.split("/");
+                String hosts = urlParts[0];
+                client = new CrateClient(hosts.split(","));
+            }
+        }
+
+        public CrateClient client() {
+            return client;
+        }
+
+        public String url() {
+            return url;
+        }
+
+        public void connectionClosed() {
+            synchronized (clientHandles) {
+                if (--refCount == 0) {
+                    clientHandles.remove(this.url);
+                }
+            }
+        }
+
+        private void incRef() {
+            assert refCount > 0;
+            refCount++;
+        }
+    }
+
+
     public CrateDriver() {
     }
+
 
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
@@ -56,14 +105,14 @@ public class CrateDriver implements Driver {
         }
 
         CrateConnection connection;
+        ClientHandle handle = getHandle(url);
+
         if (url.equals("/")) {
-            connection = new CrateConnection(new CrateClient(), url);
+            connection = new CrateConnection(handle);
             connection.connect();
         } else {
             String[] urlParts = url.split("/");
-            String hosts = urlParts[0];
-
-            connection = new CrateConnection(new CrateClient(hosts.split(",")), url);
+            connection = new CrateConnection(handle);
             connection.connect();
 
             if (urlParts.length == 2) {
@@ -77,6 +126,22 @@ public class CrateDriver implements Driver {
         }
         return connection;
     }
+
+
+    private ClientHandle getHandle(String url) {
+        ClientHandle handle;
+        synchronized (clientHandles) {
+            handle = clientHandles.get(url);
+            if (handle == null) {
+                handle = new ClientHandle(url);
+                clientHandles.put(url, handle);
+            } else {
+                handle.incRef();
+            }
+        }
+        return handle;
+    }
+
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {

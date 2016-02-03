@@ -87,7 +87,12 @@ public abstract class AbstractCrateJDBCTest {
         when(crateClient.sql((SQLRequest) any())).thenAnswer(sqlAnswer);
         when(crateClient.sql(anyString())).thenAnswer(sqlAnswer);
         when(crateClient.bulkSql((SQLBulkRequest) any())).thenAnswer(sqlBulkAnswer);
-        CrateConnection conn = new CrateConnection(crateClient, "localhost:4300");
+
+
+        CrateDriver.ClientHandle clientHandle = mock(CrateDriver.ClientHandle.class);
+        when(clientHandle.client()).thenReturn(crateClient);
+
+        CrateConnection conn = new CrateConnection(clientHandle);
         connection = spy(conn);
         doAnswer(new Answer<Object>() {
             @Override

@@ -24,6 +24,7 @@ package io.crate.client.jdbc.integrationtests;
 import io.crate.client.jdbc.CrateConnection;
 import io.crate.client.jdbc.CrateDriver;
 import io.crate.testing.CrateTestServer;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,11 +35,14 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
+import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 public class CrateDriverTest {
 
@@ -49,8 +53,13 @@ public class CrateDriverTest {
     public static CrateTestServer testServer = new CrateTestServer("driver", "0.52.2");
 
     public String hostAndPort = String.format(Locale.ENGLISH, "%s:%d", testServer.crateHost, testServer.transportPort);
-    private static final CrateDriver CRATE_DRIVER = new CrateDriver();
+    private CrateDriver driver;
     private static final Properties PROP = new Properties();
+
+    @Before
+    public void setUp() throws Exception {
+        driver = new CrateDriver();
+    }
 
     @Test
     public void testDriverRegistration() throws Exception {
@@ -84,34 +93,91 @@ public class CrateDriverTest {
 
     @Test
     public void testAccepts() throws Exception {
-        assertThat(CRATE_DRIVER.acceptsURL("crate://"), is(true));
-        assertThat(CRATE_DRIVER.acceptsURL("crate://localhost/foo"), is(true));
-        assertThat(CRATE_DRIVER.acceptsURL("crate:///foo"), is(true));
-        assertThat(CRATE_DRIVER.acceptsURL("jdbc:crate://"), is(true));
-        assertThat(CRATE_DRIVER.acceptsURL("crt://"), is(false));
-        assertThat(CRATE_DRIVER.acceptsURL("jdbc:mysql://"), is(false));
+        assertThat(driver.acceptsURL("crate://"), is(true));
+        assertThat(driver.acceptsURL("crate://localhost/foo"), is(true));
+        assertThat(driver.acceptsURL("crate:///foo"), is(true));
+        assertThat(driver.acceptsURL("jdbc:crate://"), is(true));
+        assertThat(driver.acceptsURL("crt://"), is(false));
+        assertThat(driver.acceptsURL("jdbc:mysql://"), is(false));
     }
 
     @Test
     public void testConnectDriver() throws Exception {
-        assertThat(CRATE_DRIVER.connect("jdbc:crate://" + hostAndPort, PROP), instanceOf(CrateConnection.class));
-        assertThat(CRATE_DRIVER.connect("crate://" + hostAndPort, new Properties()), instanceOf(CrateConnection.class));
+        assertThat(driver.connect("jdbc:crate://" + hostAndPort, PROP), instanceOf(CrateConnection.class));
+        CrateConnection c = (CrateConnection) driver.connect("crate://" + hostAndPort, PROP);
 
-        assertThat(CRATE_DRIVER.connect("jdbc:crate://" + hostAndPort + "/db", PROP), instanceOf(CrateConnection.class));
-        assertThat(CRATE_DRIVER.connect("crate://" + hostAndPort + "/db", new Properties()), instanceOf(CrateConnection.class));
+        assertFalse(c.isClosed());
+        assertTrue(c.isValid(0));
 
-        assertThat(CRATE_DRIVER.connect("jdbc:crate://" + hostAndPort + "/db?asdf=abcd", PROP), instanceOf(CrateConnection.class));
-        assertThat(CRATE_DRIVER.connect("crate://" + hostAndPort + "/db?asdf=abcd", new Properties()), instanceOf(CrateConnection.class));
+        assertThat(driver.connect("jdbc:crate://" + hostAndPort + "/db", PROP), instanceOf(CrateConnection.class));
+        assertThat(driver.connect("crate://" + hostAndPort + "/db", new Properties()), instanceOf(CrateConnection.class));
 
-        assertThat(CRATE_DRIVER.connect("crt://" + hostAndPort, PROP), is(nullValue()));
-        assertThat(CRATE_DRIVER.connect("jdbc:mysql://" + hostAndPort, PROP), is(nullValue()));
+        assertThat(driver.connect("jdbc:crate://" + hostAndPort + "/db?asdf=abcd", PROP), instanceOf(CrateConnection.class));
+        assertThat(driver.connect("crate://" + hostAndPort + "/db?asdf=abcd", new Properties()), instanceOf(CrateConnection.class));
+
+        assertThat(driver.connect("crt://" + hostAndPort, PROP), is(nullValue()));
+        assertThat(driver.connect("jdbc:mysql://" + hostAndPort, PROP), is(nullValue()));
 
         expectedException.expect(SQLException.class);
         expectedException.expectMessage(String.format("Connect to '/foo%s' failed", hostAndPort.toString()));
-        assertThat(CRATE_DRIVER.connect("crate:///foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
+        assertThat(driver.connect("crate:///foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
 
         expectedException.expectMessage(String.format("Connect to 'localhost/foo%s' failed", hostAndPort.toString()));
-        assertThat(CRATE_DRIVER.connect("crate://localhost/foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
+        assertThat(driver.connect("crate://localhost/foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
+
+    }
+
+    @Test
+    public void testClientIsShared() throws Exception {
+        CrateConnection c1 = (CrateConnection) driver.connect("crate://" + hostAndPort, PROP);
+        CrateConnection c2 = (CrateConnection) driver.connect("jdbc:crate://" + hostAndPort, PROP);
+        assertThat(c1.client(), sameInstance(c2.client()));
+        assertThat(driver.clientURLs().size(), is(1));
+        c1.close();
+        assertThat(driver.clientURLs().size(), is(1));
+        c2.close();
+        assertThat(driver.clientURLs().size(), is(0));
+
+    }
+
+    @Test
+    public void testClientClosedOnFailure() throws Exception {
+        try {
+            driver.connect("crate://localhost:44444", PROP);
+            fail("This statement should not be reached");
+        } catch (SQLException e) {
+
+        }
+        assertTrue(driver.clientURLs().isEmpty());
+    }
+
+    @Test
+    public void testConcurrentConnections() throws Exception {
+
+        int threads = 30;
+        final CountDownLatch latch = new CountDownLatch(threads);
+        Runnable runnable = new Runnable(){
+
+            @Override
+            public void run() {
+                try {
+                    CrateConnection c = (CrateConnection) driver.connect("crate://" + hostAndPort, PROP);
+                    assertThat(driver.clientURLs().size(), is(1));
+                    c.close();
+                } catch (Exception e) {
+                    fail(e.toString());
+                } finally {
+                    latch.countDown();
+                }
+            }
+        };
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+
+        for (int i = 0; i < threads; i++) {
+            executor.execute(runnable);
+        }
+        latch.await();
+        assertThat(driver.clientURLs().size(), is(0));
 
     }
 }

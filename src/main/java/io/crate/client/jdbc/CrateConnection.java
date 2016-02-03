@@ -32,22 +32,20 @@ import java.util.concurrent.Executor;
 
 public class CrateConnection implements Connection {
 
-    private CrateClient crateClient;
-    private String url;
+    private final CrateDriver.ClientHandle clientHandle;
     private boolean readOnly;
     private String schema = null;
     private CrateDatabaseMetaData metaData;
     private String databaseVersion;
 
 
-    public CrateConnection(CrateClient crateClient, String url) {
-        this.crateClient = crateClient;
-        this.url = url;
+    public CrateConnection(CrateDriver.ClientHandle handle) {
+        this.clientHandle = handle;
         this.readOnly = false;
     }
 
     public CrateClient client() {
-        return crateClient;
+        return clientHandle.client();
     }
 
     public void connect() throws SQLException {
@@ -55,7 +53,8 @@ public class CrateConnection implements Connection {
             metaData = new CrateDatabaseMetaData(this);
             databaseVersion = metaData.getDatabaseProductVersion();
         } catch (NoNodeAvailableException e) {
-            throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", url), e);
+            close();
+            throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", getUrl()), e);
         }
     }
 
@@ -111,15 +110,13 @@ public class CrateConnection implements Connection {
 
     @Override
     public void close() throws SQLException {
-        if (crateClient != null) {
-            crateClient.close();
-        }
-        crateClient = null;
+        metaData = null;
+        clientHandle.connectionClosed();
     }
 
     @Override
     public boolean isClosed() throws SQLException {
-        return crateClient == null || metaData == null;
+        return metaData == null;
     }
 
     @Override
@@ -320,7 +317,7 @@ public class CrateConnection implements Connection {
 
     @Override
     public boolean isValid(int timeout) throws SQLException {
-        return crateClient != null;
+        return !isClosed();
     }
 
     @Override
@@ -407,6 +404,6 @@ public class CrateConnection implements Connection {
     }
 
     public String getUrl() {
-        return url;
+        return clientHandle.url();
     }
 }
