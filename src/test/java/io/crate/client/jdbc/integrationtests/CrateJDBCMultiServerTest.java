@@ -43,11 +43,11 @@ import java.util.Locale;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class CrateJDBCMultiServerIntegrationTest {
+public class CrateJDBCMultiServerTest extends CrateJDBCIntegrationTest {
 
     @ClassRule
-    public static final CrateTestCluster cluster = CrateTestCluster.builder("MultiServerJdbcTest")
-            .fromVersion("0.52.4")
+    public static final CrateTestCluster cluster = CrateTestCluster
+            .fromVersion(CRATE_SERVER_VERSION)
             .numberOfNodes(2)
             .build();
 

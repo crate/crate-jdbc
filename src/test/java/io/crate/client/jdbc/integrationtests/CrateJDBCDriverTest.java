@@ -26,9 +26,7 @@ import io.crate.client.jdbc.CrateDriver;
 import io.crate.testing.CrateTestServer;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -44,13 +42,11 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
-public class CrateDriverTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     @ClassRule
-    public static CrateTestServer testServer = new CrateTestServer("driver", "0.52.2");
+    public static CrateTestServer testServer = CrateTestServer.fromVersion(CRATE_SERVER_VERSION).build();
+
 
     public String hostAndPort = String.format(Locale.ENGLISH, "%s:%d", testServer.crateHost, testServer.transportPort);
     private CrateDriver driver;
@@ -156,7 +152,7 @@ public class CrateDriverTest {
 
         int threads = 30;
         final CountDownLatch latch = new CountDownLatch(threads);
-        Runnable runnable = new Runnable(){
+        Runnable runnable = new Runnable() {
 
             @Override
             public void run() {

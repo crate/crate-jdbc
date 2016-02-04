@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Updated Crate client to ``0.54.4``
+
  - use only one shared CrateClient for all connections with the same URL
 
 2016/01/20 1.10.0
