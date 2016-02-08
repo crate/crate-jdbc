@@ -48,7 +48,7 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
     public static CrateTestServer testServer = CrateTestServer.fromVersion(CRATE_SERVER_VERSION).build();
 
 
-    public String hostAndPort = String.format(Locale.ENGLISH, "%s:%d", testServer.crateHost, testServer.transportPort);
+    public String hostAndPort = String.format(Locale.ENGLISH, "%s:%d", testServer.crateHost(), testServer.transportPort());
     private CrateDriver driver;
     private static final Properties PROP = new Properties();
 

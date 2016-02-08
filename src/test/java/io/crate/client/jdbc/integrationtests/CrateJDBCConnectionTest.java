@@ -52,8 +52,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     public static void beforeClass() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
         hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
-                testServer.crateHost,
-                testServer.transportPort
+                testServer.crateHost(),
+                testServer.transportPort()
         );
         connection = DriverManager.getConnection("crate://" + hostAndPort);
         client = new CrateClient(hostAndPort);

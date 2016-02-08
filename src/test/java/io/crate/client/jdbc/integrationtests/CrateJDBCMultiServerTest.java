@@ -87,7 +87,7 @@ public class CrateJDBCMultiServerTest extends CrateJDBCIntegrationTest {
     private Collection<String> getUnicastHosts() {
         Collection<String> hosts = new ArrayList<>();
         for (CrateTestServer server : cluster.servers()) {
-            hosts.add(String.format(Locale.ENGLISH, "%s:%s", server.crateHost, server.transportPort));
+            hosts.add(String.format(Locale.ENGLISH, "%s:%d", server.crateHost(), server.transportPort()));
         }
         return hosts;
     }
