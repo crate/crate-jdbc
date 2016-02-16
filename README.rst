@@ -50,11 +50,11 @@ Help & Contact
 ==============
 
 Do you have any questions? Or suggestions? We would be very happy
-to help you. So, feel free to swing by our public room on HipChat_.
+to help you. So, feel free to swing by our support channel on Slack_.
 Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.
 
-.. _HipChat: https://www.hipchat.com/g7Pc2CYwi
+.. _HipChat: https://crate.io/docs/support/slackin/
 
 License
 =======
