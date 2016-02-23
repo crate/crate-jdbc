@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.client.jdbc.CrateResultSet;
+import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
 import org.hamcrest.Matchers;
 import org.junit.*;
@@ -42,7 +43,8 @@ import static org.junit.Assert.*;
 public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     @ClassRule
-    public static CrateTestServer testServer = CrateTestServer.fromVersion(CRATE_SERVER_VERSION).build();
+    public static CrateTestCluster testCluster = CrateTestCluster.fromVersion(CRATE_SERVER_VERSION).build();
+
 
     private static Connection connection;
     private static String hostAndPort;
@@ -51,9 +53,10 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
+        CrateTestServer server = testCluster.randomServer();
         hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
-                testServer.crateHost(),
-                testServer.transportPort()
+                server.crateHost(),
+                server.transportPort()
         );
         connection = DriverManager.getConnection("crate://" + hostAndPort);
         client = new CrateClient(hostAndPort);

@@ -23,8 +23,10 @@ package io.crate.client.jdbc.integrationtests;
 
 import io.crate.client.jdbc.CrateConnection;
 import io.crate.client.jdbc.CrateDriver;
+import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -38,19 +40,32 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     @ClassRule
-    public static CrateTestServer testServer = CrateTestServer.fromVersion(CRATE_SERVER_VERSION).build();
+    public static CrateTestCluster testCluster = CrateTestCluster.fromVersion(CRATE_SERVER_VERSION).build();
 
 
-    public String hostAndPort = String.format(Locale.ENGLISH, "%s:%d", testServer.crateHost(), testServer.transportPort());
+    private static String hostAndPort;
     private CrateDriver driver;
     private static final Properties PROP = new Properties();
+
+    @BeforeClass
+    public static void beforeClass() {
+        CrateTestServer server = testCluster.randomServer();
+        hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
+                server.crateHost(),
+                server.transportPort()
+        );
+    }
 
     @Before
     public void setUp() throws Exception {
