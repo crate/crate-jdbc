@@ -44,7 +44,7 @@ Documentation
 =============
 
 For the documentation of the latest stable version visit
-https://crate.io/docs/projects/crate-jdbc/stable/
+https://crate.io/docs/projects/crate-jdbc/
 
 Help & Contact
 ==============
@@ -54,7 +54,7 @@ to help you. So, feel free to swing by our support channel on Slack_.
 Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.
 
-.. _HipChat: https://crate.io/docs/support/slackin/
+.. _Slack: https://crate.io/docs/support/slackin/
 
 License
 =======
