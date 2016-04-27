@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - implemented the ``strict`` connection setting which enforces
+   the driver to be compliant with the JDBC specification.
+
 2016/02/08 1.11.0
 =================
 

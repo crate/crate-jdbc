@@ -108,11 +108,11 @@ public class CrateDriver implements Driver {
         ClientHandle handle = getHandle(url);
 
         if (url.equals("/")) {
-            connection = new CrateConnection(handle);
+            connection = new CrateConnection(handle, info);
             connection.connect();
         } else {
             String[] urlParts = url.split("/");
-            connection = new CrateConnection(handle);
+            connection = new CrateConnection(handle, info);
             connection.connect();
 
             if (urlParts.length == 2) {

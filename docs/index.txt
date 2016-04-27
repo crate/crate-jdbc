@@ -125,6 +125,27 @@ Is the same as::
     that is used has a version that is lower than 0.48.1 the specified schema
     will be ignored and the default ``doc`` schema will be used instead.
 
+Crate JDBC properties
+=====================
+
+Properties can be specified when connecting to Crate using the JDBC driver::
+
+    Properties properties = new Properties();
+    properties.put(<key>, <value>);
+    Connection conn = DriverManager.getConnection("crate://localhost:4300", properties);
+
+Crate JDBC driver supports following properties:
+
+:strict: (Default: ``false``) Setting the strict property to ``true`` will
+         enforce the driver to be compliant with the JDBC specification.
+         Therefore, calling any operations that are not supported by the
+         driver will result in an exception. For instance, disabling the
+         auto-commit mode or setting a savepoint will raise an unsupported
+         operation exception.
+         By default the ``strict`` property is optimistically set to ``false``
+         which will make the Crate JDBC driver compatible with most 3rd party
+         applications that usually require transactional databases.
+
 
 Compatibility
 =============

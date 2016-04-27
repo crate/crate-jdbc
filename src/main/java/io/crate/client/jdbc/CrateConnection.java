@@ -37,11 +37,16 @@ public class CrateConnection implements Connection {
     private String schema = null;
     private CrateDatabaseMetaData metaData;
     private String databaseVersion;
+    private boolean strict;
 
-
-    public CrateConnection(CrateDriver.ClientHandle handle) {
+    public CrateConnection(CrateDriver.ClientHandle handle, Properties properties) {
         this.clientHandle = handle;
         this.readOnly = false;
+        this.strict = Boolean.valueOf(properties.getProperty("strict", "false"));
+    }
+
+    public CrateConnection(CrateDriver.ClientHandle handle) {
+        this(handle, new Properties());
     }
 
     public CrateClient client() {
@@ -85,8 +90,9 @@ public class CrateConnection implements Connection {
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
         checkClosed();
-        if (!autoCommit) {
-            throw new SQLFeatureNotSupportedException("AutoCommit must be enabled, this driver does not support manual commit");
+        if (!autoCommit && strict) {
+            throw new SQLFeatureNotSupportedException("The auto-commit mode cannot be disabled. " +
+                    "The Crate JDBC driver does not support manual commit.");
         }
     }
 
@@ -99,13 +105,16 @@ public class CrateConnection implements Connection {
     @Override
     public void commit() throws SQLException {
         checkClosed();
-        // no-op
+        if (getAutoCommit() && strict) {
+            throw new SQLFeatureNotSupportedException("The commit operation is not allowed. " +
+                    "The Crate JDBC driver does not support manual commit.");
+        }
     }
 
     @Override
     public void rollback() throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException("Rollback is not supported");
+        throwIfStrictMode("Rollback is not supported.");
     }
 
     @Override
@@ -225,25 +234,27 @@ public class CrateConnection implements Connection {
     @Override
     public Savepoint setSavepoint() throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException("Savepoint is not supported");
+        throwIfStrictMode("Savepoint is not supported.");
+        return null;
     }
 
     @Override
     public Savepoint setSavepoint(String name) throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException("Savepoint is not supported");
+        throwIfStrictMode("Savepoint is not supported.");
+        return null;
     }
 
     @Override
     public void rollback(Savepoint savepoint) throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException("Rollback is not supported");
+        throwIfStrictMode("Rollback is not supported.");
     }
 
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         checkClosed();
-        throw new SQLFeatureNotSupportedException("Savepoint is not supported");
+        throwIfStrictMode("Savepoint is not supported.");
     }
 
     @Override
@@ -322,7 +333,6 @@ public class CrateConnection implements Connection {
 
     @Override
     public void setClientInfo(String name, String value) throws SQLClientInfoException {
-
     }
 
     @Override
@@ -400,6 +410,12 @@ public class CrateConnection implements Connection {
     private void checkClosed() throws SQLException {
         if (isClosed()) {
             throw new SQLException("Connection is closed");
+        }
+    }
+
+    private void throwIfStrictMode(String message) throws SQLException {
+        if (strict) {
+            throw new SQLFeatureNotSupportedException(message);
         }
     }
 
