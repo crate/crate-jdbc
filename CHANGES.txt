@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - make fetch size and set direction functionality compliant with the
+   JDBC specification.
+
  - implemented the ``strict`` connection setting which enforces
    the driver to be compliant with the JDBC specification.
 

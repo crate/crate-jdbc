@@ -468,22 +468,30 @@ public class CrateResultSet implements ResultSet {
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
-        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
+        checkClosed();
+        if (getType() == ResultSet.TYPE_FORWARD_ONLY && direction != ResultSet.FETCH_FORWARD) {
+            throw new IllegalArgumentException("Illegal value for the fetch direction.");
+        }
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
+        checkClosed();
+        return ResultSet.FETCH_FORWARD;
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
+        checkClosed();
+        if (rows < 0) {
+            throw new IllegalArgumentException("Fetch size must be greater than or equal to 0.");
+        }
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        throw new SQLFeatureNotSupportedException("ResultSet: " + Utilities.getCurrentMethodName() + " not supported");
+        checkClosed();
+        return 0;
     }
 
     @Override

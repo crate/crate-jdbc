@@ -115,22 +115,26 @@ public abstract class CrateStatementBase implements Statement {
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement setFetchDirection not supported");
+        checkClosed();
+        resultSet.setFetchDirection(direction);
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        return 0;
+        checkClosed();
+        return resultSet.getFetchDirection();
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement: setFetchSize not supported");
+        checkClosed();
+        resultSet.setFetchSize(rows);
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        return 0;
+        checkClosed();
+        return resultSet.getFetchSize();
     }
 
     @Override
