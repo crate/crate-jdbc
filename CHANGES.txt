@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2016/05/17 1.12.0
+=================
+
  - update crate client to 0.54.9
 
  - make fetch size and set direction functionality compliant with the
