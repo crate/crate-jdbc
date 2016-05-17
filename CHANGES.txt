@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Set/get fetch direction and size methods no longer throw an exception.
+   The methods calls are silently ignored.
+
 2016/05/17 1.12.0
 =================
 
