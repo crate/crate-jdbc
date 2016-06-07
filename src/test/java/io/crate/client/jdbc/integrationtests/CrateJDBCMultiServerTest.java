@@ -28,8 +28,7 @@ import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.org.elasticsearch.client.transport.TransportClientNodesService;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -40,7 +39,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class CrateJDBCMultiServerTest extends CrateJDBCIntegrationTest {
@@ -53,35 +51,27 @@ public class CrateJDBCMultiServerTest extends CrateJDBCIntegrationTest {
 
     @Test
     public void testConnectToMultipleNodes() throws Exception {
-        Class.forName("io.crate.client.jdbc.CrateDriver");
-
         Collection<String> hosts = getUnicastHosts();
+        Connection connection = DriverManager.getConnection("crate://" + Joiner.on(",").join(hosts));
+        CrateClient client = ((CrateConnection) connection).client();
+        verifyAddresses(client);
+        Statement statement = connection.createStatement();
+        int tries = 3;
+        long numNodes = 0;
+        while (tries > 0) {
+            ResultSet resultSet = statement.executeQuery("select count(*) from sys.nodes");
+            resultSet.next();
+            numNodes = resultSet.getLong(1);
 
-        Connection connection = null;
-        try {
-            connection = DriverManager.getConnection("crate://" + Joiner.on(",").join(hosts));
-            CrateClient client = ((CrateConnection) connection).client();
-            verifyAddresses(client);
-            Statement statement = connection.createStatement();
-            int tries = 3;
-            long numNodes = 0;
-            while (tries > 0) {
-                ResultSet resultSet = statement.executeQuery("select count(*) from sys.nodes");
-                resultSet.next();
-                numNodes = resultSet.getLong(1);
-
-                if (numNodes == 2L) {
-                    Thread.sleep(10);
-                    break;
-                }
-                tries--;
+            if (numNodes == 2L) {
+                Thread.sleep(10);
+                break;
             }
-            assertThat("nodes did not join a cluster yet", numNodes, is(2L));
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            tries--;
         }
+        connection.close();
+        client.close();
+        assertThat("nodes did not join a cluster yet", numNodes, is(2L));
     }
 
     private Collection<String> getUnicastHosts() {

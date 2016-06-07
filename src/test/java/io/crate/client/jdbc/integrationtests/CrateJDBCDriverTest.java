@@ -25,10 +25,7 @@ import io.crate.client.jdbc.CrateConnection;
 import io.crate.client.jdbc.CrateDriver;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -39,20 +36,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     @ClassRule
-    public static CrateTestCluster testCluster = CrateTestCluster.fromVersion(CRATE_SERVER_VERSION).build();
-
+    public static CrateTestCluster testCluster = CrateTestCluster
+            .fromVersion(CRATE_SERVER_VERSION)
+            .keepWorkingDir(false)
+            .build();
 
     private static String hostAndPort;
     private CrateDriver driver;
@@ -69,18 +64,19 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
+        Class.forName("io.crate.client.jdbc.CrateDriver");
         driver = new CrateDriver();
     }
 
     @Test
     public void testDriverRegistration() throws Exception {
-        Class.forName("io.crate.client.jdbc.CrateDriver");
-
         Connection c1 = DriverManager.getConnection("crate://" + hostAndPort);
         assertThat(c1, instanceOf(CrateConnection.class));
+        c1.close();
 
         Connection c2 = DriverManager.getConnection("jdbc:crate://" + hostAndPort);
         assertThat(c2, instanceOf(CrateConnection.class));
+        c2.close();
 
         expectedException.expect(SQLException.class);
         expectedException.expectMessage(String.format("No suitable driver found for %s", "jdbc:mysql://" + hostAndPort));
@@ -89,16 +85,15 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     @Test
     public void testDriverRegistrationWithSchemaName() throws Exception {
-        Class.forName("io.crate.client.jdbc.CrateDriver");
         Connection connection = DriverManager.getConnection(String.format("crate://%s/foo", hostAndPort));
         assertThat(connection.getSchema(), is("foo"));
+        connection.close();
     }
 
     @Test
     public void testInvalidURI() throws Exception {
         expectedException.expect(SQLException.class);
         expectedException.expectMessage("URL format is invalid.");
-        Class.forName("io.crate.client.jdbc.CrateDriver");
         DriverManager.getConnection(String.format("crate://%s/foo/bla", hostAndPort));
     }
 
@@ -112,30 +107,41 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
         assertThat(driver.acceptsURL("jdbc:mysql://"), is(false));
     }
 
+    private void assertInstanceOfCrateConnection(String connString, Properties prop) throws SQLException {
+        try (Connection conn = driver.connect(connString, prop)) {
+            assertThat(conn, instanceOf(CrateConnection.class));
+            assertFalse(conn.isClosed());
+            assertTrue(conn.isValid(0));
+        }
+    }
+
+    private void assertConnectionIsNull(String connString, Properties prop) throws SQLException {
+        try (Connection conn = driver.connect(connString, prop)) {
+            assertThat(conn, is(nullValue()));
+        }
+    }
+
     @Test
     public void testConnectDriver() throws Exception {
-        assertThat(driver.connect("jdbc:crate://" + hostAndPort, PROP), instanceOf(CrateConnection.class));
-        CrateConnection c = (CrateConnection) driver.connect("crate://" + hostAndPort, PROP);
+        assertInstanceOfCrateConnection("jdbc:crate://" + hostAndPort, PROP);
+        assertInstanceOfCrateConnection("crate://" + hostAndPort, PROP);
 
-        assertFalse(c.isClosed());
-        assertTrue(c.isValid(0));
+        assertInstanceOfCrateConnection("jdbc:crate://" + hostAndPort + "/db", PROP);
+        assertInstanceOfCrateConnection("crate://" + hostAndPort + "/db", new Properties());
 
-        assertThat(driver.connect("jdbc:crate://" + hostAndPort + "/db", PROP), instanceOf(CrateConnection.class));
-        assertThat(driver.connect("crate://" + hostAndPort + "/db", new Properties()), instanceOf(CrateConnection.class));
+        assertInstanceOfCrateConnection("jdbc:crate://" + hostAndPort + "/db?asdf=abcd", PROP);
+        assertInstanceOfCrateConnection("crate://" + hostAndPort + "/db?asdf=abcd", new Properties());
 
-        assertThat(driver.connect("jdbc:crate://" + hostAndPort + "/db?asdf=abcd", PROP), instanceOf(CrateConnection.class));
-        assertThat(driver.connect("crate://" + hostAndPort + "/db?asdf=abcd", new Properties()), instanceOf(CrateConnection.class));
-
-        assertThat(driver.connect("crt://" + hostAndPort, PROP), is(nullValue()));
-        assertThat(driver.connect("jdbc:mysql://" + hostAndPort, PROP), is(nullValue()));
+        assertConnectionIsNull("crt://" + hostAndPort, PROP);
+        assertConnectionIsNull("jdbc:mysql://" + hostAndPort, PROP);
 
         expectedException.expect(SQLException.class);
-        expectedException.expectMessage(String.format("Connect to '/foo%s' failed", hostAndPort.toString()));
-        assertThat(driver.connect("crate:///foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
 
-        expectedException.expectMessage(String.format("Connect to 'localhost/foo%s' failed", hostAndPort.toString()));
-        assertThat(driver.connect("crate://localhost/foo" + hostAndPort, PROP), instanceOf(CrateConnection.class));
+        expectedException.expectMessage(String.format("Connect to '/foo%s' failed", hostAndPort));
+        driver.connect("crate:///foo" + hostAndPort, PROP);
 
+        expectedException.expectMessage(String.format("Connect to 'localhost/foo%s' failed", hostAndPort));
+        driver.connect("crate://localhost/foo" + hostAndPort, PROP);
     }
 
     @Test
@@ -148,13 +154,11 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
         assertThat(driver.clientURLs().size(), is(1));
         c2.close();
         assertThat(driver.clientURLs().size(), is(0));
-
     }
 
     @Test
     public void testClientClosedOnFailure() throws Exception {
-        try {
-            driver.connect("crate://localhost:44444", PROP);
+        try (Connection conn = driver.connect("crate://localhost:44444", PROP)) {
             fail("This statement should not be reached");
         } catch (SQLException e) {
 
@@ -164,19 +168,16 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     @Test
     public void testConcurrentConnections() throws Exception {
-
+        final CrateDriver crateDriver = new CrateDriver();
         int threads = 30;
         final CountDownLatch latch = new CountDownLatch(threads);
         Runnable runnable = new Runnable() {
-
             @Override
             public void run() {
-                try {
-                    CrateConnection c = (CrateConnection) driver.connect("crate://" + hostAndPort, PROP);
-                    assertThat(driver.clientURLs().size(), is(1));
-                    c.close();
-                } catch (Exception e) {
-                    fail(e.toString());
+                try (Connection conn = crateDriver.connect("crate://" + hostAndPort, PROP)) {
+                    assertThat(crateDriver.clientURLs().size(), is(1));
+                } catch (SQLException e) {
+                    fail(e.getLocalizedMessage());
                 } finally {
                     latch.countDown();
                 }
@@ -188,7 +189,7 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
             executor.execute(runnable);
         }
         latch.await();
-        assertThat(driver.clientURLs().size(), is(0));
-
+        executor.shutdown();
+        assertThat(crateDriver.clientURLs().size(), is(0));
     }
 }

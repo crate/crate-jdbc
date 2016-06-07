@@ -26,23 +26,33 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.client.jdbc.testing.Stubs;
 import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
+import io.crate.shade.org.elasticsearch.threadpool.ThreadPool;
+import io.crate.shade.org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
+
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 public class CrateConnectionTest {
 
-    public CrateDriver.ClientHandle clientHandle() throws Exception {
+    private CrateClient clientMock() {
         CrateClient crateClient = mock(CrateClient.class);
         PlainActionFuture<SQLResponse> response = new PlainActionFuture<>();
         response.onResponse(Stubs.DUMMY_RESPONSE);
         when(crateClient.sql(any(SQLRequest.class))).thenReturn(response);
-        CrateDriver.ClientHandle clientHandle = mock(CrateDriver.ClientHandle.class);
-        when(clientHandle.client()).thenReturn(crateClient);
+        return crateClient;
+    }
 
+    private ClientHandleRegistry.ClientHandle clientHandle() throws Exception {
+        ClientHandleRegistry.ClientHandle clientHandle = mock(ClientHandleRegistry.ClientHandle.class);
+        CrateClient client = clientMock();
+        when(clientHandle.client()).thenReturn(client);
         return clientHandle;
     }
 
@@ -57,13 +67,44 @@ public class CrateConnectionTest {
 
     @Test
     public void testCloseConnection() throws Exception {
-        CrateDriver.ClientHandle handle = clientHandle();
-        doNothing().when(handle).connectionClosed();
-
+        ClientHandleRegistry.ClientHandle handle = clientHandle();
         CrateConnection conn = new CrateConnection(handle);
         conn.connect();
         conn.close();
         verify(handle, times(1)).connectionClosed();
         assertTrue(conn.isClosed());
     }
+
+    @Test
+    public void testCloseClient() throws Exception {
+        ClientHandleRegistry registry = new ClientHandleRegistry();
+        ClientHandleRegistry.ClientHandle h = registry.getHandle("crate://foo:4300");
+        ClientHandleRegistry.ClientHandle handle = spy(h);
+        CrateClient client = clientMock();
+        when(handle.client()).thenReturn(client);
+        CrateConnection conn = new CrateConnection(handle);
+        conn.connect();
+        conn.close();
+        verify(handle.client(), times(1)).close();
+        h.client().close();
+    }
+
+    @Test
+    public void testClosedThreadpool() throws Exception {
+        ClientHandleRegistry registry = new ClientHandleRegistry();
+        ClientHandleRegistry.ClientHandle h = registry.getHandle("crate://foo:4300");
+        ClientHandleRegistry.ClientHandle handle = spy(h);
+        CrateConnection conn = new CrateConnection(handle);
+        conn.close();
+
+        Field threadpoolField = CrateClient.class.getDeclaredField("threadPool");
+        threadpoolField.setAccessible(true);
+        ThreadPool threadPool = (ThreadPool) threadpoolField.get(handle.client());
+        for (ThreadPoolStats.Stats stats : threadPool.stats()) {
+            assertThat(stats.getActive(), is(0));
+        }
+        assertTrue(threadPool.scheduler().isTerminated());
+        h.client().close();
+    }
+
 }

@@ -32,20 +32,20 @@ import java.util.concurrent.Executor;
 
 public class CrateConnection implements Connection {
 
-    private final CrateDriver.ClientHandle clientHandle;
+    private final ClientHandleRegistry.ClientHandle clientHandle;
     private boolean readOnly;
     private String schema = null;
     private CrateDatabaseMetaData metaData;
     private String databaseVersion;
     private boolean strict;
 
-    public CrateConnection(CrateDriver.ClientHandle handle, Properties properties) {
+    public CrateConnection(ClientHandleRegistry.ClientHandle handle, Properties properties) {
         this.clientHandle = handle;
         this.readOnly = false;
         this.strict = Boolean.valueOf(properties.getProperty("strict", "false"));
     }
 
-    public CrateConnection(CrateDriver.ClientHandle handle) {
+    public CrateConnection(ClientHandleRegistry.ClientHandle handle) {
         this(handle, new Properties());
     }
 

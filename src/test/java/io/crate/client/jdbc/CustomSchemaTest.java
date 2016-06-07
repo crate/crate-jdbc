@@ -57,12 +57,12 @@ public class CustomSchemaTest {
 
     @Captor
     ArgumentCaptor<SQLRequest> requestCaptor;
-    private CrateDriver.ClientHandle clientHandle;
+    private ClientHandleRegistry.ClientHandle clientHandle;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        clientHandle = mock(CrateDriver.ClientHandle.class);
+        clientHandle = mock(ClientHandleRegistry.ClientHandle.class);
         when(clientHandle.client()).thenReturn(crateClient);
     }
 
