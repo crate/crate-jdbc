@@ -21,11 +21,15 @@
 
 package io.crate.client.jdbc.integrationtests;
 
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 public class CrateJDBCIntegrationTest {
 
@@ -42,6 +46,26 @@ public class CrateJDBCIntegrationTest {
         throw new RuntimeException("unable to get version of crate-client");
     }
 
+    @After
+    public void tearDown() throws Exception {
+        /**
+         * Check if no Crate client threads are left over ...
+         */
+        List<Thread> threads = new ArrayList<>();
+        for (Thread thread : Thread.getAllStackTraces().keySet()) {
+            if (thread.getName().startsWith("elasticsearch[crate-client-")) {
+                threads.add(thread);
+            }
+        }
+        if (threads.size() > 0) {
+            System.err.printf("%d thread(s) from Crate clients where left over!\n" +
+                    "This may indicate a thread leak if JDBC connections should be closed at the end of a test method.\n",
+                    threads.size());
+            for (Thread th : threads) {
+                System.err.printf("%s\n", th.toString());
+            }
+        }
+    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
