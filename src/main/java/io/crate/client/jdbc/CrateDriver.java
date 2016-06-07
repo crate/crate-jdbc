@@ -21,12 +21,8 @@
 
 package io.crate.client.jdbc;
 
-import io.crate.client.CrateClient;
-
 import java.sql.*;
-import java.util.Collection;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class CrateDriver implements Driver {
@@ -35,7 +31,7 @@ public class CrateDriver implements Driver {
     private static final String SUB_PROTOCOL = "crate";
     public static final String PREFIX = SUB_PROTOCOL + ":" + "//";
     public static final String LONG_PREFIX = PROTOCOL + ":" + SUB_PROTOCOL + ":" + "//";
-    private final ConcurrentHashMap<String, ClientHandle> clientHandles = new ConcurrentHashMap<>();
+    private final ClientHandleRegistry clientHandleRegistry = new ClientHandleRegistry();
 
     static {
         try {
@@ -46,49 +42,8 @@ public class CrateDriver implements Driver {
     }
 
     public Collection<String> clientURLs() {
-        return clientHandles.keySet();
+        return clientHandleRegistry.urls();
     }
-
-    class ClientHandle {
-
-        private int refCount;
-        private final CrateClient client;
-        private final String url;
-
-        ClientHandle(String url) {
-            refCount = 1;
-            this.url = url;
-            if (url.equals("/")) {
-                client = new CrateClient();
-            } else {
-                String[] urlParts = url.split("/");
-                String hosts = urlParts[0];
-                client = new CrateClient(hosts.split(","));
-            }
-        }
-
-        public CrateClient client() {
-            return client;
-        }
-
-        public String url() {
-            return url;
-        }
-
-        public void connectionClosed() {
-            synchronized (clientHandles) {
-                if (--refCount == 0) {
-                    clientHandles.remove(this.url);
-                }
-            }
-        }
-
-        private void incRef() {
-            assert refCount > 0;
-            refCount++;
-        }
-    }
-
 
     public CrateDriver() {
     }
@@ -105,7 +60,7 @@ public class CrateDriver implements Driver {
         }
 
         CrateConnection connection;
-        ClientHandle handle = getHandle(url);
+        ClientHandleRegistry.ClientHandle handle = clientHandleRegistry.getHandle(url);
 
         if (url.equals("/")) {
             connection = new CrateConnection(handle, info);
@@ -128,19 +83,6 @@ public class CrateDriver implements Driver {
     }
 
 
-    private ClientHandle getHandle(String url) {
-        ClientHandle handle;
-        synchronized (clientHandles) {
-            handle = clientHandles.get(url);
-            if (handle == null) {
-                handle = new ClientHandle(url);
-                clientHandles.put(url, handle);
-            } else {
-                handle.incRef();
-            }
-        }
-        return handle;
-    }
 
 
     @Override

@@ -36,15 +36,15 @@ import java.util.*;
 import java.util.Date;
 
 import static io.crate.shade.com.google.common.collect.Maps.newHashMap;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
 
 public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     @ClassRule
-    public static CrateTestCluster testCluster = CrateTestCluster.fromVersion(CRATE_SERVER_VERSION).build();
-
+    public static CrateTestCluster testCluster = CrateTestCluster
+            .fromVersion(CRATE_SERVER_VERSION)
+            .keepWorkingDir(false)
+            .build();
 
     private static Connection connection;
     private static String hostAndPort;
@@ -60,12 +60,95 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         );
         connection = DriverManager.getConnection("crate://" + hostAndPort);
         client = new CrateClient(hostAndPort);
+        setUpTables();
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
+        tearDownTables();
         connection.close();
         connection = null;
+        client.close();
+        client = null;
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        Class.forName("io.crate.client.jdbc.CrateDriver");
+        insertIntoTable();
+    }
+
+    public static void setUpTables() throws InterruptedException {
+        String stmt = "create table if not exists test (" +
+                " id integer primary key," +
+                " string_field string," +
+                " boolean_field boolean," +
+                " byte_field byte," +
+                " short_field short," +
+                " integer_field integer," +
+                " long_field long," +
+                " float_field float," +
+                " double_field double," +
+                " timestamp_field timestamp," +
+                " object_field object as (\"inner\" string)," +
+                " ip_field ip," +
+                " array1 array(string)," +
+                " obj_array array(object)" +
+                ") clustered by (id) into 1 shards with (number_of_replicas=0)";
+        client.sql(stmt).actionGet();
+        waitForShards();
+    }
+
+    private static void insertIntoTable() {
+        Map<String, Object> objectField = new HashMap<String, Object>() {{
+            put("inner", "Zoon");
+        }};
+        SQLRequest sqlRequest = new SQLRequest("insert into test (id, string_field, boolean_field, byte_field, short_field, integer_field," +
+                "long_field, float_field, double_field, object_field," +
+                "timestamp_field, ip_field, array1, obj_array) values " +
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
+                1, "Youri", true, 120, 1000, 1200000,
+                120000000000L, 1.4, 3.456789, objectField,
+                "1970-01-01", "127.0.0.1",
+                new Object[]{"a", "b", "c", "d"},
+                new Object[]{new HashMap<String, Object>() {{
+                    put("bla", "blubb");
+                }}}
+        });
+        client.sql(sqlRequest).actionGet();
+        client.sql("refresh table test").actionGet();
+    }
+
+    private static void waitForShards() throws InterruptedException {
+        while (countUnassigned() > 0) {
+            Thread.sleep(100);
+        }
+    }
+
+    private static Long countUnassigned() {
+        SQLResponse res = client.sql("SELECT count(*) FROM sys.shards WHERE state != 'STARTED'").actionGet();
+        return (Long) res.rows()[0][0];
+    }
+
+    @After
+    public void tearDown() {
+        deleteFromTable();
+    }
+
+    public static void deleteFromTable() {
+        client.sql("delete from test").actionGet();
+        client.sql("refresh table test").actionGet();
+    }
+
+    private static void tearDownTables() {
+        SQLResponse response = client.sql("select schema_name, table_name from information_schema.tables where schema_name not in ('sys', 'information_schema', 'blob')").actionGet();
+        for (Object[] row : response.rows()) {
+            try {
+                client.sql(String.format("drop table if exists \"%s\".\"%s\"", row[0], row[1]));
+            } catch (Exception e) {
+                // ignore
+            }
+        }
     }
 
     @Test
@@ -73,17 +156,20 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         Connection fooConn = DriverManager.getConnection(String.format("crate://%s/foo", hostAndPort));
         assertThat(fooConn.getSchema(), is("foo"));
         Statement statement = fooConn.createStatement();
-        statement.execute("create table t (x string) with (number_of_replicas = 0)");
+        statement.execute("create table t (x string) with (number_of_replicas=0)");
+        waitForShards();
         statement.execute("insert into t (x) values ('a')");
         statement.execute("refresh table t");
         ResultSet resultSet = statement.executeQuery("select count(*) from t");
         resultSet.next();
         assertThat(resultSet.getLong(1), is(1L));
+        fooConn.close();
 
         Connection barConnection = DriverManager.getConnection(String.format("crate://%s/bar", hostAndPort));
         assertThat(barConnection.getSchema(), is("bar"));
         statement = barConnection.createStatement();
-        statement.execute("create table t (x string) with (number_of_replicas = 0)");
+        statement.execute("create table t (x string) with (number_of_replicas=0)");
+        waitForShards();
         statement.execute("insert into t (x) values ('a')");
         statement.execute("refresh table t");
         resultSet = statement.executeQuery("select count(*) from t");
@@ -97,6 +183,9 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         Object[] objects = (Object[]) resultSet.getObject(1);
         String[] schemas = Arrays.copyOf(objects, objects.length, String[].class);
         assertThat(schemas, Matchers.arrayContainingInAnyOrder("foo", "bar"));
+        barConnection.close();
+        connection.prepareStatement("drop table foo.t").execute();
+        connection.prepareStatement("drop table bar.t").execute();
     }
 
     @Test
@@ -106,8 +195,9 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         Connection conn = DriverManager.getConnection(String.format("jdbc:crate://%s/%s", hostAndPort, schemaName));
 
         PreparedStatement pstmt = conn.prepareStatement(
-                String.format("create table %s (first_column integer, second_column string)", tableName));
+                String.format("create table %s (first_column integer, second_column string) with (number_of_replicas=0)", tableName));
         assertThat(pstmt.execute(), is(false));
+        waitForShards();
         pstmt = conn.prepareStatement(
                 String.format("insert into %s (first_column, second_column) values (?, ?)", tableName));
         pstmt.setInt(1, 42);
@@ -132,6 +222,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         assertThat(rSet.next(), is(true)); // there should be a result
         assertThat(rSet.getString(1), is(schemaName));
         assertThat(rSet.getString(2), is(tableName));
+        conn.prepareStatement(String.format("drop table %s", tableName)).execute();
+        conn.close();
     }
 
     @Test
@@ -141,8 +233,9 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         Connection conn = DriverManager.getConnection(String.format("jdbc:crate://%s/%s", hostAndPort, schemaName));
 
         PreparedStatement stmt = conn.prepareStatement(
-                String.format("create table %s (id long, ts timestamp, info string)", tableName));
+                String.format("create table %s (id long, ts timestamp, info string) with (number_of_replicas=0)", tableName));
         stmt.execute();
+        waitForShards();
         stmt = conn.prepareStatement(
                 String.format("INSERT INTO %s (id, ts, info) values (?, ?, ?)", tableName));
         String text = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor.";
@@ -155,67 +248,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
                 assertThat(stmt.executeBatch(), is(new int[]{1, 1, 1, 1, 1}));
             }
         }
-    }
-
-    @BeforeClass
-    public static void setUpTables() {
-        String stmt = "create table test (" +
-                " id integer primary key," +
-                " string_field string," +
-                " boolean_field boolean," +
-                " byte_field byte," +
-                " short_field short," +
-                " integer_field integer," +
-                " long_field long," +
-                " float_field float," +
-                " double_field double," +
-                " timestamp_field timestamp," +
-                " object_field object as (\"inner\" string)," +
-                " ip_field ip," +
-                " array1 array(string)," +
-                " obj_array array(object)" +
-                ") clustered by (id) into 1 shards with(number_of_replicas=0)";
-        client.sql(stmt).actionGet();
-    }
-
-    @Before
-    public void insertIntoTable() {
-        Map<String, Object> objectField = new HashMap<String, Object>() {{
-            put("inner", "Zoon");
-        }};
-        SQLRequest sqlRequest = new SQLRequest("insert into test (id, string_field, boolean_field, byte_field, short_field, integer_field," +
-                "long_field, float_field, double_field, object_field," +
-                "timestamp_field, ip_field, array1, obj_array) values " +
-                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
-                1, "Youri", true, 120, 1000, 1200000,
-                120000000000L, 1.4, 3.456789, objectField,
-                "1970-01-01", "127.0.0.1",
-                new Object[]{"a", "b", "c", "d"},
-                new Object[]{new HashMap<String, Object>() {{
-                    put("bla", "blubb");
-                }}}
-        });
-        client.sql(sqlRequest).actionGet();
-        client.sql("refresh table test").actionGet();
-    }
-
-    @After
-    public void deleteFromTable() {
-        client.sql("delete from test").actionGet();
-        client.sql("refresh table test").actionGet();
-    }
-
-    @AfterClass
-    public static void tearDownTables() {
-        CrateClient client = new CrateClient(hostAndPort);
-        SQLResponse response = client.sql("select schema_name, table_name from information_schema.tables where schema_name in ('doc', 'my', 'foo', 'bar')").actionGet();
-        for (Object[] row : response.rows()) {
-            try {
-                client.sql(String.format("drop table \"%s\".\"%s\"", row[0], row[1]));
-            } catch (Exception e) {
-                // ignore
-            }
-        }
+        conn.prepareStatement(String.format("drop table %s", tableName)).execute();
+        conn.close();
     }
 
     @Test

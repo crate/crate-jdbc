@@ -89,7 +89,7 @@ public abstract class AbstractCrateJDBCTest {
         when(crateClient.bulkSql((SQLBulkRequest) any())).thenAnswer(sqlBulkAnswer);
 
 
-        CrateDriver.ClientHandle clientHandle = mock(CrateDriver.ClientHandle.class);
+        ClientHandleRegistry.ClientHandle clientHandle = mock(ClientHandleRegistry.ClientHandle.class);
         when(clientHandle.client()).thenReturn(crateClient);
 
         CrateConnection conn = new CrateConnection(clientHandle);
