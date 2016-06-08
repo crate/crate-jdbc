@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2016/06/08 1.12.2
+=================
+
  - Fix: Crate client was not closed when last JDBC connection was closed, and
    therefore caused leaking threads.
 
