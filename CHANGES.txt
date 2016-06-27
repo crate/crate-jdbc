@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Make jars Java 7 compatible when building with newer JDK version
+
 2016/06/08 1.12.2
 =================
 
