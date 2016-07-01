@@ -151,6 +151,12 @@ Crate JDBC driver supports following properties:
          which will make the Crate JDBC driver compatible with most 3rd party
          applications that usually require transactional databases.
 
+:showsubcolumns:  (Default: ``false``) If this property value is set to ``true``
+                  it will fetch nested column information out of the table
+                  metadata. The output is equivalent to the result if
+                  ``information_schema.columns`` gets queried.
+                  By setting the property to ``false`` only the root column
+                  (the object field name) itself is returned.
 
 Compatibility
 =============

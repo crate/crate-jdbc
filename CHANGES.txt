@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Added JDBC property that allows to fetch nested columns if table metadata is queried.
+
  - It is now possible to set connection properties via the connection string.
 
 2016/06/27 1.12.3

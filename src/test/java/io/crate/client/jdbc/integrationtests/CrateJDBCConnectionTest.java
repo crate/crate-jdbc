@@ -48,6 +48,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     private static Connection connection;
     private static String hostAndPort;
+    private static String connectionString;
     private static CrateClient client;
 
     @BeforeClass
@@ -58,7 +59,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
                 server.crateHost(),
                 server.transportPort()
         );
-        connection = DriverManager.getConnection("crate://" + hostAndPort);
+        connectionString = "crate://" + hostAndPort;
+        connection = DriverManager.getConnection(connectionString);
         client = new CrateClient(hostAndPort);
         setUpTables();
     }
@@ -333,6 +335,20 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         }
         assertThat(counter, is(15));
 
+    }
+
+    @Test
+    public void testIncludeNestedColumns() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("showsubcolumns", "true");
+        Connection connection = DriverManager.getConnection(connectionString, properties);
+        ResultSet resultSet = connection.getMetaData().getColumns(null, "sys", "nodes", null);
+        int counter = 0;
+        while (resultSet.next()) {
+            counter++;
+        }
+        assertThat(counter, is(99));
+        connection.close();
     }
 
     /**
