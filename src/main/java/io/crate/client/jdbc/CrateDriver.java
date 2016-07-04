@@ -21,6 +21,11 @@
 
 package io.crate.client.jdbc;
 
+import io.crate.shade.org.apache.commons.lang3.StringUtils;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.sql.*;
 import java.util.*;
 import java.util.logging.Logger;
@@ -59,31 +64,69 @@ public class CrateDriver implements Driver {
             return null;
         }
 
-        CrateConnection connection;
+        try {
+            url = parseUrl(url, info);
+        } catch (IOException e) {
+            throw new SQLException(e);
+        }
+
         ClientHandleRegistry.ClientHandle handle = clientHandleRegistry.getHandle(url);
+        CrateConnection connection = new CrateConnection(handle, info);
+        connection.connect();
 
-        if (url.equals("/")) {
-            connection = new CrateConnection(handle, info);
-            connection.connect();
-        } else {
+        if (!url.equals("/")) {
             String[] urlParts = url.split("/");
-            connection = new CrateConnection(handle, info);
-            connection.connect();
-
             if (urlParts.length == 2) {
-                String[] pathAndParams = urlParts[1].split("\\?");
-                connection.setSchema(pathAndParams[0]);
+                connection.setSchema(urlParts[1]);
             } else if (urlParts.length > 2) {
                 connection.close();
                 throw new SQLException("URL format is invalid. " +
-                        "Valid format is: [jdbc:]crate://[host1:port1][, host2:port2 ...]/[schema][?param=value]");
+                        "Valid format is: [jdbc:]crate://[host1:port1][, host2:port2 ...][/schema][?property=value]");
             }
+            connection.setClientInfo(info);
         }
         return connection;
     }
 
+    private String parseUrl(String url, Properties info) throws UnsupportedEncodingException, InvalidPropertiesFormatException {
+        int index = url.indexOf("?");
+        if (index != -1) {
+            String paramString = url.substring(index + 1, url.length());
+            StringTokenizer queryParams = new StringTokenizer(paramString, "&");
 
+            while (queryParams.hasMoreTokens()) {
+                String parameterValuePair = queryParams.nextToken();
 
+                int indexOfEquals = StringUtils.indexOfIgnoreCase(parameterValuePair, "=", 0);
+
+                String parameter = null;
+                String value = null;
+
+                if (indexOfEquals != -1) {
+                    parameter = parameterValuePair.substring(0, indexOfEquals);
+
+                    if (indexOfEquals + 1 < parameterValuePair.length()) {
+                        value = parameterValuePair.substring(indexOfEquals + 1);
+                    }
+                }
+
+                if ((value != null && value.length() > 0)
+                        && (parameter != null && parameter.length() > 0)
+                        && (!value.contains("?") && !value.contains("="))) {
+                    try {
+                        info.setProperty(parameter, URLDecoder.decode(value, "UTF-8"));
+                    } catch (UnsupportedEncodingException e) {
+                        throw e;
+                    }
+                } else {
+                    throw new InvalidPropertiesFormatException("Properties format is invalid. " +
+                            "Valid format is: property=value&property=value,...");
+                }
+            }
+        }
+
+        return url;
+    }
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
@@ -114,5 +157,4 @@ public class CrateDriver implements Driver {
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("No parent logger");
     }
-
 }

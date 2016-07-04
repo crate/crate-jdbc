@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - It is now possible to set connection properties via the connection string.
+
 2016/06/27 1.12.3
 =================
 

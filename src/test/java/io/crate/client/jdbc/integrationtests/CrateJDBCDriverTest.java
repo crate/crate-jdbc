@@ -192,4 +192,14 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
         executor.shutdown();
         assertThat(crateDriver.clientURLs().size(), is(0));
     }
+
+    @Test
+    public void testClientPropertyUrlParser() throws Exception {
+        Connection conn = DriverManager.getConnection("crate://" + hostAndPort + "?prop1=value1&prop2=value2");
+        Properties properties = conn.getClientInfo();
+        assertThat(properties.size(), is(3));
+        assertThat(properties.getProperty("prop1"), is("value1"));
+        assertThat(properties.getProperty("prop2"), is("value2"));
+        conn.close();
+    }
 }

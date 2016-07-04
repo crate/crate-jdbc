@@ -28,14 +28,19 @@ import io.crate.client.jdbc.testing.Stubs;
 import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
 import io.crate.shade.org.elasticsearch.threadpool.ThreadPool;
 import io.crate.shade.org.elasticsearch.threadpool.ThreadPoolStats;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.lang.reflect.Field;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -55,6 +60,9 @@ public class CrateConnectionTest {
         when(clientHandle.client()).thenReturn(client);
         return clientHandle;
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testReadOnlyConnection() throws Exception {
@@ -107,4 +115,79 @@ public class CrateConnectionTest {
         h.client().close();
     }
 
+    @Test
+    public void testSetProperties() throws Exception {
+        CrateConnection conn = new CrateConnection(clientHandle());
+        conn.connect();
+
+        Properties properties = new Properties();
+        properties.setProperty("prop1", "value1");
+        properties.setProperty("prop2", "value2");
+        conn.setClientInfo(properties);
+        assertThat(conn.getClientInfo().size(), is(2));
+
+        conn.setClientInfo(new Properties());
+        assertThat(conn.getClientInfo().size(), is(0));
+
+        conn.setClientInfo("prop1", "value1");
+        conn.setClientInfo("prop2", "value2");
+        conn.setClientInfo("prop1", null);
+        assertThat(conn.getClientInfo().size(), is(1));
+        conn.close();
+    }
+
+    @Test
+    public void testGetProperties() throws Exception {
+        CrateConnection conn = new CrateConnection(clientHandle());
+        conn.connect();
+
+        Properties properties = new Properties();
+        properties.setProperty("prop1", "value1");
+        properties.setProperty("prop2", "value2");
+        conn.setClientInfo(properties);
+        assertThat(conn.getClientInfo("prop2"), is("value2"));
+        assertThat(conn.getClientInfo(), is(properties));
+        conn.close();
+    }
+
+    @Test
+    public void testGetPropertiesIfConnectionIsClosed() throws Exception {
+        CrateConnection conn = new CrateConnection(clientHandle());
+
+        expectedException.expect(SQLException.class);
+        conn.getClientInfo();
+    }
+
+    @Test
+    public void testSetPropertiesIfConnectionIsClosed() throws Exception {
+        CrateConnection conn = new CrateConnection(clientHandle());
+        Properties properties = new Properties();
+        properties.setProperty("prop1", "value1");
+
+        expectedException.expect(SQLClientInfoException.class);
+        conn.setClientInfo(properties);
+    }
+
+    @Test
+    public void testInvalidUrlAndPropertyFormat() throws Exception {
+        CrateDriver driver = new CrateDriver();
+        String connStr = "crate://foo:4200";
+
+        List<String> invalidPropertyList = new ArrayList<>();
+        invalidPropertyList.add("?prop1=&prop2=value2");
+        invalidPropertyList.add("?prop1=value1?prop2=value2");
+        invalidPropertyList.add("?prop1==prop2");
+        invalidPropertyList.add("?prop1&=prop2");
+        invalidPropertyList.add("?prop1=prop2=prop3");
+        invalidPropertyList.add("?=&prop1");
+        for (String property : invalidPropertyList) {
+            try {
+                driver.connect(connStr + property, null);
+                fail("This property format is invalid and this line should never get reached");
+            } catch (SQLException e) {
+                assertEquals(e.getClass(), SQLException.class);
+                assertTrue(e.getMessage().contains("Properties format is invalid."));
+            }
+        }
+    }
 }

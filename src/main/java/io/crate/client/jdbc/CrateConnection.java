@@ -25,9 +25,7 @@ import io.crate.client.CrateClient;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 
 import java.sql.*;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executor;
 
 public class CrateConnection implements Connection {
@@ -37,12 +35,14 @@ public class CrateConnection implements Connection {
     private String schema = null;
     private CrateDatabaseMetaData metaData;
     private String databaseVersion;
-    private boolean strict;
+    private Properties properties;
 
     public CrateConnection(ClientHandleRegistry.ClientHandle handle, Properties properties) {
         this.clientHandle = handle;
         this.readOnly = false;
-        this.strict = Boolean.valueOf(properties.getProperty("strict", "false"));
+        this.properties = properties;
+
+        setDefaultProperty("strict", "false");
     }
 
     public CrateConnection(ClientHandleRegistry.ClientHandle handle) {
@@ -60,6 +60,12 @@ public class CrateConnection implements Connection {
         } catch (NoNodeAvailableException e) {
             close();
             throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", getUrl()), e);
+        }
+    }
+
+    private void setDefaultProperty(String name, String value) {
+        if(!properties.containsKey(name)) {
+            properties.put(name, value);
         }
     }
 
@@ -90,6 +96,7 @@ public class CrateConnection implements Connection {
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
         checkClosed();
+        boolean strict = Boolean.valueOf(properties.getProperty("strict"));
         if (!autoCommit && strict) {
             throw new SQLFeatureNotSupportedException("The auto-commit mode cannot be disabled. " +
                     "The Crate JDBC driver does not support manual commit.");
@@ -105,6 +112,7 @@ public class CrateConnection implements Connection {
     @Override
     public void commit() throws SQLException {
         checkClosed();
+        boolean strict = Boolean.valueOf(properties.getProperty("strict"));
         if (getAutoCommit() && strict) {
             throw new SQLFeatureNotSupportedException("The commit operation is not allowed. " +
                     "The Crate JDBC driver does not support manual commit.");
@@ -124,7 +132,7 @@ public class CrateConnection implements Connection {
     }
 
     @Override
-    public boolean isClosed() throws SQLException {
+    public boolean isClosed() {
         return metaData == null;
     }
 
@@ -333,22 +341,38 @@ public class CrateConnection implements Connection {
 
     @Override
     public void setClientInfo(String name, String value) throws SQLClientInfoException {
+        if (isClosed()) {
+            throw new SQLClientInfoException();
+        }
+        if (value != null) {
+            this.properties.setProperty(name, value);
+        } else {
+            this.properties.remove(name);
+        }
     }
 
     @Override
     public void setClientInfo(Properties properties) throws SQLClientInfoException {
+        if (isClosed()) {
+            throw new SQLClientInfoException();
+        }
+        if (properties.isEmpty()) {
+            this.properties.clear();
+        } else {
+            this.properties = properties;
+        }
     }
 
     @Override
     public String getClientInfo(String name) throws SQLException {
         checkClosed();
-        return null;
+        return properties.getProperty(name);
     }
 
     @Override
     public Properties getClientInfo() throws SQLException {
         checkClosed();
-        return null;
+        return properties;
     }
 
     @Override
@@ -414,6 +438,7 @@ public class CrateConnection implements Connection {
     }
 
     private void throwIfStrictMode(String message) throws SQLException {
+        boolean strict = Boolean.valueOf(properties.getProperty("strict"));
         if (strict) {
             throw new SQLFeatureNotSupportedException(message);
         }

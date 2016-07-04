@@ -88,6 +88,7 @@ With JDBC, a database is represented by a URL (Uniform Resource Locator).
 With Crate, this takes the following form::
 
     [jdbc:]crate://<host>:<transport-port>[,<host>:<transport-port> , ...][/<schemaName>]
+        [?propertyName1=propertyValue1[&propertyName2=propertyValue2]...]
 
 The ``jdbc:`` prefix is optional. For example. To connect to a single server
 the following two formats are both allowed::
@@ -133,6 +134,10 @@ Properties can be specified when connecting to Crate using the JDBC driver::
     Properties properties = new Properties();
     properties.put(<key>, <value>);
     Connection conn = DriverManager.getConnection("crate://localhost:4300", properties);
+
+In addition connection properties can be passed via the JDBC URL::
+
+    Connection conn = DriverManager.getConnection("crate://localhost:4300?property1=value1&property2=value2");
 
 Crate JDBC driver supports following properties:
 
