@@ -41,8 +41,6 @@ public class CrateConnection implements Connection {
         this.clientHandle = handle;
         this.readOnly = false;
         this.properties = properties;
-
-        setDefaultProperty("strict", "false");
     }
 
     public CrateConnection(ClientHandleRegistry.ClientHandle handle) {
@@ -60,12 +58,6 @@ public class CrateConnection implements Connection {
         } catch (NoNodeAvailableException e) {
             close();
             throw new SQLException(String.format(Locale.ENGLISH, "Connect to '%s' failed", getUrl()), e);
-        }
-    }
-
-    private void setDefaultProperty(String name, String value) {
-        if(!properties.containsKey(name)) {
-            properties.put(name, value);
         }
     }
 
@@ -96,11 +88,14 @@ public class CrateConnection implements Connection {
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
         checkClosed();
-        boolean strict = Boolean.valueOf(properties.getProperty("strict"));
-        if (!autoCommit && strict) {
+        if (!autoCommit && strict()) {
             throw new SQLFeatureNotSupportedException("The auto-commit mode cannot be disabled. " +
                     "The Crate JDBC driver does not support manual commit.");
         }
+    }
+
+    private boolean strict() {
+        return Boolean.valueOf(properties.getProperty("strict", "false"));
     }
 
     @Override
@@ -112,8 +107,7 @@ public class CrateConnection implements Connection {
     @Override
     public void commit() throws SQLException {
         checkClosed();
-        boolean strict = Boolean.valueOf(properties.getProperty("strict"));
-        if (getAutoCommit() && strict) {
+        if (getAutoCommit() && strict()) {
             throw new SQLFeatureNotSupportedException("The commit operation is not allowed. " +
                     "The Crate JDBC driver does not support manual commit.");
         }
