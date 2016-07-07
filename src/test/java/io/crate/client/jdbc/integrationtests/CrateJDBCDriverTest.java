@@ -202,4 +202,11 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
         assertThat(properties.getProperty("prop2"), is("value2"));
         conn.close();
     }
+
+    @Test
+    public void testNullProperty() throws Exception {
+        Connection conn = DriverManager.getConnection("crate://" + hostAndPort);
+        conn.setClientInfo(null);
+        conn.close();
+    }
 }

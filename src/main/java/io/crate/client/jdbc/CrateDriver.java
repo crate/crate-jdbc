@@ -89,6 +89,10 @@ public class CrateDriver implements Driver {
     }
 
     private String parseUrl(String url, Properties info) throws UnsupportedEncodingException, InvalidPropertiesFormatException {
+        if (info == null) {
+            info = new Properties();
+        }
+
         int index = url.indexOf("?");
         if (index != -1) {
             String paramString = url.substring(index + 1, url.length());

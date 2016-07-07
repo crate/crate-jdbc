@@ -35,7 +35,7 @@ public class CrateConnection implements Connection {
     private String schema = null;
     private CrateDatabaseMetaData metaData;
     private String databaseVersion;
-    private Properties properties;
+    private Properties properties = new Properties();
 
     public CrateConnection(ClientHandleRegistry.ClientHandle handle, Properties properties) {
         this.clientHandle = handle;
@@ -350,7 +350,7 @@ public class CrateConnection implements Connection {
         if (isClosed()) {
             throw new SQLClientInfoException();
         }
-        if (properties.isEmpty()) {
+        if (properties == null || properties.isEmpty()) {
             this.properties.clear();
         } else {
             this.properties = properties;
