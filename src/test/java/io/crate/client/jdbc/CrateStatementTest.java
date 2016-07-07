@@ -81,7 +81,7 @@ public class CrateStatementTest extends AbstractCrateJDBCTest {
                     true
             );
         } else if (request.stmt().toUpperCase().startsWith("ERROR")) {
-            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST, "");
+            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST);
         } else {
             response = new SQLResponse(new String[0], new Object[0][], new DataType[0], 4L, System.currentTimeMillis(), true);
         }

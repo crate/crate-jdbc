@@ -54,7 +54,7 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
     @Override
     protected SQLResponse getResponse(SQLRequest request) {
         if (hasErrorArg(request)) {
-            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST, "");
+            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST);
         } else if (request.args().length > 0 && request.args()[0].equals("does_not_exist")) {
             return EMPTY_RESPONSE;
         } else if (request.stmt().toUpperCase().startsWith("SELECT")) {
@@ -67,7 +67,7 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
     @Override
     protected SQLBulkResponse getBulkResponse(SQLBulkRequest request) {
         if (hasErrorArg(request)) {
-            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST, "");
+            throw new SQLActionException("bla", 4000, RestStatus.BAD_REQUEST);
         } else {
             SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[request.bulkArgs().length];
             Arrays.fill(results, new SQLBulkResponse.Result(null, 4));

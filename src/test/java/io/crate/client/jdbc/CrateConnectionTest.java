@@ -86,7 +86,7 @@ public class CrateConnectionTest {
     @Test
     public void testCloseClient() throws Exception {
         ClientHandleRegistry registry = new ClientHandleRegistry();
-        ClientHandleRegistry.ClientHandle h = registry.getHandle("crate://foo:4300");
+        ClientHandleRegistry.ClientHandle h = registry.getHandle("/");
         ClientHandleRegistry.ClientHandle handle = spy(h);
         CrateClient client = clientMock();
         when(handle.client()).thenReturn(client);
@@ -100,7 +100,7 @@ public class CrateConnectionTest {
     @Test
     public void testClosedThreadpool() throws Exception {
         ClientHandleRegistry registry = new ClientHandleRegistry();
-        ClientHandleRegistry.ClientHandle h = registry.getHandle("crate://foo:4300");
+        ClientHandleRegistry.ClientHandle h = registry.getHandle("/");
         ClientHandleRegistry.ClientHandle handle = spy(h);
         CrateConnection conn = new CrateConnection(handle);
         conn.close();

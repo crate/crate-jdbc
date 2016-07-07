@@ -21,8 +21,6 @@
 
 package io.crate.client.jdbc;
 
-import io.crate.shade.org.apache.commons.lang3.StringUtils;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -101,7 +99,7 @@ public class CrateDriver implements Driver {
             while (queryParams.hasMoreTokens()) {
                 String parameterValuePair = queryParams.nextToken();
 
-                int indexOfEquals = StringUtils.indexOfIgnoreCase(parameterValuePair, "=", 0);
+                int indexOfEquals = parameterValuePair.indexOf("=");
 
                 String parameter = null;
                 String value = null;

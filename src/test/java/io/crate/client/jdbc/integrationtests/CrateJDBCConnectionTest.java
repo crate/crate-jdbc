@@ -444,7 +444,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             stmt.executeBatch();
             fail("BatchUpdateException not thrown");
         } catch (BatchUpdateException e) {
-            assertThat(e.getMessage(), is("Validation failed for string_field: {} cannot be cast to type string"));
+            assertThat(e.getMessage(), is("ColumnValidationException: Validation failed for string_field: {} cannot be cast to type string"));
             assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
         }
 
