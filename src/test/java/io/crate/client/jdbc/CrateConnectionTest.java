@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.client.jdbc.testing.Stubs;
+import io.crate.shade.com.google.common.collect.ImmutableList;
 import io.crate.shade.org.elasticsearch.action.support.PlainActionFuture;
 import io.crate.shade.org.elasticsearch.threadpool.ThreadPool;
 import io.crate.shade.org.elasticsearch.threadpool.ThreadPoolStats;
@@ -32,10 +33,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.InvalidPropertiesFormatException;
 import java.util.List;
 import java.util.Properties;
 
@@ -45,6 +48,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 public class CrateConnectionTest {
+
+    private final CrateDriver crateDriver = new CrateDriver();
 
     private CrateClient clientMock() {
         CrateClient crateClient = mock(CrateClient.class);
@@ -169,10 +174,26 @@ public class CrateConnectionTest {
     }
 
     @Test
-    public void testInvalidUrlAndPropertyFormat() throws Exception {
-        CrateDriver driver = new CrateDriver();
-        String connStr = "crate://foo:4200";
+    public void testMultipleHostWithProperties() throws UnsupportedEncodingException, InvalidPropertiesFormatException {
+        Properties info = new Properties();
+        String url = "foo:4200,bar:4200?prop1=value1&prop2=value2";
 
+        assertThat(crateDriver.parseUrl(url, info), is("foo:4200,bar:4200"));
+        assertThat(info.size(), is(2));
+    }
+
+    @Test
+    public void testMultipleHostWithPropertiesAndSchema() throws UnsupportedEncodingException, InvalidPropertiesFormatException {
+        Properties info = new Properties();
+        String url = "foo:4200,bar:4200/schema?prop1=value1";
+
+        assertThat(crateDriver.parseUrl(url, info), is("foo:4200,bar:4200/schema"));
+        assertThat(info.size(), is(1));
+    }
+
+    @Test
+    public void testInvalidUrlAndPropertyFormat() {
+        String url = "foo:4200";
         List<String> invalidPropertyList = new ArrayList<>();
         invalidPropertyList.add("?prop1=&prop2=value2");
         invalidPropertyList.add("?prop1=value1?prop2=value2");
@@ -180,12 +201,12 @@ public class CrateConnectionTest {
         invalidPropertyList.add("?prop1&=prop2");
         invalidPropertyList.add("?prop1=prop2=prop3");
         invalidPropertyList.add("?=&prop1");
+
         for (String property : invalidPropertyList) {
             try {
-                driver.connect(connStr + property, null);
-                fail("This property format is invalid and this line should never get reached");
-            } catch (SQLException e) {
-                assertEquals(e.getClass(), SQLException.class);
+                crateDriver.parseUrl(url + property, null);
+                fail("This property format is invalid and this line should never get reached" + property);
+            } catch (UnsupportedEncodingException | InvalidPropertiesFormatException e) {
                 assertTrue(e.getMessage().contains("Properties format is invalid."));
             }
         }

@@ -25,7 +25,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.sql.*;
-import java.util.*;
+import java.util.Collection;
+import java.util.InvalidPropertiesFormatException;
+import java.util.Properties;
+import java.util.StringTokenizer;
 import java.util.logging.Logger;
 
 public class CrateDriver implements Driver {
@@ -64,7 +67,7 @@ public class CrateDriver implements Driver {
 
         try {
             url = parseUrl(url, info);
-        } catch (IOException e) {
+        } catch (InvalidPropertiesFormatException | UnsupportedEncodingException e) {
             throw new SQLException(e);
         }
 
@@ -86,15 +89,14 @@ public class CrateDriver implements Driver {
         return connection;
     }
 
-    private String parseUrl(String url, Properties info) throws UnsupportedEncodingException, InvalidPropertiesFormatException {
+    protected String parseUrl(String url, Properties info) throws UnsupportedEncodingException, InvalidPropertiesFormatException {
         if (info == null) {
             info = new Properties();
         }
+        String[] urlParts = url.split("\\?", 2);
 
-        int index = url.indexOf("?");
-        if (index != -1) {
-            String paramString = url.substring(index + 1, url.length());
-            StringTokenizer queryParams = new StringTokenizer(paramString, "&");
+        if (urlParts.length == 2) {
+            StringTokenizer queryParams = new StringTokenizer(urlParts[1], "&");
 
             while (queryParams.hasMoreTokens()) {
                 String parameterValuePair = queryParams.nextToken();
@@ -115,19 +117,14 @@ public class CrateDriver implements Driver {
                 if ((value != null && value.length() > 0)
                         && (parameter != null && parameter.length() > 0)
                         && (!value.contains("?") && !value.contains("="))) {
-                    try {
-                        info.setProperty(parameter, URLDecoder.decode(value, "UTF-8"));
-                    } catch (UnsupportedEncodingException e) {
-                        throw e;
-                    }
+                    info.setProperty(parameter, URLDecoder.decode(value, "UTF-8"));
                 } else {
                     throw new InvalidPropertiesFormatException("Properties format is invalid. " +
                             "Valid format is: property=value&property=value,...");
                 }
             }
         }
-
-        return url;
+        return urlParts[0];
     }
 
     @Override
