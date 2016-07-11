@@ -30,6 +30,7 @@ Crate JDBC driver   Crate
 ``1.10.X``          ``0.54.X``
 ``1.11.X``          ``0.54.X``
 ``1.12.X``          ``0.54.X``
+``1.13.X``          ``0.55.X``
 =================== ==========
 
 Currently we don't provide the testing version of the Crate JDBC driver.
