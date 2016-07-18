@@ -269,7 +269,7 @@ defined in that object:
     ResultSet resultSet = statement.executeQuery("select object_field from my_table");
     resultSet.first();
     Map<String, Object> objValue = (Map<String, Object>)resultSet.getObject("object_field");
-    Object nestedValue = objField.get("nested_field");
+    Object nestedValue = objValue.get("nested_field");
 
 
 .. _`Bintray`: https://bintray.com/crate/crate/
