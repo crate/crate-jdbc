@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    compile 'io.crate:crate-client:0.55.2'
+    compile 'io.crate:crate-client:0.55.4'
     testCompile "io.crate:crate-testing:0.4.0"
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile 'junit:junit:4.11'
