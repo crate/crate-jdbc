@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Updated Crate client to 0.55.4.
+
  - Fix: Pacakaging of the Crate standalone JDBC driver for the versions
    which use crate-client <= 0.55.2.
 
