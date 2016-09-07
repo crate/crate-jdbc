@@ -75,9 +75,7 @@ jar {
 task jarStandalone(type: Jar, dependsOn: getVersion) {
     baseName 'crate-jdbc-standalone'
     from configurations.compile.collect {
-        it.isDirectory() ? it : zipTree(it).matching{
-            exclude 'META-INF/**'
-        }
+        it.isDirectory() ? it : zipTree(it)
     }
     from sourceSets.main.output
     doLast {
