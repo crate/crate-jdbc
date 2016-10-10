@@ -47,10 +47,4 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void setUp() throws Exception {
-        Class.forName("io.crate.client.jdbc.CrateDriver");
-    }
-
 }

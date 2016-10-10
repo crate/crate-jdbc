@@ -74,11 +74,9 @@ Alternatively you can follow the instructions on the Bintray repository overview
 JDBC Driver Class
 =================
 
-The Crate JDBC driver class is ``io.crate.client.jdbc.CrateDriver``.
+A connection can be established using ``DriverManager.getConnection()``
+method, e.g.::
 
-A connection is obtained from the DriverManager, e.g.::
-
-    Class.forName("io.crate.client.jdbc.CrateDriver");
     Connection conn = DriverManager.getConnection("crate://localhost:4300");
 
 JDBC URL Format

@@ -53,7 +53,6 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Class.forName("io.crate.client.jdbc.CrateDriver");
         CrateTestServer server = testCluster.randomServer();
         hostAndPort = String.format(Locale.ENGLISH, "%s:%d",
                 server.crateHost(),
@@ -76,7 +75,6 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        Class.forName("io.crate.client.jdbc.CrateDriver");
         insertIntoTable();
     }
 

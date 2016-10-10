@@ -64,7 +64,6 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        Class.forName("io.crate.client.jdbc.CrateDriver");
         driver = new CrateDriver();
     }
 

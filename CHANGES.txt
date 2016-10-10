@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Applications no longer need to load the Crate JDBC driver explicitly
+   using `Class.forName()`.
+
 2016/09/07 1.13.1
 =================
 
