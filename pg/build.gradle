@@ -1,0 +1,61 @@
+apply plugin: "java"
+apply plugin: "maven"
+apply plugin: 'osgi'
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+compileJava {
+    options.warnings = false
+    options.deprecation = false
+    options.compilerArgs << '-XDignore.symbol.file'
+    options.fork = true
+    options.forkOptions.executable = 'javac'
+}
+compileTestJava.options.warnings = false
+
+dependencies {
+    compile 'com.github.dblock.waffle:waffle-jna:1.7.5'
+    compile 'net.java.dev.jna:jna:4.2.1'
+    compile 'net.java.dev.jna:jna-platform:4.2.1'
+    compile 'org.slf4j:jcl-over-slf4j:1.7.12'
+    testCompile 'junit:junit:4.11'
+}
+
+
+sourceSets {
+    main {
+        java {
+            srcDir 'upstream/pgjdbc/src/main/java'
+            exclude '**/PGBundleActivator*'
+            exclude '**/PGDataSourceFactory*'
+        }
+        resources {
+            srcDir 'upstream/pgjdbc/src/main/resources'
+            include '**/*.*'
+        }
+        resources {
+            srcDir 'upstream/pgjdbc/src/main/java'
+            include '**/*.json'
+            include '**/*.yml'
+            include '**/*.txt'
+        }
+    }
+    test {
+        java {
+            srcDir 'upstream/pgjdbc/src/test/java'
+        }
+        resources {
+            srcDir 'upstream/pgjdbc/src/test/resources'
+            include '**/*.*'
+        }
+        resources {
+            srcDir 'upstream/pgjdbc/src/test/java'
+            include '**/*.json'
+            include '**/*.yml'
+            include '**/*.txt'
+        }
+    }
+}

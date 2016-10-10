@@ -23,6 +23,10 @@ dependencies {
     }
 }
 
+dependencies {
+    compile project(':pg')
+}
+
 tasks.withType(JavaCompile) {
     sourceCompatibility = "1.7"
     targetCompatibility = "1.7"
@@ -37,7 +41,7 @@ sourceSets {
         }
     }
     test {
-        resources {
+        java {
             srcDir 'src/test/java'
         }
     }
