@@ -5,6 +5,16 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - BREAKING:
+
+   - Removed Crate client from the Crate JDBC driver. The driver uses the
+     postgres wire protocol.
+
+   - Support for the ``showsubcolumns`` parameter has been dropped.
+
+   - The format of the connection string has been changed. The default schema
+     name cannot be set via the connection string.
+
 2016/11/04 1.14.0
 =================
 

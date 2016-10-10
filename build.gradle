@@ -1,49 +1,60 @@
-apply plugin: 'idea'
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'signing'
+plugins {
+    id 'signing'
+    id 'com.github.johnrengelman.shadow' version '1.2.3'
+}
+
+allprojects {
+
+    apply plugin: 'idea'
+    apply plugin: 'java'
+    apply plugin: 'maven'
+
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    sourceCompatibility = "1.7"
+    targetCompatibility = "1.7"
+
+}
 
 group = "io.crate"
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
-    compile 'io.crate:crate-client:0.56.3'
-    testCompile "io.crate:crate-testing:0.4.0"
+    compile project(':pg')
+    testCompile 'io.crate:crate-testing:0.4.3'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
-    testCompile 'junit:junit:4.11'
+    testCompile 'junit:junit:4.12'
     testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.11') {
         exclude group: 'junit', module: 'junit'
     }
-    testCompile ("org.mockito:mockito-core:1.10.8") {
+    testCompile ("org.mockito:mockito-core:2.2.3") {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
-}
-
-tasks.withType(JavaCompile) {
-    sourceCompatibility = "1.7"
-    targetCompatibility = "1.7"
 }
 
 sourceSets {
     main {
         java {
-            srcDir 'src/main/java'
-            include "io/crate/client/jdbc/*"
-            include "io/crate/client/jdbc/types/**"
+            srcDir 'driver/main/java'
+        }
+        resources {
+            srcDir 'driver/main/resources'
         }
     }
     test {
-        resources {
-            srcDir 'src/test/java'
+        java {
+            srcDir 'driver/test/java'
         }
     }
 }
 
-task getVersion ( dependsOn: 'classes') << {
+task getVersion(dependsOn: [classes]) << {
     def stdout = new ByteArrayOutputStream()
     javaexec {
         classpath = sourceSets.main.runtimeClasspath
@@ -62,9 +73,13 @@ task getVersion ( dependsOn: 'classes') << {
     logger.quiet("version: " + version)
 }
 
-jar.dependsOn getVersion
+jar.dependsOn(dependsOn: [getVersion])
 jar {
     baseName 'crate-jdbc'
+    doFirst {
+        from sourceSets.main.output
+        from project(':pg').sourceSets.main.output
+    }
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate.IO JDBC Driver", "Implementation-Version": project.version)
@@ -72,18 +87,34 @@ jar {
     }
 }
 
-task jarStandalone(type: Jar, dependsOn: getVersion) {
+shadowJar {
     baseName 'crate-jdbc-standalone'
-    from configurations.compile.collect {
-        it.isDirectory() ? it : zipTree(it)
-    }
-    from sourceSets.main.output
+    classifier ''
+    duplicatesStrategy 'fail'
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)", "Implementation-Version": project.version)
         }
     }
+    // Crate JDBC dependencies
+    relocate 'com.fasterxml.jackson', 'io.crate.shade.com.fasterxml.jackson'
+    relocate 'org.postgresql', 'io.crate.shade.org.postgresql'
+    // PGJDBC dependencies
+    relocate 'waffle', 'io.crate.shade.waffle'
+    relocate 'com.sun.jna', 'io.crate.shade.com.sun.jna'
+    relocate 'org.slf4j', 'io.crate.shade.org.slf4j'
+    relocate 'org.osgi', 'io.crate.shade.org.osgi'
+    relocate 'com.google', 'io.crate.shade.com.google'
 }
+
+task buildJar(type: Jar, dependsOn: [getVersion, classes]) {
+    doLast {
+        ext.version = getVersion.version
+        project.version = ext.version
+        tasks.shadowJar.execute()
+    }
+}
+tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
@@ -150,18 +181,18 @@ task buildSourceJarStandalone (dependsOn: [getVersion] ) << {
 
 artifacts {
     archives jar
-    archives jarStandalone
+    archives shadowJar
     archives javadocJar
     archives javadocJarStandalone
     archives sourceJar
     archives sourceJarStandalone
 }
 
-task signJars (type : Sign, dependsOn: [jar, jarStandalone, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
+task signJars (type : Sign, dependsOn: [jar, shadowJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
     sign configurations.archives
 }
 
-install.dependsOn([jar, jarStandalone, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
+install.dependsOn([jar, shadowJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
 install {
     repositories {
         mavenInstaller {
@@ -256,13 +287,14 @@ test {
 
 idea {
     project {
-        languageLevel = 'JDK_1_7'
-
+        vcs = 'Git';
+        languageLevel = 'JDK_1_7';
         ipr {
             withXml { provider ->
-                def node = provider.asNode()
+                def node = provider.asNode();
+                node.append(new XmlParser().parse(file("codestyle.xml")));
                 def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
-                copyrightManager.@default = "CrateASL2"
+                copyrightManager.@default = "CrateASL2";
                 def aslCopyright = copyrightManager.copyright.find { it.option.find { it.@name == "myName" }?.@value == "CrateASL2" }
                 if (aslCopyright == null) {
                     copyrightManager.append(new XmlParser().parse(file("copyright.xml")))
@@ -273,5 +305,5 @@ idea {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.14'
+    gradleVersion = '3.1'
 }

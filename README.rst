@@ -26,7 +26,11 @@ to make it compile, if needed and follow instructions in `Build JAR from source`
 Installation
 ============
 
-.. note:: This JDBC driver requires Crate >= 0.38.0
+.. note::
+
+   Crate JDBC driver 1.x requires a Crate version greater or equal than ``0.38.0``
+   but lower than ``0.57``.
+   Crate JDBC driver 2.x requires a Crate version greater or equal than ``0.57.0``.
 
 Build JAR from source
 ---------------------
@@ -45,6 +49,23 @@ or::
    ./gradlew jarStandalone
 
 Afterwards a JAR file of the current version exists under ``build/lib``.
+
+
+Version 2.x
+===========
+
+Version 2 of the Crate JDBC driver is using the `PostgreSQL Wire Protocol`_ and
+is currently only intended for testing purposes.
+It is only available via `Jitpack`_ and won't be available on `Bintray`_ until
+Crate version ``0.57.x`` is released.
+
+Differences to version 1.x are:
+
+- The Crate specific ``strict`` parameter is not supported.
+- The `connection string`_ changed to the same format as PostgreSQL JDBC,
+  which means that setting the default schema with the connection string is not
+  supported. Use ``setDefaultSchema()`` instead.
+- Support for the experimentaal ``showsubcolumns`` parameter has been dropped.
 
 
 Documentation
@@ -88,6 +109,8 @@ with Crate these terms will supersede the license and you may use the
 software solely pursuant to the terms of the relevant commercial agreement.
 
 
-
 .. _Crate: https://github.com/crate/crate
-
+.. _`PostgreSQL Wire Protocol`: https://www.postgresql.org/docs/current/static/protocol.html
+.. _Bintray: https://bintray.com/crate/crate/crate-jdbc
+.. _Jitpack: https://jitpack.io/#crate/crate-jdbc
+.. _`connection string`: https://jdbc.postgresql.org/documentation/80/connect.html
