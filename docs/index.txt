@@ -5,28 +5,41 @@ Crate JDBC Driver
 JDBC is a core API of Java 1.1 and later. It provides a standard set of
 interfaces to SQL-compliant databases.
 
-Crate provides a type 4 JDBC driver. The driver is written in Pure Java, and
-communicates in the database system's own network protocol. Because of this,
-the driver is platform independent.
+Crate provides a `type 4 JDBC driver`_. The driver is written in pure Java, and
+communicates with the database using the `PostgreSQL Wire Protocol`_.
 
-.. note:: This JDBC driver requires Crate 0.38.0 or newer!
+Because of this, all versions of the JDBC driver >= ``2.0`` require Crate ``0.57.0``
+or newer. Previous versions of the JDBC driver (``1.x``) are only compatible with
+older versions of Crate.
+
+See compatibility table in the `README`_ of the Github project for a full list
+of compatible client/server versions.
 
 Download and Setup
 ==================
 
-The ``crate-jdbc`` jar files are hosted on `Bintray`_ and available via `JCenter`_.
+Version 2.x
+-----------
 
-Additionally to ``crate-jdbc`` there is also a standalone version
-named ``crate-jdbc-standalone`` which already includes its dependencies.
+Version 2 of the JDBC driver is currently only available on `Jitpack`_.
 
-.. note:: ``crate-jdbc-standalone`` should not be used in Maven projects,
-    but might want to be used e.g. as a driver for the `Squirrel`_ SQL client.
+Using Gradle
+.............
 
-You can download the latest standalone version directly from the
-`Bintray Repository <https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone>`_.
+.. code-block:: groovy
 
-If you want to use ``crate-jdbc`` with your Maven project you need to
-add the Bintray repository to your ``pom.xml``:
+    repositories {
+        ...
+        maven { url "https://jitpack.io" }
+    }
+
+    dependencies {
+        ...
+        compile 'com.github.crate:crate-jdbc:2.x'
+    }
+
+Using Maven
+............
 
 .. code-block:: xml
 
@@ -34,41 +47,27 @@ add the Bintray repository to your ``pom.xml``:
     <repositories>
         ...
         <repository>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>central</id>
-            <name>bintray</name>
-            <url>http://dl.bintray.com/crate/crate</url>
+            <id>jitpack.io</id>
+            <name>jitpack</name>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
     ...
     <dependencies>
         ...
         <dependency>
-            <groupId>io.crate</groupId>
+            <groupId>com.github.crate</groupId>
             <artifactId>crate-jdbc</artifactId>
-            <version>...</version>
+            <version>2.x</version>
         </dependency>
     </dependencies>
     ...
 
+For unreleased/development builds you can specify a commit hash instead of the
+version (``2.x``).
 
-Using Gradle:
-
-.. code-block:: groovy
-
-    repositories {
-        ...
-        jcenter()
-    }
-
-    dependencies {
-        compile 'io.crate:crate-jdbc:...'
-        ...
-    }
-
-Alternatively you can follow the instructions on the Bintray repository overview page by clicking the "Set me up!" button.
+For usage instructions of ``1.x`` versions of the JDBC driver please refer to
+previous versions of the documentation!
 
 
 JDBC Driver Class
@@ -77,7 +76,7 @@ JDBC Driver Class
 A connection can be established using ``DriverManager.getConnection()``
 method, e.g.::
 
-    Connection conn = DriverManager.getConnection("crate://localhost:4300");
+    Connection conn = DriverManager.getConnection("crate://localhost:4300/");
 
 JDBC URL Format
 ===============
@@ -85,36 +84,35 @@ JDBC URL Format
 With JDBC, a database is represented by a URL (Uniform Resource Locator).
 With Crate, this takes the following form::
 
-    [jdbc:]crate://<host>:<transport-port>[,<host>:<transport-port> , ...][/<schemaName>]
+    [jdbc:]crate://<host>:<transport-port>[,<host>:<transport-port> , ...]/
         [?propertyName1=propertyValue1[&propertyName2=propertyValue2]...]
+
+.. note::
+
+    The pair or list of <host>:<port> pairs must always end with trailing
+    slash.
 
 The ``jdbc:`` prefix is optional. For example. To connect to a single server
 the following two formats are both allowed::
 
-    crate://localhost:4300
+    crate://localhost:4300/
 
 ::
 
-    jdbc:crate://localhost:4300
+    jdbc:crate://localhost:4300/
 
 
 In order to connect to multiple servers multiple ``<host>:<transport-port>``
 pairs can be specified by delimit them using a comma::
 
-    crate://host1.example.com:4300,host2.example.com:4300
+    crate://host1.example.com:4300,host2.example.com:4300/
 
-The optional ``/<schemaName>`` part can be used to use the specified schema by
-default instead of the ``doc`` schema which Crate would use otherwise if no
-schemaName is specified.
 
-This will implicitly call ``setSchema`` on the ``Connection`` class. So the
-following two statements are equivalent::
+To specify a schema, the ``setSchema`` method must be explicitly called on
+the connection. If no schema is provided, the ``doc`` default schema will be
+used::
 
-    Connection conn = DriverManager.getConnection("crate://localhost:4300/foo");
-
-Is the same as::
-
-    Connection conn = DriverManager.getConnection("crate://localhost:4300");
+    Connection conn = DriverManager.getConnection("crate://localhost:4300/");
     conn.setSchema("foo");
 
 
@@ -131,48 +129,15 @@ Properties can be specified when connecting to Crate using the JDBC driver::
 
     Properties properties = new Properties();
     properties.put(<key>, <value>);
-    Connection conn = DriverManager.getConnection("crate://localhost:4300", properties);
+    Connection conn = DriverManager.getConnection("crate://localhost:4300/", properties);
 
 In addition connection properties can be passed via the JDBC URL::
 
-    Connection conn = DriverManager.getConnection("crate://localhost:4300?property1=value1&property2=value2");
+    Connection conn = DriverManager.getConnection("crate://localhost:4300/?property1=value1&property2=value2");
 
-Crate JDBC driver supports following properties:
+.. note::
 
-:strict:
-    **Default**: ``false``.
-
-    Setting the strict property to ``true`` will
-    enforce the driver to be compliant with the JDBC specification.
-    Therefore, calling any operations that are not supported by the
-    driver will result in an exception. For instance, disabling the
-    auto-commit mode or setting a savepoint will raise an unsupported
-    operation exception.
-    By default the ``strict`` property is optimistically set to ``false``
-    which will make the Crate JDBC driver compatible with most 3rd party
-    applications that usually require transactional databases.
-
-:showsubcolumns:
-    **Default**: ``false``.
-
-    .. warning:: This property is experimental and may be subject to change in
-                 future releases.
-
-    If this property value is set to ``true`` the method ``getColumns()``
-    will also list all subcolumns for columns of type ``OBJECT``.
-    The output is then equivalent to::
-
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE schema_name = ? AND table_name = ?
-
-    By setting the property to ``false`` only the root column (the object
-    field name) itself is returned.
-
-    .. note:: 3rd party tool ususally quote the identifiers obtained by the
-              ``getColumns()`` method. Quoting needs to be disabled when this
-              property is set to ``true``. This however limits the naming of
-              columns, because they must only contain lower case ASCII letters.
+    Crate JDBC driver ``2.x`` currently does not support any properties.
 
 
 Compatibility
@@ -271,9 +236,10 @@ defined in that object:
 
 
 .. _`Bintray`: https://bintray.com/crate/crate/
-
 .. _`JCenter`: https://bintray.com/bintray/jcenter
-
 .. _`Squirrel`: http://squirrel-sql.sourceforge.net/
-
 .. _`JDBC 4.1`: http://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf
+.. _`type 4 JDBC driver`: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29
+.. _`PostgreSQL Wire Protocol`: https://www.postgresql.org/docs/current/static/protocol.html
+.. _`README`: https://github.com/crate/crate-jdbc/blob/master/README.rst#compatibility
+.. _`Jitpack`: https://jitpack.io/#crate/crate-jdbc/2.0
