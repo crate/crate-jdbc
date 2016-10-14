@@ -19,38 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.client.jdbc;
+package io.crate.client.jdbc.integrationtests;
 
-import java.util.Comparator;
-import java.util.Scanner;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import io.crate.testing.CrateTestCluster;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 
-/**
- *
- */
-public class VersionStringComparator implements Comparator<String> {
 
-    private static final VersionStringComparator INSTANCE = new VersionStringComparator();
+@ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
+public class CrateJDBCIntegrationTest extends RandomizedTest {
 
-    public static int compareVersions(String o1, String o2) {
-        return INSTANCE.compare(o1, o2);
-    }
+    private static final String CRATE_SERVER_VERSION = "0.56.2";
 
-    private VersionStringComparator() {
-    }
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
-    @Override
-    public int compare(String o1, String o2) {
-        Scanner o1Scanner = new Scanner(o1).useDelimiter("\\.");
-        Scanner o2Scanner = new Scanner(o2).useDelimiter("\\.");
-        while (o1Scanner.hasNextInt() && o2Scanner.hasNextInt()) {
-            int v1 = o1Scanner.nextInt();
-            int v2 = o2Scanner.nextInt();
-            if (v1 < v2) {
-                return -1;
-            } else if (v1 > v2) {
-                return 1;
-            }
-        }
-        return o1Scanner.hasNextInt() ? 1 : (o2Scanner.hasNextInt() ? -1 : 0);
-    }
+    @ClassRule
+    public static CrateTestCluster testCluster = CrateTestCluster
+        .fromVersion(CRATE_SERVER_VERSION)
+        .keepWorkingDir(false)
+        .build();
 }

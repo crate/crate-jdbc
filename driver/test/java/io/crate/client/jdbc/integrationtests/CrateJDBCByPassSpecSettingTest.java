@@ -21,20 +21,23 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Savepoint;
 import java.util.Locale;
 import java.util.Properties;
 
 import static org.hamcrest.Matchers.is;
 
+@Ignore("not implemented")
 public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
-
-    @ClassRule
-    public static CrateTestCluster testCluster = CrateTestCluster.fromVersion(CRATE_SERVER_VERSION).build();
 
     private static String connectionString;
     private static Properties strictProperties = new Properties();
@@ -42,7 +45,7 @@ public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         CrateTestServer server = testCluster.randomServer();
-        connectionString = String.format(Locale.ENGLISH, "crate://%s:%d", server.crateHost(), server.transportPort());
+        connectionString = String.format(Locale.ENGLISH, "crate://%s:%d/", server.crateHost(), server.psqlPort());
         strictProperties.put("strict", "true");
     }
 
@@ -144,5 +147,4 @@ public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
             connection.rollback();
         }
     }
-
 }
