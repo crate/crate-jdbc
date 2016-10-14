@@ -19,16 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.client.jdbc.testing;
+package io.crate.client.jdbc.integrationtests;
 
-import io.crate.action.sql.SQLResponse;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import io.crate.testing.CrateTestCluster;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 
-public class Stubs {
+import java.util.HashMap;
 
-    public static final SQLResponse DUMMY_RESPONSE = new SQLResponse(
-            new String[]{"dummy"},
-            new Object[][]{new Object[]{"foo"}},
-            new DataType[]{DataTypes.STRING}, 1L, 0, false);
+
+@ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
+public class CrateJDBCIntegrationTest extends RandomizedTest {
+
+    private static final String CRATE_SERVER_VERSION = "0.56.1";
+    static final String PSQL_PORT = "5432";
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @ClassRule
+    public static CrateTestCluster testCluster = CrateTestCluster
+        .fromVersion(CRATE_SERVER_VERSION)
+        .keepWorkingDir(false)
+        .settings(new HashMap<String, Object>() {{
+            put("psql.port", PSQL_PORT);
+            put("psql.enabled", true);
+        }})
+        .build();
 }

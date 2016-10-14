@@ -19,33 +19,35 @@ dependencies {
     compile 'net.java.dev.jna:jna:4.2.1'
     compile 'net.java.dev.jna:jna-platform:4.2.1'
     compile 'org.slf4j:jcl-over-slf4j:1.7.12'
-    testCompile 'junit:junit:4.11'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.6.5'
+    compile 'org.osgi:org.osgi.enterprise:4.2.0'
+    compile 'org.osgi:org.osgi.core:4.3.1'
+    testCompile "io.crate:crate-testing:0.4.0"
+    testCompile 'junit:junit:4.12'
+    testCompile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.3.2"
 }
 
 sourceSets {
     main {
         java {
-            srcDir 'jcp/main/java'
-            exclude '**/org/postgresql/osgi/*'
+            srcDir "${buildDir}/jcp/main/java"
+            exclude '**/osgi/*'
         }
         resources {
-            srcDir 'jcp/main/resources'
+            srcDir "${buildDir}/jcp/main/resources"
+            exclude '**/services/java.sql.Driver'
         }
     }
     test {
         java {
-            srcDir 'jcp/test/java'
-            exclude '**/org/postgresql/test/osgi/*'
+            srcDir "${buildDir}/jcp/test/java"
+            exclude '**/osgi/*'
         }
         resources {
-            srcDir 'jcp/test/resources'
+            srcDir "${buildDir}/jcp/test/resources"
         }
     }
 }
 
-test {
-    onlyIf {
-        project.hasProperty('enablePgTests')
-    }
-}
-
+compileTestJava.onlyIf { project.hasProperty('enablePgTests') }
+test.onlyIf { project.hasProperty('enablePgTests') }

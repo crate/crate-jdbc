@@ -1,7 +1,7 @@
 // https://github.com/raydac/java-comment-preprocessor/wiki/AndroidGradlePreprocessing
 
 // the folder contains the result
-def jcpRoot = 'jcp'
+def jcpRoot = "${buildDir}/jcp"
 // the original root folder path
 def srcRoot = 'upstream/pgjdbc/src'
 
@@ -9,7 +9,7 @@ configurations {
     jcp
 }
 
-dependencies{
+dependencies {
     jcp('com.igormaznitsa:jcp:6.0.1') {
         exclude group: 'org.apache.maven.*'
         exclude group: 'org.codehaus.*'
@@ -26,7 +26,7 @@ task preprocessJava << {
         def fromDir = srcRoot + dir;
         def toDir = jcpRoot + dir;
         println "Preproces: ${fromDir} -> ${toDir}"
-        ant.preprocess(excluded:"none", processing:'java,xml', source: fromDir, destination: toDir){
+        ant.preprocess(excluded: "none", processing: 'java,xml', source: fromDir, destination: toDir) {
             cfgFile(file: "${buildProfile}.properties")
         }
     }
@@ -40,7 +40,7 @@ task preprocessTestJava << {
         def fromDir = srcRoot + dir;
         def toDir = jcpRoot + dir;
         println "Preproces: ${fromDir} -> ${toDir}"
-        ant.preprocess(excluded:"none", processing:'java,xml', source: fromDir, destination: toDir){
+        ant.preprocess(excluded: "none", processing: 'java,xml', source: fromDir, destination: toDir) {
             cfgFile(file: "${buildProfile}.properties")
         }
     }
