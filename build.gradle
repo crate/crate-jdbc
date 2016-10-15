@@ -1,17 +1,30 @@
-apply plugin: 'idea'
-apply plugin: 'java'
-apply plugin: 'maven'
+allprojects {
+
+    apply plugin: 'idea'
+    apply plugin: 'java'
+    apply plugin: 'maven'
+
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            url "https://jitpack.io"
+        }
+    }
+
+
+    sourceCompatibility = "1.7"
+    targetCompatibility = "1.7"
+
+}
+
 apply plugin: 'signing'
 
 group = "io.crate"
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 dependencies {
-    compile 'io.crate:crate-client:0.55.6'
+    compile project(':pg')
+    compile 'io.crate:crate-client:0.55.6' // needs to be removed
     testCompile "io.crate:crate-testing:0.4.0"
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile 'junit:junit:4.11'
@@ -23,21 +36,10 @@ dependencies {
     }
 }
 
-dependencies {
-    compile project(':pg')
-}
-
-tasks.withType(JavaCompile) {
-    sourceCompatibility = "1.7"
-    targetCompatibility = "1.7"
-}
-
 sourceSets {
     main {
         java {
             srcDir 'src/main/java'
-            include "io/crate/client/jdbc/*"
-            include "io/crate/client/jdbc/types/**"
         }
     }
     test {
@@ -47,7 +49,7 @@ sourceSets {
     }
 }
 
-task getVersion ( dependsOn: 'classes') << {
+task getVersion(dependsOn: [classes]) << {
     def stdout = new ByteArrayOutputStream()
     javaexec {
         classpath = sourceSets.main.runtimeClasspath
@@ -66,9 +68,18 @@ task getVersion ( dependsOn: 'classes') << {
     logger.quiet("version: " + version)
 }
 
-jar.dependsOn getVersion
+jar.dependsOn(dependsOn: [getVersion])
 jar {
     baseName 'crate-jdbc'
+    doFirst {
+      from sourceSets.main.output
+      subprojects.each { subproject ->
+          from subproject.sourceSets.main.output.collect { it };
+          logger.quiet('{} {}',
+                       subproject,
+                       subproject.sourceSets.main.output.collect { it });
+      }
+    }
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate.IO JDBC Driver", "Implementation-Version": project.version)
@@ -78,10 +89,12 @@ jar {
 
 task jarStandalone(type: Jar, dependsOn: getVersion) {
     baseName 'crate-jdbc-standalone'
-    from configurations.compile.collect {
-        it.isDirectory() ? it : zipTree(it)
+    doFirst {
+        from sourceSets.main.output
+        from configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
     }
-    from sourceSets.main.output
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)", "Implementation-Version": project.version)
@@ -260,13 +273,14 @@ test {
 
 idea {
     project {
-        languageLevel = 'JDK_1_7'
-
+        vcs = 'Git';
+        languageLevel = 'JDK_1_7';
         ipr {
             withXml { provider ->
-                def node = provider.asNode()
+                def node = provider.asNode();
+                node.append(new XmlParser().parse(file("codestyle.xml")));
                 def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
-                copyrightManager.@default = "CrateASL2"
+                copyrightManager.@default = "CrateASL2";
                 def aslCopyright = copyrightManager.copyright.find { it.option.find { it.@name == "myName" }?.@value == "CrateASL2" }
                 if (aslCopyright == null) {
                     copyrightManager.append(new XmlParser().parse(file("copyright.xml")))
@@ -277,5 +291,5 @@ idea {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.14'
+    gradleVersion = '3.1'
 }
