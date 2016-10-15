@@ -1,11 +1,4 @@
-apply plugin: "java"
-apply plugin: "maven"
-apply plugin: 'osgi'
-
-repositories {
-    jcenter()
-    mavenCentral()
-}
+apply from: 'preprocess.gradle'
 
 compileJava {
     options.warnings = false
@@ -13,8 +6,13 @@ compileJava {
     options.compilerArgs << '-XDignore.symbol.file'
     options.fork = true
     options.forkOptions.executable = 'javac'
+    dependsOn preprocessJava
 }
-compileTestJava.options.warnings = false
+
+compileTestJava {
+    options.warnings = false
+    dependsOn preprocessTestJava
+}
 
 dependencies {
     compile 'com.github.dblock.waffle:waffle-jna:1.7.5'
@@ -24,38 +22,30 @@ dependencies {
     testCompile 'junit:junit:4.11'
 }
 
-
 sourceSets {
     main {
         java {
-            srcDir 'upstream/pgjdbc/src/main/java'
-            exclude '**/PGBundleActivator*'
-            exclude '**/PGDataSourceFactory*'
+            srcDir 'jcp/main/java'
+            exclude '**/org/postgresql/osgi/*'
         }
         resources {
-            srcDir 'upstream/pgjdbc/src/main/resources'
-            include '**/*.*'
-        }
-        resources {
-            srcDir 'upstream/pgjdbc/src/main/java'
-            include '**/*.json'
-            include '**/*.yml'
-            include '**/*.txt'
+            srcDir 'jcp/main/resources'
         }
     }
     test {
         java {
-            srcDir 'upstream/pgjdbc/src/test/java'
+            srcDir 'jcp/test/java'
+            exclude '**/org/postgresql/test/osgi/*'
         }
         resources {
-            srcDir 'upstream/pgjdbc/src/test/resources'
-            include '**/*.*'
-        }
-        resources {
-            srcDir 'upstream/pgjdbc/src/test/java'
-            include '**/*.json'
-            include '**/*.yml'
-            include '**/*.txt'
+            srcDir 'jcp/test/resources'
         }
     }
 }
+
+test {
+    onlyIf {
+        project.hasProperty('enablePgTests')
+    }
+}
+
