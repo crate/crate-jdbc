@@ -43,12 +43,13 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
     @Override
     protected SQLResponse getResponse(SQLRequest request) {
         SQLResponse response = new SQLResponse(
-                new String[]{"boo", "i", "l", "f", "d", "s", "t", "o", "al", "ss", "n"},
+                new String[]{"boo", "i", "l", "f", "d", "s", "t", "o", "al", "ao", "ss", "n"},
                 new Object[][]{
                         new Object[]{true, 1, 2L, 4.5F, 34734875.3345734d,
                                 "södkjfhsudkhfjvhvb", 0L,
                                 new MapBuilder<String, Object>().put("a", 123L).map(),
                                 new Long[]{Long.MIN_VALUE, 0L, Long.MAX_VALUE},
+                                new Map[]{new MapBuilder<String, Object>().put("a", 123L).map(), new MapBuilder<String, Object>().put("b", 321L).map()},
                                 new HashSet<String>() {{
                                     add("a");
                                     add("b");
@@ -67,6 +68,7 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
                         TimestampType.INSTANCE,
                         ObjectType.INSTANCE,
                         new ArrayType(LongType.INSTANCE),
+                        new ArrayType(new SetType(ObjectType.INSTANCE)),
                         new SetType(StringType.INSTANCE),
                         UndefinedType.INSTANCE
                 },
@@ -124,14 +126,17 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
         assertThat(resultSet.getObject(9), instanceOf(Long[].class));
         assertThat(resultSet.getObject("al"), instanceOf(Long[].class));
 
-        assertThat(resultSet.getObject(10), instanceOf(Set.class));
+        assertThat(resultSet.getObject(10), instanceOf(Map[].class));
+        assertThat(resultSet.getObject("ao"), instanceOf(Map[].class));
+
+        assertThat(resultSet.getObject(11), instanceOf(Set.class));
         assertThat(resultSet.getObject("ss"), instanceOf(Set.class));
 
-        assertThat(resultSet.getObject(11), is(nullValue()));
+        assertThat(resultSet.getObject(12), is(nullValue()));
         assertThat(resultSet.getObject("n"), is(nullValue()));
 
         ResultSetMetaData metaData = resultSet.getMetaData();
-        assertThat(metaData.getColumnCount(), is(11));
+        assertThat(metaData.getColumnCount(), is(12));
 
         assertThat(metaData.getColumnName(1), is("boo"));
         assertThat(metaData.getColumnType(1), is(Types.BOOLEAN));
@@ -169,19 +174,23 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
         assertThat(metaData.getColumnType(9), is(Types.ARRAY));
         assertThat(metaData.getColumnLabel(9), is("al"));
 
-        assertThat(metaData.getColumnName(10), is("ss"));
+        assertThat(metaData.getColumnName(10), is("ao"));
         assertThat(metaData.getColumnType(10), is(Types.ARRAY));
-        assertThat(metaData.getColumnLabel(10), is("ss"));
+        assertThat(metaData.getColumnLabel(10), is("ao"));
 
-        assertThat(metaData.getColumnName(11), is("n"));
-        assertThat(metaData.getColumnType(11), is(Types.NULL));
-        assertThat(metaData.getColumnLabel(11), is("n"));
+        assertThat(metaData.getColumnName(11), is("ss"));
+        assertThat(metaData.getColumnType(11), is(Types.ARRAY));
+        assertThat(metaData.getColumnLabel(11), is("ss"));
+
+        assertThat(metaData.getColumnName(12), is("n"));
+        assertThat(metaData.getColumnType(12), is(Types.NULL));
+        assertThat(metaData.getColumnLabel(12), is("n"));
     }
 
     @Test
     public void testArrayType() throws Exception {
         Statement stmt = connection.createStatement();
-        assertThat(stmt.execute("select boo, i, l, f, d, s, t, o, al, ss from test"), is(true));
+        assertThat(stmt.execute("select boo, i, l, f, d, s, t, o, al, ao, ss from test"), is(true));
         ResultSet resultSet = stmt.getResultSet();
         assertThat(resultSet.first(), is(true));
 
@@ -198,5 +207,10 @@ public class ResultSetMetaDataTest extends AbstractCrateJDBCTest {
         assertThat(arrayResultSet.next(), is(true));
         assertThat(arrayResultSet.getLong(1), is(Long.MAX_VALUE));
         assertThat(arrayResultSet.next(), is(false));
+
+        array = resultSet.getArray("ao");
+        assertThat(array.getArray(), instanceOf(Map[].class));
+        assertThat(array.getBaseType(), is(Types.ARRAY));
+        assertThat(array.getBaseTypeName(), is("object_set"));
     }
 }
