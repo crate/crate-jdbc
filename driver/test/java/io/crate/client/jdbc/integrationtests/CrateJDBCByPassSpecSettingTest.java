@@ -45,7 +45,7 @@ public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         CrateTestServer server = testCluster.randomServer();
-        connectionString = String.format(Locale.ENGLISH, "crate://%s:%d", server.crateHost(), server.transportPort());
+        connectionString = String.format(Locale.ENGLISH, "crate://%s:%d/", server.crateHost(), server.psqlPort());
         strictProperties.put("strict", "true");
     }
 

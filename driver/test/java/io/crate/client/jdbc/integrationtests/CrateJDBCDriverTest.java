@@ -48,7 +48,7 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         CrateTestServer server = testCluster.randomServer();
-        hostAndPort = String.format("%s:%s", server.crateHost(), PSQL_PORT);
+        hostAndPort = String.format("%s:%s", server.crateHost(), server.psqlPort());
     }
 
     @Before

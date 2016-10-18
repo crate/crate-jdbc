@@ -45,7 +45,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         CrateTestServer server = testCluster.randomServer();
-        hostAndPort = String.format("%s:%s", server.crateHost(), PSQL_PORT);
+        hostAndPort = String.format("%s:%s", server.crateHost(), server.psqlPort());
         connStr = String.format("crate://%s/", hostAndPort);
         connection = DriverManager.getConnection(connStr);
         setUpTables();
@@ -538,8 +538,9 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     @Test
     public void testMultipleHostsConnectionString() throws Exception {
         CrateTestServer server = testCluster.randomServer();
-        String connectionStr =
-            String.format("crate://%s:%s,%s:%s/", server.crateHost(), PSQL_PORT, server.crateHost(), PSQL_PORT);
+        String connectionStr = String.format(
+                "crate://%s:%s,%s:%s/", server.crateHost(), server.psqlPort(), server.crateHost(), server.psqlPort()
+        );
         try (Connection conn = DriverManager.getConnection(connectionStr)) {
             assertThat(conn.createStatement().execute("select 1 from sys.cluster"), is(true));
         }

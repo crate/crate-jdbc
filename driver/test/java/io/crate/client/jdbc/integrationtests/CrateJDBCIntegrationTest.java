@@ -28,14 +28,11 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
-import java.util.HashMap;
-
 
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class CrateJDBCIntegrationTest extends RandomizedTest {
 
-    private static final String CRATE_SERVER_VERSION = "0.56.1";
-    static final String PSQL_PORT = "5432";
+    private static final String CRATE_SERVER_VERSION = "0.56.2";
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -44,9 +41,5 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
     public static CrateTestCluster testCluster = CrateTestCluster
         .fromVersion(CRATE_SERVER_VERSION)
         .keepWorkingDir(false)
-        .settings(new HashMap<String, Object>() {{
-            put("psql.port", PSQL_PORT);
-            put("psql.enabled", true);
-        }})
         .build();
 }
