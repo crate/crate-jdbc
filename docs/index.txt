@@ -5,10 +5,10 @@ Crate JDBC Driver
 JDBC is a core API of Java 1.1 and later. It provides a standard set of
 interfaces to SQL-compliant databases.
 
-Crate provides a type 4 JDBC driver. The driver is written in pure Java, and
+Crate provides a `type 4 JDBC driver`_. The driver is written in pure Java, and
 communicates with the database using the `PostgreSQL Wire Protocol`_.
 
-Because of this version of the JDBC driver (>= ``2.0``) requires Crate ``0.57.0``
+Because of this, all versions of the JDBC driver >= ``2.0`` require Crate ``0.57.0``
 or newer. Previous versions of the JDBC driver (``1.x``) are only compatible with
 older versions of Crate.
 
@@ -21,7 +21,7 @@ Download and Setup
 Version 2.x
 -----------
 
-Version 2 of the JDBC driver is currently only available from `Jitpack`_.
+Version 2 of the JDBC driver is currently only available on `Jitpack`_.
 
 Gradle
 ......
@@ -331,6 +331,7 @@ defined in that object:
 .. _`JCenter`: https://bintray.com/bintray/jcenter
 .. _`Squirrel`: http://squirrel-sql.sourceforge.net/
 .. _`JDBC 4.1`: http://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf
+.. _`type 4 JDBC driver`: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29
 .. _`PostgreSQL Wire Protocol`: https://www.postgresql.org/docs/current/static/protocol.html
 .. _`README`: https://github.com/crate/crate-jdbc/blob/master/README.rst#compatibility
 .. _`Jitpack`: https://jitpack.io/#crate/crate-jdbc/2.0
