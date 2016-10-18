@@ -43,7 +43,11 @@ to make it compile, if needed and follow instructions in `Build JAR from source`
 Installation
 ============
 
-.. note:: This JDBC driver requires Crate >= 0.38.0
+.. note::
+
+   Crate JDBC driver 1.x requires a Crate version greater or equal than ``0.38.0``
+   but lower than ``0.57``.
+   Crate JDBC driver 2.x requires a Crate version greater or equal than ``0.57.0``.
 
 Build JAR from source
 ---------------------

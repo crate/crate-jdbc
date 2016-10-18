@@ -5,14 +5,70 @@ Crate JDBC Driver
 JDBC is a core API of Java 1.1 and later. It provides a standard set of
 interfaces to SQL-compliant databases.
 
-Crate provides a type 4 JDBC driver. The driver is written in Pure Java, and
-communicates in the database system's own network protocol. Because of this,
-the driver is platform independent.
+Crate provides a `type 4 JDBC driver`_. The driver is written in pure Java, and
+communicates with the database using the `PostgreSQL Wire Protocol`_.
 
-.. note:: This JDBC driver requires Crate 0.38.0 or newer!
+Because of this, all versions of the JDBC driver >= ``2.0`` require Crate ``0.57.0``
+or newer. Previous versions of the JDBC driver (``1.x``) are only compatible with
+older versions of Crate.
+
+See compatibility table in the `README`_ of the Github project for a full list
+of compatible client/server versions.
 
 Download and Setup
 ==================
+
+Version 2.x
+-----------
+
+Version 2 of the JDBC driver is currently only available on `Jitpack`_.
+
+Gradle
+......
+
+.. code-block:: groovy
+
+    repositories {
+        ...
+        maven { url "https://jitpack.io" }
+    }
+
+    dependencies {
+        ...
+        compile 'com.github.crate:crate-jdbc:2.x'
+    }
+
+Maven
+.....
+
+.. code-block:: xml
+
+    ...
+    <repositories>
+        ...
+        <repository>
+            <id>jitpack.io</id>
+            <name>jitpack</name>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+    ...
+    <dependencies>
+        ...
+        <dependency>
+            <groupId>com.github.crate</groupId>
+            <artifactId>crate-jdbc</artifactId>
+            <version>2.x</version>
+        </dependency>
+    </dependencies>
+    ...
+
+For unreleased/development builds you can specify a commit hash instead of the
+version (``2.x``).
+
+
+Version 1.x
+-----------
 
 The ``crate-jdbc`` jar files are hosted on `Bintray`_ and available via `JCenter`_.
 
@@ -68,7 +124,8 @@ Using Gradle:
         ...
     }
 
-Alternatively you can follow the instructions on the Bintray repository overview page by clicking the "Set me up!" button.
+Alternatively you can follow the instructions on the Bintray repository overview
+page by clicking the "Set me up!" button.
 
 
 JDBC Driver Class
@@ -271,9 +328,10 @@ defined in that object:
 
 
 .. _`Bintray`: https://bintray.com/crate/crate/
-
 .. _`JCenter`: https://bintray.com/bintray/jcenter
-
 .. _`Squirrel`: http://squirrel-sql.sourceforge.net/
-
 .. _`JDBC 4.1`: http://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf
+.. _`type 4 JDBC driver`: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29
+.. _`PostgreSQL Wire Protocol`: https://www.postgresql.org/docs/current/static/protocol.html
+.. _`README`: https://github.com/crate/crate-jdbc/blob/master/README.rst#compatibility
+.. _`Jitpack`: https://jitpack.io/#crate/crate-jdbc/2.0
