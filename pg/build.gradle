@@ -22,9 +22,6 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.6.5'
     compile 'org.osgi:org.osgi.enterprise:4.2.0'
     compile 'org.osgi:org.osgi.core:4.3.1'
-    testCompile "io.crate:crate-testing:0.4.0"
-    testCompile 'junit:junit:4.12'
-    testCompile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.3.2"
 }
 
 sourceSets {

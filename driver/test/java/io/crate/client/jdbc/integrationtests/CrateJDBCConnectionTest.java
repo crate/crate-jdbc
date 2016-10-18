@@ -1,22 +1,23 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.client.jdbc.integrationtests;
@@ -558,6 +559,28 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             assertThat(result.getString(1), is("information_schema"));
             result.next();
             assertThat(result.getString(1), is("sys"));
+        }
+    }
+
+    @Test
+    public void testSetGetObject() throws SQLException {
+        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+            Map<String, Integer> expected = new HashMap<>();
+            expected.put("n", 1);
+
+            conn.createStatement().executeUpdate("create table test_obj (obj object as (n int))");
+            PreparedStatement statement = conn.prepareStatement("insert into test_obj (obj) values (?)");
+            statement.setObject(1, expected);
+            statement.execute();
+
+            conn.createStatement().execute("refresh table test_obj");
+            ResultSet resultSet = conn.createStatement().executeQuery("select obj from test_obj");
+            assertThat(resultSet.next(), is(true));
+            conn.createStatement().execute("drop table test_obj");
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) resultSet.getObject(1);
+            assertEquals(expected, map);
         }
     }
 }
