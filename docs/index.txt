@@ -23,8 +23,8 @@ Version 2.x
 
 Version 2 of the JDBC driver is currently only available on `Jitpack`_.
 
-Gradle
-......
+Using Gradle
+.............
 
 .. code-block:: groovy
 
@@ -38,8 +38,8 @@ Gradle
         compile 'com.github.crate:crate-jdbc:2.x'
     }
 
-Maven
-.....
+Using Maven
+............
 
 .. code-block:: xml
 
@@ -66,66 +66,8 @@ Maven
 For unreleased/development builds you can specify a commit hash instead of the
 version (``2.x``).
 
-
-Version 1.x
------------
-
-The ``crate-jdbc`` jar files are hosted on `Bintray`_ and available via `JCenter`_.
-
-Additionally to ``crate-jdbc`` there is also a standalone version
-named ``crate-jdbc-standalone`` which already includes its dependencies.
-
-.. note:: ``crate-jdbc-standalone`` should not be used in Maven projects,
-    but might want to be used e.g. as a driver for the `Squirrel`_ SQL client.
-
-You can download the latest standalone version directly from the
-`Bintray Repository <https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone>`_.
-
-If you want to use ``crate-jdbc`` with your Maven project you need to
-add the Bintray repository to your ``pom.xml``:
-
-.. code-block:: xml
-
-    ...
-    <repositories>
-        ...
-        <repository>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>central</id>
-            <name>bintray</name>
-            <url>http://dl.bintray.com/crate/crate</url>
-        </repository>
-    </repositories>
-    ...
-    <dependencies>
-        ...
-        <dependency>
-            <groupId>io.crate</groupId>
-            <artifactId>crate-jdbc</artifactId>
-            <version>...</version>
-        </dependency>
-    </dependencies>
-    ...
-
-
-Using Gradle:
-
-.. code-block:: groovy
-
-    repositories {
-        ...
-        jcenter()
-    }
-
-    dependencies {
-        compile 'io.crate:crate-jdbc:...'
-        ...
-    }
-
-Alternatively you can follow the instructions on the Bintray repository overview
-page by clicking the "Set me up!" button.
+For usage instructions of ``1.x`` versions of the JDBC driver please refer to
+previous versions of the documentation!
 
 
 JDBC Driver Class
@@ -194,42 +136,9 @@ In addition connection properties can be passed via the JDBC URL::
 
     Connection conn = DriverManager.getConnection("crate://localhost:4300?property1=value1&property2=value2");
 
-Crate JDBC driver supports following properties:
+.. note::
 
-:strict:
-    **Default**: ``false``.
-
-    Setting the strict property to ``true`` will
-    enforce the driver to be compliant with the JDBC specification.
-    Therefore, calling any operations that are not supported by the
-    driver will result in an exception. For instance, disabling the
-    auto-commit mode or setting a savepoint will raise an unsupported
-    operation exception.
-    By default the ``strict`` property is optimistically set to ``false``
-    which will make the Crate JDBC driver compatible with most 3rd party
-    applications that usually require transactional databases.
-
-:showsubcolumns:
-    **Default**: ``false``.
-
-    .. warning:: This property is experimental and may be subject to change in
-                 future releases.
-
-    If this property value is set to ``true`` the method ``getColumns()``
-    will also list all subcolumns for columns of type ``OBJECT``.
-    The output is then equivalent to::
-
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE schema_name = ? AND table_name = ?
-
-    By setting the property to ``false`` only the root column (the object
-    field name) itself is returned.
-
-    .. note:: 3rd party tool ususally quote the identifiers obtained by the
-              ``getColumns()`` method. Quoting needs to be disabled when this
-              property is set to ``true``. This however limits the naming of
-              columns, because they must only contain lower case ASCII letters.
+    Crate JDBC driver ``2.x`` currently does not support any properties.
 
 
 Compatibility
