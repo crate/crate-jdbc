@@ -135,9 +135,17 @@ In addition connection properties can be passed via the JDBC URL::
 
     Connection conn = DriverManager.getConnection("crate://localhost:4300/?property1=value1&property2=value2");
 
-.. note::
+Crate JDBC driver supports following properties:
 
-    Crate JDBC driver ``2.x`` currently does not support any properties.
+:strict:
+    **Default**: ``false``.
+
+    If you set this property to ``true`` the driver will be compliant with the JDBC
+    specification. It will then raise an unsupported operation exception if you
+    call an operation which is not supported, like auto-commit or setting a
+    savepoint.  The default is ``false``, so the Crate JDBC driver ignores the use
+    of unspported operations, which makes it compatible with most 3rd party
+    applications that require transactional features.
 
 
 Compatibility
