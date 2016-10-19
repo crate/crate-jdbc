@@ -87,8 +87,12 @@ task jarStandalone(type: Jar, dependsOn: getVersion) {
     baseName 'crate-jdbc-standalone'
     doFirst {
         from sourceSets.main.output
-        from configurations.compile.collect {
-            it.isDirectory() ? it : zipTree(it)
+        from project(':pg').sourceSets.processedMain.output
+        from configurations.compile.filter({
+            logger.quiet('{} {}', it.name, it.name == 'pg.jar')
+            it.name != 'pg.jar'
+        }).collect {
+            it.isDirectory() && !it.name.endsWith('pg.jar') ? it : zipTree(it)
         }
     }
     doLast {
