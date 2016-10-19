@@ -199,4 +199,5 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("COLUMN_NAME"), is("id2"));
         connection.createStatement().execute("drop table t_multi_pks");
+    }
 }
