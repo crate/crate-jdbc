@@ -24,20 +24,14 @@ package io.crate.client.jdbc.integrationtests;
 
 import io.crate.testing.CrateTestServer;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Savepoint;
+import java.sql.*;
 import java.util.Locale;
 import java.util.Properties;
 
 import static org.hamcrest.Matchers.is;
 
-@Ignore("the `strict` parameter is not implemented")
 public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
 
     private static String connectionString;
