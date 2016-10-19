@@ -79,7 +79,6 @@ Crate version ``0.57.x`` is released.
 
 Differences to version 1.x are:
 
-- The Crate specific ``strict`` parameter is not supported.
 - The `connection string`_ changed to the same format as PostgreSQL JDBC,
   which means that setting the default schema with the connection string is not
   supported. Use ``setDefaultSchema()`` instead.
