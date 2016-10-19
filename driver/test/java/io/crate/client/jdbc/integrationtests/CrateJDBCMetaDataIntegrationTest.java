@@ -33,7 +33,11 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
@@ -116,14 +120,37 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
         ResultSet rs = metaData.getColumns("", null, "clus%", "name");
 
         assertThat(rs.next(), is(true));
-        assertThat("sys", rs.getString("TABLE_SCHEM"), is("sys"));
-        assertThat("cluster", rs.getString("TABLE_NAME"), is("cluster"));
-        assertThat("name", rs.getString("COLUMN_NAME"), is("name"));
+        assertThat(rs.getString("TABLE_SCHEM"), is("sys"));
+        assertThat(rs.getString("TABLE_NAME"), is("cluster"));
+        assertThat(rs.getString("COLUMN_NAME"), is("name"));
 
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("TABLE_SCHEM"), is("test"));
         assertThat(rs.getString("TABLE_NAME"), is("cluster"));
         assertThat(rs.getString("COLUMN_NAME"), is("name"));
         assertThat(rs.next(), is(false));
+    }
+
+    @Test
+    public void testGetSchemasWithSchemaPattern() throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet rs = metaData.getSchemas("", "tes%");
+
+        assertThat(rs.next(), is(true));
+        assertThat(rs.getString("TABLE_SCHEM"), is("test"));
+        assertThat(rs.getString("TABLE_CAT"), is(nullValue()));
+        assertThat(rs.next(), is(false));
+    }
+
+    @Test
+    public void testGetSchemasWithNullSchemaPattern() throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet rs = metaData.getSchemas("", null);
+
+        List<String> schemas = new ArrayList<>();
+        while (rs.next()) {
+            schemas.add(rs.getString("TABLE_SCHEM"));
+        }
+        assertThat(schemas, hasItems("sys", "test", "information_schema"));
     }
 }
