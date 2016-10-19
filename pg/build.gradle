@@ -80,7 +80,7 @@ sourceSets {
 
 compileJava {
     dependsOn preprocessJava
-    source sourceSets.processedMain.output
+    source = sourceSets.processedMain.java
     options.warnings = false
     options.deprecation = false
     options.compilerArgs << '-XDignore.symbol.file'

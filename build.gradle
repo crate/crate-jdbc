@@ -71,7 +71,7 @@ jar {
     baseName 'crate-jdbc'
     doFirst {
         from sourceSets.main.output
-        from project(':pg').sourceSets.processedMain.output
+        from project(':pg').sourceSets.main.output
     }
     doLast {
         manifest {
@@ -84,7 +84,7 @@ task jarStandalone(type: Jar, dependsOn: getVersion) {
     baseName 'crate-jdbc-standalone'
     doFirst {
         from sourceSets.main.output
-        from project(':pg').sourceSets.processedMain.output
+        from project(':pg').sourceSets.main.output
         from configurations.compile.filter({
             logger.quiet('{} {}', it.name, it.name == 'pg.jar')
             it.name != 'pg.jar'
