@@ -50,11 +50,15 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
         connection =
                 DriverManager.getConnection(String.format("crate://%s:%s/", server.crateHost(), server.psqlPort()));
         connection.createStatement().execute("create table if not exists test.cluster (arr array(int), name string)");
+        connection.createStatement().execute("create table if not exists doc.names (id int primary key, name string)");
+        connection.createStatement().execute("create table if not exists my_schema.names (id int primary key, name string)");
     }
 
     @AfterClass
     public static void afterClass() throws SQLException {
         connection.createStatement().execute("drop table test.cluster");
+        connection.createStatement().execute("drop table doc.names");
+        connection.createStatement().execute("drop table my_schema.names");
     }
 
     @Test
@@ -153,4 +157,46 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
         }
         assertThat(schemas, hasItems("sys", "test", "information_schema"));
     }
+
+    @Test
+    public void testGetPrimaryKeysPk() throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet rs = metaData.getPrimaryKeys("", "doc", "names");
+        assertThat(rs.next(), is(true));
+        assertThat(rs.getString("TABLE_SCHEM"), is("doc"));
+        assertThat(rs.getString("TABLE_NAME"), is("names"));
+        assertThat(rs.getString("COLUMN_NAME"), is("id"));
+    }
+
+    @Test
+    public void testGetPrimaryKeysNoPk() throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet rs = metaData.getPrimaryKeys("", "test", "cluster");
+        assertThat(rs.next(), is(false));
+    }
+
+    @Test
+    public void testGetPrimaryWithoutSchemaDoesNotFilter() throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet rs = metaData.getPrimaryKeys("", null, "names");
+        assertThat(rs.next(), is(true));
+        assertThat(rs.getString("TABLE_SCHEM"), is("doc"));
+        assertThat(rs.getString("TABLE_NAME"), is("names"));
+        assertThat(rs.getString("COLUMN_NAME"), is("id"));
+        assertThat(rs.next(), is(true));
+        assertThat(rs.getString("TABLE_SCHEM"), is("my_schema"));
+        assertThat(rs.getString("TABLE_NAME"), is("names"));
+        assertThat(rs.getString("COLUMN_NAME"), is("id"));
+    }
+
+    @Test
+    public void testGetPrimaryMultiplePks() throws SQLException {
+        connection.createStatement().execute("create table if not exists t_multi_pks (id int primary key, id2 int primary key, name string)");
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet rs = metaData.getPrimaryKeys("", "doc", "t_multi_pks");
+        assertThat(rs.next(), is(true));
+        assertThat(rs.getString("COLUMN_NAME"), is("id"));
+        assertThat(rs.next(), is(true));
+        assertThat(rs.getString("COLUMN_NAME"), is("id2"));
+        connection.createStatement().execute("drop table t_multi_pks");
 }
