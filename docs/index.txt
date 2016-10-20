@@ -154,29 +154,36 @@ Compatibility
 JDBC
 ----
 
-This JDBC driver complies to the `JDBC 4.1`_ standard as good as possible and reasonable for
-a Crate driver. The following mandatory features are not supported:
+This JDBC driver complies to the `JDBC 4.1`_ standard as good as possible and
+reasonable for a Crate driver. Since the driver uses the `PostgreSQL JDBC Driver`_
+as underlying connector there are certains features that are implemented yet
+not fully compatible with Crate.
+
+The following features are not supported:
 
 * ``java.sql.ParameterMetaData`` as returned by e.g. ``java.sql.PreparedStatement``
-* ``DataSource`` is not implemented
-* ``CallableStatement`` is not implemented as CRATE has no stored procedures to call
+* ``DataSource``
+* ``CallableStatement`` as Crate does not support stored procedures
 
 For further details about compatibility with all possible JDBC features,
-see the ``ResultSet``, ``ResultSetMetaData`` and ``DatabaseMetaData`` implementations.
+see the ``ResultSet``, ``ResultSetMetaData`` and ``DatabaseMetaData``
+implementations.
 
 Though only an optional feature, it is still worth mentioning:
 
-* the ``ResultSet`` implementation is read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
-  so changes to a ``ResultSet`` are not supported. Though DDL and DML statements are supported
-  using the ``Statement`` and ``PreparedStatement`` interfaces.
+* the ``ResultSet`` is read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
+  so changes to a ``ResultSet`` are not supported. Though DDL and DML statements
+  are supported using the ``Statement`` and ``PreparedStatement`` interfaces.
 
 Crate
 -----
 
-This JDBC driver can only be used with *Crate version 0.38.0* and higher.
+Crate JDBC driver ``1.x`` requires a Crate version greater or equal than ``0.38.0``
+but lower than ``0.57``. Besides using the most recent version, it is recommended
+to use the JDBC driver version whose ``crate-client`` dependency matches the
+version of Crate server.
 
-Besides using the most recent version, it is recommended to use the JDBC driver version
-whose crate-client dependency matches the Crate server.
+Crate JDBC driver ``2.x`` requires a Crate version greater or equal than ``0.57.0``.
 
 
 Types
@@ -249,5 +256,6 @@ defined in that object:
 .. _`JDBC 4.1`: http://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf
 .. _`type 4 JDBC driver`: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29
 .. _`PostgreSQL Wire Protocol`: https://www.postgresql.org/docs/current/static/protocol.html
+.. _`PostgreSQL JDBC Driver`: https://github.com/pgjdbc/pgjdbc
 .. _`README`: https://github.com/crate/crate-jdbc/blob/master/README.rst#compatibility
 .. _`Jitpack`: https://jitpack.io/#crate/crate-jdbc/2.0
