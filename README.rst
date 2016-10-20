@@ -19,9 +19,7 @@ This is the JDBC driver for `Crate`_.
 Currently we don't provide the testing version of the Crate JDBC driver.
 Therefore, using the driver with the latest testing releases of the Crate
 might not be possible due compatibility issues. As a workaround, you can build
-the JDBC driver jar from sources. To build the Crate JDBC driver you would need
-to replace the ``crate-client`` version in the ``build.gradle`` file, adopt sources
-to make it compile, if needed and follow instructions in `Build JAR from source`_.
+the JDBC driver jar using `Jitpack`_ or build it from source.
 
 Installation
 ============
