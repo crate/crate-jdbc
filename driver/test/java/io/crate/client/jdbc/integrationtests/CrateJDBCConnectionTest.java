@@ -78,10 +78,23 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             " double_field double," +
             " timestamp_field timestamp," +
             " object_field object as (\"inner\" string)," +
-            " ip_field ip," +
-            " array1 array(string)," +
-            " obj_array array(object)" +
+            " ip_field ip" +
             ") clustered by (id) into 1 shards with (number_of_replicas=0)");
+        waitForShards();
+
+        connection.createStatement().execute("create table if not exists arrayTest (" +
+                " id integer primary key," +
+                " str_array array(string)," +
+                " bool_array array(boolean)," +
+                " byte_array array(byte)," +
+                " short_array array(short)," +
+                " integer_array array(integer)," +
+                " long_array array(long)," +
+                " float_array array(float)," +
+                " double_array array(double)," +
+                " timestamp_array array(timestamp)," +
+                " obj_array array(object)" +
+                ") clustered by (id) into 1 shards with (number_of_replicas=0)");
         waitForShards();
     }
 
@@ -115,8 +128,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         PreparedStatement preparedStatement =
             connection.prepareStatement("insert into test (id, string_field, boolean_field, byte_field, " +
                 "short_field, integer_field, long_field, float_field, double_field, object_field, " +
-                "timestamp_field, ip_field, array1, obj_array) values " +
-                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                "timestamp_field, ip_field) values " +
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         preparedStatement.setInt(1, 1);
         preparedStatement.setString(2, "Youri");
         preparedStatement.setBoolean(3, true);
@@ -127,18 +140,46 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         preparedStatement.setFloat(8, 1.4f);
         preparedStatement.setDouble(9, 3.456789);
         preparedStatement.setObject(10, objectField);
-        preparedStatement.setString(11, "1970-01-01");
+        preparedStatement.setTimestamp(11, new Timestamp(1000L));
         preparedStatement.setString(12, "127.0.0.1");
-        preparedStatement.setArray(13, connection.createArrayOf("varchar", new String[]{"a", "b", "c", "d"})); // TODO array support
-        preparedStatement.setArray(14, null);
+        preparedStatement.execute();
+
+        preparedStatement =
+                connection.prepareStatement("insert into arrayTest (id, str_array, bool_array, byte_array, " +
+                        "short_array, integer_array, long_array, float_array, double_array, timestamp_array, " +
+                        "ip_array, obj_array) values " +
+                        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        preparedStatement.setInt(1, 1);
+        preparedStatement.setArray(2, connection.createArrayOf("string", new String[]{"a", "b", "c", "d"}));
+        preparedStatement.setArray(2, connection.createArrayOf("string", new String[]{"a", "b", "c", "d"}));
+        preparedStatement.setArray(3, connection.createArrayOf("boolean", new Boolean[]{true, false}));
+        preparedStatement.setArray(4, connection.createArrayOf("byte", new Byte[]{new Byte("120"), new Byte("100")}));
+        preparedStatement.setArray(5, connection.createArrayOf("short", new Short[]{1300, 1200}));
+        preparedStatement.setArray(6, connection.createArrayOf("integer", new Integer[]{2147483647, 234583}));
+        preparedStatement.setArray(7, connection.createArrayOf("long", new Long[]{9223372036854775807L, 4L}));
+        preparedStatement.setArray(8, connection.createArrayOf("float", new Float[]{3.402f, 3.403f, 1.4f}));
+        preparedStatement.setArray(9, connection.createArrayOf("double", new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308}));
+        preparedStatement.setArray(10, connection.createArrayOf("timestamp", new Timestamp[]{new Timestamp(1000L), new Timestamp(2000L)}));
+        preparedStatement.setArray(11, connection.createArrayOf("ip", new String[]{"127.142.132.9", "127.0.0.1"}));
+        preparedStatement.setArray(12, connection.createArrayOf("object", new Object[]{
+                new HashMap<String, Object>() {{
+                    put("element1", "testing");
+                }}, new HashMap<String, Object>() {{
+            put("element2", "testing2");
+        }}
+        }));
         preparedStatement.execute();
 
         connection.createStatement().execute("refresh table test");
+        connection.createStatement().execute("refresh table arrayTest");
     }
 
     public static void deleteFromTable() throws SQLException {
         connection.createStatement().execute("delete from test");
         connection.createStatement().execute("refresh table test");
+
+        connection.createStatement().execute("delete from arrayTest");
+        connection.createStatement().execute("refresh table arrayTest");
     }
 
     @Test
@@ -251,44 +292,6 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     }
 
     @Test
-    public void testSelectAllTypes() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            ResultSet resultSet = conn.createStatement().executeQuery("select * from test");
-
-            assertThat(resultSet, instanceOf(PgResultSet.class));
-            assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getInt("id"), is(1));
-            assertThat(resultSet.getString("string_field"), is("Youri"));
-            assertThat(resultSet.getBoolean("boolean_field"), is(true));
-            assertThat(resultSet.getByte("byte_field"), is(new Byte("120")));
-            assertThat(resultSet.getShort("short_field"), is(new Short("1000")));
-            assertThat(resultSet.getInt("integer_field"), is(1200000));
-            assertThat(resultSet.getLong("long_field"), is(120000000000L));
-            assertThat(resultSet.getFloat("float_field"), is(1.4f));
-            assertThat(resultSet.getDouble("double_field"), is(3.456789d));
-            assertThat(resultSet.getTimestamp("timestamp_field"), is(new Timestamp(0L)));
-            assertThat(resultSet.getString("ip_field"), is("127.0.0.1"));
-
-            Map<String, Object> objectField = new HashMap<String, Object>() {{
-                put("inner", "Zoon");
-            }};
-            //noinspection unchecked
-            assertThat((Map<String, Object>) resultSet.getObject("object_field"), is(objectField));
-            Array array1 = resultSet.getArray("array1");
-            assertThat(array1.getArray().getClass().isArray(), is(true));
-            Assert.assertThat(array1.getBaseType(), is(Types.VARCHAR));
-            assertThat((Object[]) array1.getArray(), Matchers.<Object>arrayContaining("a", "b", "c", "d"));
-            // TODO Support set array
-//            Array objArray = resultSet.getArray("obj_array");
-//            assertThat(objArray.getArray().getClass().isArray(), is(true));
-//            Assert.assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
-//            Object firstObject = ((Object[]) objArray.getArray())[0];
-//            Assert.assertThat(firstObject, instanceOf(Map.class));
-//            assertThat(resultSet.next(), is(false));
-        }
-    }
-
-    @Test
     public void testSelectWithoutResultUsingPreparedStatement() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionStr)) {
             PreparedStatement preparedStatement = conn.prepareStatement("select * from test where id = ?");
@@ -317,7 +320,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             assertThat(resultSet.getLong("long_field"), is(120000000000L));
             assertThat(resultSet.getFloat("float_field"), is(1.4f));
             assertThat(resultSet.getDouble("double_field"), is(3.456789d));
-            assertThat(resultSet.getTimestamp("timestamp_field"), is(new Timestamp(0L)));
+            assertThat(resultSet.getTimestamp("timestamp_field"), is(new Timestamp(1000L)));
             assertThat(resultSet.getString("ip_field"), is("127.0.0.1"));
             assertThat(resultSet.next(), is(false));
         }
@@ -510,7 +513,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         try (Connection conn = DriverManager.getConnection(connectionStr)) {
             ResultSet result = conn.createStatement().executeQuery("select * from test where 1=0");
             ResultSetMetaData metaData = result.getMetaData();
-            assertThat(metaData.getColumnCount(), is(14));
+            assertThat(metaData.getColumnCount(), is(12));
             for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) {
                 // test that we can get the types, whatever they are
                 assertThat(metaData.getColumnType(i), instanceOf(Integer.class));
