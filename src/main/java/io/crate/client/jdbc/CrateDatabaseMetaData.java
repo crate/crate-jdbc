@@ -173,29 +173,31 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
         // include some sql 2003 keywords too
         // quote all the things!
         return "alias,all,alter,analyzer,and,any,array,as,asc," +
-                "bernoulli,between,blob,boolean,by,byte," +
+                "always,array,add," +
+                "bernoulli,between,blob,boolean,by,byte,begin," +
                 "case,cast,catalogs,char_filters,clustered,coalesce,columns," +
                 "constraint,copy,create,cross,current,current_date,current_time," +
-                "current_timestamp," +
+                "current_timestamp,current_schema, column," +
                 "date,day,delete,desc,describe,directory,distinct,distributed," +
-                "double,drop,dynamic," +
+                "double,drop,dynamic,delete,duplicate,default," +
                 "else,end,escape,except,exists,explain,extends,extract," +
                 "false,first,float,following,for,format,from,full,fulltext,functions," +
-                "graphviz,group," +
+                "graphviz,group,geo_point,geo_shape,global,generated," +
                 "having,hour," +
                 "if,ignored,in,index,inner,insert,int,integer,intersect,interval," +
-                "into,ip,is," +
+                "into,ip,is,isolation," +
                 "join," +
-                "last,left,like,limit,logical,long," +
-                "materialized,minute,month," +
-                "natural,not,null,nullif,nulls," +
-                "object,off,offset,on,or,order,outer,over," +
+                "last,left,like,limit,logical,long,local,level," +
+                "materialized,minute,month,match," +
+                "natural,not,null,nulls," +
+                "object,off,offset,on,or,order,outer,over,optmize,only," +
                 "partition,partitioned,partitions,plain,preceding,primary_key," +
-                "range,recursive,refresh,reset,right,row,rows," +
+                "range,recursive,refresh,reset,right,row,rows,repository,restore," +
                 "schemas,second,select,set,shards,short,show,some,stratify," +
-                "strict,string_type,substring,system," +
+                "strict,string_type,substring,system,select,snapshot,session," +
                 "table,tables,tablesample,text,then,time,timestamp,to,tokenizer," +
-                "token_filters,true,type," +
+                "token_filters,true,type,try_cast,transaction,tablesample," +
+                "transient," +
                 "unbounded,union,update,using," +
                 "values,view," +
                 "when,where,with," +
