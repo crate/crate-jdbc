@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Updated Crate JDBC database metadata outer joins methods to reflect the
+   current state of Crate.
+
  - Updated Crate JDBC database metadata methods getNumericFunctions, getStringFunctions
    and getTimeDateFunctions to reflect the current state of Crate.
 

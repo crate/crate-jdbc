@@ -356,17 +356,17 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsOuterJoins() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsFullOuterJoins() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsLimitedOuterJoins() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
