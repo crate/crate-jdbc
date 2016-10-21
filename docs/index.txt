@@ -159,7 +159,7 @@ reasonable for a Crate driver. Since the driver uses the `PostgreSQL JDBC Driver
 as underlying connector there are certains features that are implemented yet
 not fully compatible with Crate.
 
-The following features are not supported:
+**The following features are not supported:**
 
 * ``java.sql.ParameterMetaData`` as returned by e.g. ``java.sql.PreparedStatement``
 * ``DataSource``
@@ -169,11 +169,38 @@ For further details about compatibility with all possible JDBC features,
 see the ``ResultSet``, ``ResultSetMetaData`` and ``DatabaseMetaData``
 implementations.
 
-Though only an optional feature, it is still worth mentioning:
+
+**Though only an optional feature, it is still worth mentioning:**
 
 * the ``ResultSet`` is read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
   so changes to a ``ResultSet`` are not supported. Though DDL and DML statements
   are supported using the ``Statement`` and ``PreparedStatement`` interfaces.
+
+Server Version
+..............
+
+When the JDBC driver establishes a connection to Crate the server sends a messsage
+with its version to the client, so the client can behave according to the server
+version. Since the Crate JDBC driver builds upon the `PostgreSQL JDBC Driver`_
+the Crate server needs to send a version that is usable by the client. In the
+case of Crate JDCB this is version ``9.5.0``.
+
+**This also means that some methods in ``DatabaseMetaData`` and ``Connection``
+do return this version instead of the real Crate server version!**
+
+Affected methods are:
+
+* ``DatabaseMetaData``
+  * ``getDatabaseProductVersion()``
+  * ``getDatabaseMajorVersion()``
+  * ``getDatabaseMinorVersion()``
+* ``Connection``
+  * ``getDBVersionNumber()``
+  * ``getServerMajorVersion()``
+  * ``getServerMinorVersion()``
+  * ``haveMinimumServerVersion()``
+  * ``haveMinimumCompatibleVersion()``
+
 
 Crate
 -----
