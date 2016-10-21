@@ -204,12 +204,14 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getNumericFunctions() throws SQLException {
-        return "";
+        return "abs,ceil,floor,ln,log,random,round,sqrt,sin,asin,cos," +
+                "acos,tan,atan";
     }
 
     @Override
     public String getStringFunctions() throws SQLException {
-        return "format";
+        return "concat,format,substr,char_length,bit_length,octet_length,"+
+                "lower,upper";
     }
 
     @Override
@@ -219,7 +221,7 @@ public class CrateDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getTimeDateFunctions() throws SQLException {
-        return "date_trunc";
+        return "date_trunc,extract,date_format";
     }
 
     @Override
