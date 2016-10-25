@@ -1,3 +1,8 @@
+plugins {
+    id 'signing'
+    id 'com.github.johnrengelman.shadow' version '1.2.3'
+}
+
 allprojects {
 
     apply plugin: 'idea'
@@ -14,7 +19,6 @@ allprojects {
 
 }
 
-apply plugin: 'signing'
 
 group = "io.crate"
 
@@ -80,24 +84,35 @@ jar {
     }
 }
 
-task jarStandalone(type: Jar, dependsOn: getVersion) {
+shadowJar {
     baseName 'crate-jdbc-standalone'
-    doFirst {
-        from sourceSets.main.output
-        from project(':pg').sourceSets.main.output
-        from configurations.compile.filter({
-            logger.quiet('{} {}', it.name, it.name == 'pg.jar')
-            it.name != 'pg.jar'
-        }).collect {
-            it.isDirectory() && !it.name.endsWith('pg.jar') ? it : zipTree(it)
-        }
-    }
+    classifier ''
+    duplicatesStrategy 'fail'
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)", "Implementation-Version": project.version)
         }
     }
+
+    relocate 'org.postgresql', 'io.crate.shade.org.postgresql'
+    relocate 'waffle', 'io.crate.shade.waffle'
+    relocate 'com.sun.jna', 'io.crate.shade.com.sun.jna'
+    relocate 'org.slf4j', 'io.crate.shade.org.slf4j'
+    relocate 'com.fasterxml.jackson', 'io.crate.shade.com.fasterxml.jackson'
+    relocate 'org.osgi', 'io.crate.shade.org.osgi'
+    relocate 'com.google', 'io.crate.shade.com.google'
 }
+
+
+
+task buildJar(type: Jar, dependsOn: [getVersion, classes]) {
+    doLast {
+        ext.version = getVersion.version
+        project.version = ext.version
+        tasks.shadowJar.execute()
+    }
+}
+tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
@@ -164,18 +179,18 @@ task buildSourceJarStandalone (dependsOn: [getVersion] ) << {
 
 artifacts {
     archives jar
-    archives jarStandalone
+    archives shadowJar
     archives javadocJar
     archives javadocJarStandalone
     archives sourceJar
     archives sourceJarStandalone
 }
 
-task signJars (type : Sign, dependsOn: [jar, jarStandalone, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
+task signJars (type : Sign, dependsOn: [jar, shadowJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
     sign configurations.archives
 }
 
-install.dependsOn([jar, jarStandalone, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
+install.dependsOn([jar, shadowJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
 install {
     repositories {
         mavenInstaller {
