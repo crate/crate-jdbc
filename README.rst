@@ -80,7 +80,7 @@ Differences to version 1.x are:
 - The `connection string`_ changed to the same format as PostgreSQL JDBC,
   which means that setting the default schema with the connection string is not
   supported. Use ``setDefaultSchema()`` instead.
-- Support for the experimentaal ``showsubcolumns`` parameter has been dropped.
+- Support for the experimental ``showsubcolumns`` parameter has been dropped.
 
 
 Documentation
