@@ -103,6 +103,11 @@ shadowJar {
     relocate 'com.google', 'io.crate.shade.com.google'
 }
 
+
+task standaloneJar {
+    shadowJar.execute()
+}
+
 task buildJar(type: Jar, dependsOn: [getVersion, classes]) {
     doLast {
         ext.version = getVersion.version
