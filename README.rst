@@ -62,7 +62,7 @@ and build a JAR including all dependencies::
 
 or::
 
-   ./gradlew jarStandalone
+   ./gradlew shadowJar
 
 Afterwards a JAR file of the current version exists under ``build/lib``.
 

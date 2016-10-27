@@ -104,9 +104,6 @@ shadowJar {
 }
 
 
-task standaloneJar {
-    shadowJar.execute()
-}
 
 task buildJar(type: Jar, dependsOn: [getVersion, classes]) {
     doLast {
