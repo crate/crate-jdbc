@@ -8,7 +8,7 @@ interfaces to SQL-compliant databases.
 Crate provides a `type 4 JDBC driver`_. The driver is written in pure Java, and
 communicates with the database using the `PostgreSQL Wire Protocol`_.
 
-Because of this, all versions of the JDBC driver >= ``2.0`` require Crate ``0.57.0``
+Therefore, all versions of the JDBC driver >= ``2.0`` require Crate ``0.57.0``
 or newer. Previous versions of the JDBC driver (``1.x``) are only compatible with
 older versions of Crate.
 
@@ -24,7 +24,7 @@ Version 2.x
 Version 2 of the JDBC driver is currently only available on `Jitpack`_.
 
 Using Gradle
-.............
+............
 
 .. code-block:: groovy
 
@@ -39,7 +39,7 @@ Using Gradle
     }
 
 Using Maven
-............
+...........
 
 .. code-block:: xml
 
@@ -112,6 +112,8 @@ To specify a schema, the ``setSchema`` method must be explicitly called on
 the connection. If no schema is provided, the ``doc`` default schema will be
 used::
 
+.. code-block:: java
+
     Connection conn = DriverManager.getConnection("crate://localhost:5432/");
     conn.setSchema("foo");
 
@@ -127,11 +129,15 @@ Crate JDBC properties
 
 Properties can be specified when connecting to Crate using the JDBC driver::
 
+.. code-block:: java
+
     Properties properties = new Properties();
     properties.put(<key>, <value>);
     Connection conn = DriverManager.getConnection("crate://localhost:5432/", properties);
 
 In addition connection properties can be passed via the JDBC URL::
+
+.. code-block:: java
 
     Connection conn = DriverManager.getConnection("crate://localhost:5432/?property1=value1&property2=value2");
 
@@ -140,12 +146,12 @@ Crate JDBC driver supports following properties:
 :strict:
     **Default**: ``false``.
 
-    If you set this property to ``true`` the driver will be compliant with the JDBC
-    specification. It will then raise an unsupported operation exception if you
-    call an operation which is not supported, like auto-commit or setting a
-    savepoint.  The default is ``false``, so the Crate JDBC driver ignores the use
-    of unspported operations, which makes it compatible with most 3rd party
-    applications that require transactional features.
+    If this property is set to ``true`` the driver will be compliant with the JDBC
+    specification. It will then raise an unsupported operation exception if an
+    unsupported operation is called , like auto-commit or setting a savepoint.
+    The default is ``false``, so the Crate JDBC driver ignores the calls of unsupported
+    operations, which makes it compatible with most 3rd party applications that require
+    transactional features.
 
 
 Compatibility
@@ -154,10 +160,9 @@ Compatibility
 JDBC
 ----
 
-This JDBC driver complies to the `JDBC 4.1`_ standard as good as possible and
-reasonable for a Crate driver. Since the driver uses the `PostgreSQL JDBC Driver`_
-as underlying connector there are certains features that are implemented yet
-not fully compatible with Crate.
+This JDBC driver follows the JDBC 4.1 standard as it uses PGSQL driver as the
+underlying connector, however there are certain features that are not fully
+compatible with Crate.
 
 **The following features are not supported:**
 
@@ -175,31 +180,6 @@ implementations.
 * the ``ResultSet`` is read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
   so changes to a ``ResultSet`` are not supported. Though DDL and DML statements
   are supported using the ``Statement`` and ``PreparedStatement`` interfaces.
-
-Server Version
-..............
-
-When the JDBC driver establishes a connection to Crate the server sends a messsage
-with its version to the client, so the client can behave according to the server
-version. Since the Crate JDBC driver builds upon the `PostgreSQL JDBC Driver`_
-the Crate server needs to send a version that is usable by the client. In the
-case of Crate JDCB this is version ``9.5.0``.
-
-**This also means that some methods in ``DatabaseMetaData`` and ``Connection``
-do return this version instead of the real Crate server version!**
-
-Affected methods are:
-
-* ``DatabaseMetaData``
-  * ``getDatabaseProductVersion()``
-  * ``getDatabaseMajorVersion()``
-  * ``getDatabaseMinorVersion()``
-* ``Connection``
-  * ``getDBVersionNumber()``
-  * ``getServerMajorVersion()``
-  * ``getServerMinorVersion()``
-  * ``haveMinimumServerVersion()``
-  * ``haveMinimumCompatibleVersion()``
 
 
 Crate
@@ -234,6 +214,8 @@ are mapped by JDBC and how they should be fetched from a ``ResultSet`` instance:
    "timestamp", "timestamp", "TIMESTAMP", "``getDate``, ``getTime``, ``getTimestamp``"
    "ip", "varchar", "VARCHAR", "``getString``"
    "array", "", "ARRAY", "``getArray``"
+   "geo_point", "point", "JAVA_OBJECT", "``getObject``"
+   "geo_shape", "polygon", "JAVA_OBJECT", "``getObject``"
    "object", "json", "JAVA_OBJECT", "``getObject``"
 
 Array Types
@@ -259,11 +241,11 @@ there are elements in the array.
     arrayFieldResultSet.first();
     String firstValue = arrayFieldResultSet.getString("array_field");
 
-When inserting arrays into a prepared statement, you must convert your java array
-to a ``java.sql.Array`` through use of ``createArrayOf()``. This function takes
+When inserting arrays using a prepared statement, you must convert your java array
+to a ``java.sql.Array`` by the use of ``createArrayOf()``. This function takes
 as its first argument a Crate type as described above and as its second the array
 you want to convert. You can then use ``setArray()`` to set this converted array
-as a prepared statement's argument.
+using a prepared statement's argument.
 
 .. code-block:: java
 

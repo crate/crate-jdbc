@@ -19,8 +19,11 @@ allprojects {
 
 }
 
-
 group = "io.crate"
+
+repositories {
+    mavenCentral()
+}
 
 dependencies {
     compile project(':pg')
@@ -93,17 +96,16 @@ shadowJar {
             attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)", "Implementation-Version": project.version)
         }
     }
-
+    // Crate JDBC dependencies
+    relocate 'com.fasterxml.jackson', 'io.crate.shade.com.fasterxml.jackson'
     relocate 'org.postgresql', 'io.crate.shade.org.postgresql'
+    // PGJDBC dependencies
     relocate 'waffle', 'io.crate.shade.waffle'
     relocate 'com.sun.jna', 'io.crate.shade.com.sun.jna'
     relocate 'org.slf4j', 'io.crate.shade.org.slf4j'
-    relocate 'com.fasterxml.jackson', 'io.crate.shade.com.fasterxml.jackson'
     relocate 'org.osgi', 'io.crate.shade.org.osgi'
     relocate 'com.google', 'io.crate.shade.com.google'
 }
-
-
 
 task buildJar(type: Jar, dependsOn: [getVersion, classes]) {
     doLast {

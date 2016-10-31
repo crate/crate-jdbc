@@ -22,26 +22,23 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import io.crate.testing.CrateTestServer;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
-import java.util.Locale;
 import java.util.Properties;
 
 import static org.hamcrest.Matchers.is;
 
 public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
 
-    private static String connectionString;
     private static Properties strictProperties = new Properties();
+    private static String connectionString;
 
     @BeforeClass
-    public static void beforeClass() throws Exception {
-        CrateTestServer server = testCluster.randomServer();
-        connectionString = String.format(Locale.ENGLISH, "crate://%s:%d/", server.crateHost(), server.psqlPort());
+    public static void beforeClass() {
         strictProperties.put("strict", "true");
+        connectionString = getConnectionString();
     }
 
     @Test

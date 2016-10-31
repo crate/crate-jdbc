@@ -24,173 +24,47 @@ package io.crate.client.jdbc.integrationtests;
 
 import io.crate.testing.CrateTestServer;
 import org.hamcrest.Matchers;
-import org.junit.*;
-import org.postgresql.jdbc.PgResultSet;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.sql.*;
-import java.util.*;
+import java.util.Arrays;
 import java.util.Date;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
-    private static Connection connection;
-    private static String connectionStr;
+    private static String connectionString;
 
     @BeforeClass
-    public static void beforeClass() throws Exception {
-        CrateTestServer server = testCluster.randomServer();
-        connectionStr = String.format("crate://%s:%s/", server.crateHost(), server.psqlPort());
-        connection = DriverManager.getConnection(connectionStr);
-        setUpTables();
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        tearDownTables();
-    }
-
-    private static void tearDownTables() throws SQLException {
-        ResultSet rs = connection.createStatement().executeQuery("select schema_name, table_name " +
-            "from information_schema.tables where schema_name " +
-            "not in ('pg_catalog', 'sys', 'information_schema', 'blob')");
-        while (rs.next()) {
-            connection.createStatement().execute(String.format("drop table if exists \"%s\".\"%s\"",
-                rs.getString("schema_name"), rs.getString("table_name")));
-        }
-    }
-
-    public static void setUpTables() throws InterruptedException, SQLException {
-        connection.createStatement().execute("create table if not exists test (" +
-            " id integer primary key," +
-            " string_field string," +
-            " boolean_field boolean," +
-            " byte_field byte," +
-            " short_field short," +
-            " integer_field integer," +
-            " long_field long," +
-            " float_field float," +
-            " double_field double," +
-            " timestamp_field timestamp," +
-            " object_field object as (\"inner\" string)," +
-            " ip_field ip" +
-            ") clustered by (id) into 1 shards with (number_of_replicas=0)");
-        waitForShards();
-
-        connection.createStatement().execute("create table if not exists arrayTest (" +
-                " id integer primary key," +
-                " str_array array(string)," +
-                " bool_array array(boolean)," +
-                " byte_array array(byte)," +
-                " short_array array(short)," +
-                " integer_array array(integer)," +
-                " long_array array(long)," +
-                " float_array array(float)," +
-                " double_array array(double)," +
-                " timestamp_array array(timestamp)," +
-                " obj_array array(object)" +
-                ") clustered by (id) into 1 shards with (number_of_replicas=0)");
-        waitForShards();
-    }
-
-    private static void waitForShards() throws InterruptedException, SQLException {
-        while (countUnassigned() > 0) {
-            Thread.sleep(100);
-        }
-    }
-
-    private static Long countUnassigned() throws SQLException {
-        ResultSet rs = connection.createStatement()
-            .executeQuery("SELECT count(*) FROM sys.shards WHERE state != 'STARTED'");
-        rs.next();
-        return rs.getLong(1);
-    }
-
-    @Before
-    public void before() throws SQLException {
-        insertIntoTable();
+    public static void beforeClass() throws SQLException, InterruptedException {
+        connectionString = getConnectionString();
+        setUpTestTable();
     }
 
     @After
     public void after() throws SQLException {
-        deleteFromTable();
-    }
-
-    private static void insertIntoTable() throws SQLException {
-        Map<String, Object> objectField = new HashMap<String, Object>() {{
-            put("inner", "Zoon");
-        }};
-        PreparedStatement preparedStatement =
-            connection.prepareStatement("insert into test (id, string_field, boolean_field, byte_field, " +
-                "short_field, integer_field, long_field, float_field, double_field, object_field, " +
-                "timestamp_field, ip_field) values " +
-                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        preparedStatement.setInt(1, 1);
-        preparedStatement.setString(2, "Youri");
-        preparedStatement.setBoolean(3, true);
-        preparedStatement.setByte(4, (byte) 120);
-        preparedStatement.setShort(5, (short) 1000);
-        preparedStatement.setInt(6, 1200000);
-        preparedStatement.setLong(7, 120000000000L);
-        preparedStatement.setFloat(8, 1.4f);
-        preparedStatement.setDouble(9, 3.456789);
-        preparedStatement.setObject(10, objectField);
-        preparedStatement.setTimestamp(11, new Timestamp(1000L));
-        preparedStatement.setString(12, "127.0.0.1");
-        preparedStatement.execute();
-
-        preparedStatement =
-                connection.prepareStatement("insert into arrayTest (id, str_array, bool_array, byte_array, " +
-                        "short_array, integer_array, long_array, float_array, double_array, timestamp_array, " +
-                        "ip_array, obj_array) values " +
-                        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        preparedStatement.setInt(1, 1);
-        preparedStatement.setArray(2, connection.createArrayOf("string", new String[]{"a", "b", "c", "d"}));
-        preparedStatement.setArray(2, connection.createArrayOf("string", new String[]{"a", "b", "c", "d"}));
-        preparedStatement.setArray(3, connection.createArrayOf("boolean", new Boolean[]{true, false}));
-        preparedStatement.setArray(4, connection.createArrayOf("byte", new Byte[]{new Byte("120"), new Byte("100")}));
-        preparedStatement.setArray(5, connection.createArrayOf("short", new Short[]{1300, 1200}));
-        preparedStatement.setArray(6, connection.createArrayOf("integer", new Integer[]{2147483647, 234583}));
-        preparedStatement.setArray(7, connection.createArrayOf("long", new Long[]{9223372036854775807L, 4L}));
-        preparedStatement.setArray(8, connection.createArrayOf("float", new Float[]{3.402f, 3.403f, 1.4f}));
-        preparedStatement.setArray(9, connection.createArrayOf("double", new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308}));
-        preparedStatement.setArray(10, connection.createArrayOf("timestamp", new Timestamp[]{new Timestamp(1000L), new Timestamp(2000L)}));
-        preparedStatement.setArray(11, connection.createArrayOf("ip", new String[]{"127.142.132.9", "127.0.0.1"}));
-        preparedStatement.setArray(12, connection.createArrayOf("object", new Object[]{
-                new HashMap<String, Object>() {{
-                    put("element1", "testing");
-                }}, new HashMap<String, Object>() {{
-            put("element2", "testing2");
-        }}
-        }));
-        preparedStatement.execute();
-
-        connection.createStatement().execute("refresh table test");
-        connection.createStatement().execute("refresh table arrayTest");
-    }
-
-    public static void deleteFromTable() throws SQLException {
-        connection.createStatement().execute("delete from test");
-        connection.createStatement().execute("refresh table test");
-
-        connection.createStatement().execute("delete from arrayTest");
-        connection.createStatement().execute("refresh table arrayTest");
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            conn.createStatement().execute("delete from test");
+            conn.createStatement().execute("refresh table test");
+        }
     }
 
     @Test
     @Ignore("set/get schema is not implemented")
     public void testConnectionWithCustomSchema() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             conn.setSchema("foo");
             assertThat(conn.getSchema(), is("foo"));
             Statement statement = conn.createStatement();
             statement.execute("create table t (x string) with (number_of_replicas=0)");
-            waitForShards();
+            ensureYellow();
             statement.execute("insert into t (x) values ('a')");
             statement.execute("refresh table t");
             ResultSet resultSet = statement.executeQuery("select count(*) from t");
@@ -198,12 +72,12 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             assertThat(resultSet.getLong(1), is(1L));
             conn.close();
 
-            Connection barConnection = DriverManager.getConnection(connectionStr);
+            Connection barConnection = DriverManager.getConnection(connectionString);
             conn.setSchema("bar");
             assertThat(barConnection.getSchema(), is("bar"));
             statement = barConnection.createStatement();
             statement.execute("create table t (x string) with (number_of_replicas=0)");
-            waitForShards();
+            ensureYellow();
             statement.execute("insert into t (x) values ('a')");
             statement.execute("refresh table t");
             resultSet = conn.createStatement().executeQuery("select count(*) from t)");
@@ -228,12 +102,12 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     public void testConnectionWithCustomSchemaPrepareStatement() throws Exception {
         String schemaName = "my";
         String tableName = "test_a";
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             conn.setSchema(schemaName);
             PreparedStatement pstmt = conn.prepareStatement(
                 String.format("create table %s (first_column integer, second_column string) with (number_of_replicas=0)", tableName));
             assertThat(pstmt.execute(), is(false));
-            waitForShards();
+            ensureYellow();
             pstmt = conn.prepareStatement(
                 String.format("insert into %s (first_column, second_column) values (?, ?)", tableName));
             pstmt.setInt(1, 42);
@@ -250,7 +124,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             assertThat(rSet2.getInt(1), is(42));
             assertThat(rSet2.getString(2), is("testing"));
             pstmt = conn.prepareStatement("select schema_name, table_name from information_schema.tables " +
-                "where schema_name = ? and table_name = ?");
+                                          "where schema_name = ? and table_name = ?");
             pstmt.setString(1, schemaName);
             pstmt.setString(2, tableName);
             assertThat(pstmt.execute(), is(true)); // there should be a return value
@@ -268,12 +142,12 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     public void testConnectionWithCustomSchemaBatchPrepareStatement() throws Exception {
         String schemaName = "my";
         String tableName = "test_b";
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             conn.setSchema(schemaName);
             PreparedStatement stmt = conn.prepareStatement(
                 String.format("create table %s (id long, ts timestamp, info string) with (number_of_replicas=0)", tableName));
             stmt.execute();
-            waitForShards();
+            ensureYellow();
             stmt = conn.prepareStatement(
                 String.format("INSERT INTO %s (id, ts, info) values (?, ?, ?)", tableName));
             String text = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor.";
@@ -293,7 +167,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     @Test
     public void testSelectWithoutResultUsingPreparedStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             PreparedStatement preparedStatement = conn.prepareStatement("select * from test where id = ?");
             preparedStatement.setInt(1, 2);
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -305,7 +179,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     @Test
     public void testSelectUsingPreparedStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        insertIntoTestTable();
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             PreparedStatement preparedStatement = conn.prepareStatement("select * from test where id = ?");
             preparedStatement.setInt(1, 1);
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -327,22 +202,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     }
 
     @Test
-    public void testExcludeNestedColumns() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            ResultSet resultSet = conn.getMetaData().getColumns(null, "sys", "nodes", null);
-            int counter = 0;
-            while (resultSet.next()) {
-                assertFalse(resultSet.getString(4).contains("."));
-                assertFalse(resultSet.getString(4).contains("["));
-                counter++;
-            }
-            assertThat(counter, is(15));
-        }
-    }
-
-    @Test
     public void testException() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             expectedException.expect(SQLException.class);
             expectedException.expectMessage("line 1:1: no viable alternative at input 'ERROR'");
             conn.createStatement().execute("ERROR");
@@ -351,25 +212,24 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     @Test
     public void testExecuteBatchStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             Statement stmt = conn.createStatement();
             stmt.addBatch("insert into test (id) values (3)");
             stmt.addBatch("insert into test (id) values (4)");
-            stmt.addBatch("insert into test (id) values (5)");
 
             int[] results = stmt.executeBatch();
-            assertArrayEquals(results, new int[]{1, 1, 1});
+            assertArrayEquals(results, new int[]{1, 1});
             conn.createStatement().execute("refresh table test");
             ResultSet resultSet = conn.createStatement().executeQuery("select count(*) from test");
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getLong(1), is(4L));
+            assertThat(resultSet.getLong(1), is(2L));
         }
     }
 
     @Test
     @Ignore("validate batch behaviour")
     public void testExecuteBatchStatementFail() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             Statement stmt = conn.createStatement();
             stmt.addBatch("insert into test (id) values (3)");
             stmt.addBatch("insert into test (id) values (5)");
@@ -390,43 +250,28 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
     @Test
     public void testExecuteBatchPreparedStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            PreparedStatement stmt = conn.prepareStatement("insert into test (id, string_field) values (?, ?)");
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            PreparedStatement stmt = conn.prepareStatement("insert into test (id) values (?)");
             stmt.setInt(1, 2);
-            stmt.setString(2, "foo");
-            stmt.addBatch();
-
-            stmt.setInt(1, 3);
-            stmt.setString(2, "bar");
             stmt.addBatch();
 
             stmt.setInt(1, 4);
-            stmt.setString(2, "baz");
             stmt.addBatch();
 
             int[] results = stmt.executeBatch();
-            assertArrayEquals(new int[]{1, 1, 1}, results);
+            assertArrayEquals(new int[]{1, 1}, results);
             conn.createStatement().execute("refresh table test");
             ResultSet resultSet = conn.createStatement().executeQuery("select count(*) from test");
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getLong(1), is(4L));
+            assertThat(resultSet.getLong(1), is(2L));
         }
     }
 
     @Test
     public void testExecuteBatchPreparedStatementFailBulkTypes() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            PreparedStatement stmt = conn.prepareStatement("insert into test (id, string_field) values (?, ?)");
-            stmt.setInt(1, 2);
-            stmt.setString(2, "foo");
-            stmt.addBatch();
-
-            stmt.setInt(1, 3);
-            stmt.setString(2, "bar");
-            stmt.addBatch();
-
-            stmt.setInt(1, 1);
-            stmt.setObject(2, newHashMap());
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            PreparedStatement stmt = conn.prepareStatement("insert into test (id) values (?)");
+            stmt.setObject(1, newHashMap());
             stmt.addBatch();
 
             try {
@@ -435,155 +280,82 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             } catch (BatchUpdateException e) {
                 assertThat(
                     e.getMessage(),
-                    containsString("Validation failed for string_field: {} cannot be cast to type string")
+                    containsString("Validation failed for id: {} cannot be cast to type integer")
                 );
-                assertArrayEquals(
-                    new int[]{Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED},
-                    e.getUpdateCounts()
-                );
+                assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
             }
             conn.createStatement().execute("refresh table test");
             ResultSet resultSet = conn.createStatement().executeQuery("select count(*) from test");
             assertThat(resultSet.next(), is(true));
-
-            assertThat(resultSet.getLong(1), is(1L));
+            assertThat(resultSet.getLong(1), is(0L));
         }
     }
 
     @Test
+    @Ignore
     public void testExecuteBatchPreparedStatementFailOne() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
             PreparedStatement stmt = conn.prepareStatement("insert into test (id, string_field) values (?, ?)");
             stmt.setInt(1, 2);
             stmt.setString(2, "foo");
             stmt.addBatch();
 
-            stmt.setInt(1, 3);
-            stmt.setString(2, "bar");
-            stmt.addBatch();
-
             stmt.setInt(1, 1);
             stmt.setObject(2, "baz");
             stmt.addBatch();
-
-
+            
             int[] results = stmt.executeBatch();
-            assertArrayEquals(new int[]{1, 1, Statement.EXECUTE_FAILED}, results);
+            assertArrayEquals(new int[]{1, Statement.EXECUTE_FAILED}, results);
             conn.createStatement().execute("refresh table test");
             ResultSet resultSet = conn.createStatement().executeQuery("select count(*) from test");
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getLong(1), is(3L));
+            assertThat(resultSet.getLong(1), is(2L));
         }
     }
 
     @Test
     public void testExecuteBatchPreparedStatementFailSyntax() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            PreparedStatement stmt = conn.prepareStatement("insert test (id, string_field) values (?, ?)");
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            PreparedStatement stmt = conn.prepareStatement("insert test (id) values (?)");
             stmt.setInt(1, 2);
-            stmt.setString(2, "foo");
-            stmt.addBatch();
-
-            stmt.setInt(1, 3);
-            stmt.setString(2, "bar");
-            stmt.addBatch();
-
-            stmt.setInt(1, 4);
-            stmt.setString(2, "baz");
             stmt.addBatch();
 
             try {
                 stmt.executeBatch();
                 fail("BatchUpdateException not thrown");
             } catch (BatchUpdateException e) {
-                assertArrayEquals(
-                    new int[]{Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED},
-                    e.getUpdateCounts()
-                );
+                assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
             }
             conn.createStatement().execute("refresh table test");
             ResultSet resultSet = conn.createStatement().executeQuery("select count(*) from test");
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getLong(1), is(1L));
-        }
-    }
-
-    @Test
-    public void testTypesResponseNoResult() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            ResultSet result = conn.createStatement().executeQuery("select * from test where 1=0");
-            ResultSetMetaData metaData = result.getMetaData();
-            assertThat(metaData.getColumnCount(), is(12));
-            for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) {
-                // test that we can get the types, whatever they are
-                assertThat(metaData.getColumnType(i), instanceOf(Integer.class));
-            }
+            assertThat(resultSet.getLong(1), is(0L));
         }
     }
 
     @Test
     public void testSelectWhenNothingMatches() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            assertTrue(conn.createStatement().execute("select * from test where string_field = 'nothing_matches_this'"));
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            assertTrue(conn.createStatement().execute("select * from test where id = 1000000"));
         }
     }
 
     @Test
     public void testExecuteUpdateWhenNothingMatches() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            assertThat(conn.createStatement().executeUpdate("update test set string_field = 'new_value'" +
-                " where string_field = 'nothing_matches_this'"), is(0));
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            assertThat(conn.createStatement().executeUpdate("update test set string_field = 'new_value' " +
+                                                            "where string_field = 'nothing_matches_this'"), is(0));
         }
     }
-
 
     @Test
     public void testMultipleHostsConnectionString() throws Exception {
         CrateTestServer server = testCluster.randomServer();
         String connectionStr = String.format(
-                "crate://%s:%s,%s:%s/", server.crateHost(), server.psqlPort(), server.crateHost(), server.psqlPort()
+            "crate://%s:%s,%s:%s/", server.crateHost(), server.psqlPort(), server.crateHost(), server.psqlPort()
         );
         try (Connection conn = DriverManager.getConnection(connectionStr)) {
             assertThat(conn.createStatement().execute("select 1 from sys.cluster"), is(true));
-        }
-    }
-
-    @Test
-    @Ignore("getSchemas is not implemented")
-    public void testGetSchemas() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            DatabaseMetaData metaData = conn.getMetaData();
-            ResultSet result = metaData.getSchemas();
-            result.next();
-            assertThat(result.getString(1), is("blob"));
-            result.next();
-            assertThat(result.getString(1), is("doc"));
-            result.next();
-            assertThat(result.getString(1), is("information_schema"));
-            result.next();
-            assertThat(result.getString(1), is("sys"));
-        }
-    }
-
-    @Test
-    public void testSetGetObject() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionStr)) {
-            Map<String, Integer> expected = new HashMap<>();
-            expected.put("n", 1);
-
-            conn.createStatement().executeUpdate("create table test_obj (obj object as (n int))");
-            PreparedStatement statement = conn.prepareStatement("insert into test_obj (obj) values (?)");
-            statement.setObject(1, expected);
-            statement.execute();
-
-            conn.createStatement().execute("refresh table test_obj");
-            ResultSet resultSet = conn.createStatement().executeQuery("select obj from test_obj");
-            assertThat(resultSet.next(), is(true));
-            conn.createStatement().execute("drop table test_obj");
-            
-            @SuppressWarnings("unchecked")
-            Map<String, Object> map = (Map<String, Object>) resultSet.getObject(1);
-            assertEquals(expected, map);
         }
     }
 }

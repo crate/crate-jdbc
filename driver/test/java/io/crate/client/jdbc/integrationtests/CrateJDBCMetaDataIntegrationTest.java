@@ -22,22 +22,16 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import io.crate.testing.CrateTestServer;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
@@ -45,20 +39,11 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
     private static Connection connection;
 
     @BeforeClass
-    public static void beforeClass() throws Exception {
-        CrateTestServer server = testCluster.randomServer();
-        connection =
-                DriverManager.getConnection(String.format("crate://%s:%s/", server.crateHost(), server.psqlPort()));
-        connection.createStatement().execute("create table if not exists test.cluster (arr array(int), name string)");
-        connection.createStatement().execute("create table if not exists doc.names (id int primary key, name string)");
-        connection.createStatement().execute("create table if not exists my_schema.names (id int primary key, name string)");
-    }
-
-    @AfterClass
-    public static void afterClass() throws SQLException {
-        connection.createStatement().execute("drop table test.cluster");
-        connection.createStatement().execute("drop table doc.names");
-        connection.createStatement().execute("drop table my_schema.names");
+    public static void setUpTest() throws Throwable {
+        connection = DriverManager.getConnection(getConnectionString());
+        connection.createStatement().execute("create table test.cluster (arr array(int), name string)");
+        connection.createStatement().execute("create table doc.names (id int primary key, name string)");
+        connection.createStatement().execute("create table my_schema.names (id int primary key, name string)");
     }
 
     @Test
@@ -156,6 +141,41 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
             schemas.add(rs.getString("TABLE_SCHEM"));
         }
         assertThat(schemas, hasItems("sys", "test", "information_schema"));
+    }
+
+    @Test
+
+    public void testExcludeNestedColumns() throws Exception {
+        ResultSet resultSet = connection.getMetaData().getColumns(null, "sys", "nodes", null);
+        int counter = 0;
+        while (resultSet.next()) {
+            assertFalse(resultSet.getString(4).contains("."));
+            assertFalse(resultSet.getString(4).contains("["));
+            counter++;
+        }
+        assertThat(counter, is(15));
+    }
+
+    @Test
+    public void testTypesResponseNoResult() throws Exception {
+        ResultSet result = connection.createStatement().executeQuery("select * from test.cluster where 1=0");
+        ResultSetMetaData metaData = result.getMetaData();
+        assertThat(metaData.getColumnCount(), is(2));
+        for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) {
+            // test that we can get the types, whatever they are
+            assertThat(metaData.getColumnType(i), instanceOf(Integer.class));
+        }
+    }
+
+    @Test
+    public void testGetSchemas() throws Exception {
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet rs = metaData.getSchemas();
+        List<String> schemas = new ArrayList<>();
+        while (rs.next()) {
+            schemas.add(rs.getString(1));
+        }
+        assertThat(schemas, hasItems("doc", "sys", "information_schema", "pg_catalog"));
     }
 
     @Test
