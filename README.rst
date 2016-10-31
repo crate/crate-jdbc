@@ -17,18 +17,17 @@ Crate JDBC Driver
 This is the JDBC driver for `Crate`_.
 
 Currently we don't provide the testing version of the Crate JDBC driver.
-Therefore, using the driver with the latest testing releases of the Crate
-might not be possible due compatibility issues. As a workaround, you can build
-the JDBC driver jar using `Jitpack`_ or build it from source.
+As a workaround, you can build the JDBC driver jar using `Jitpack`_ or
+build it from source.
 
 Installation
 ============
 
 .. note::
 
-   Crate JDBC driver 1.x requires a Crate version greater or equal than ``0.38.0``
-   but lower than ``0.57``.
-   Crate JDBC driver 2.x requires a Crate version greater or equal than ``0.57.0``.
+   Crate JDBC driver 1.x requires a Crate version equal or greater than 0.38.0
+   but lower than 0.56.0.
+   Crate JDBC driver 2.x requires a Crate version equal or greater than 0.56.0.
 
 Build JAR from source
 ---------------------
@@ -47,22 +46,6 @@ or::
    ./gradlew shadowJar
 
 Afterwards a JAR file of the current version exists under ``build/lib``.
-
-
-Version 2.x
-===========
-
-Version 2 of the Crate JDBC driver is using the `PostgreSQL Wire Protocol`_ and
-is currently only intended for testing purposes.
-It is only available via `Jitpack`_ and won't be available on `Bintray`_ until
-Crate version ``0.57.x`` is released.
-
-Differences to version 1.x are:
-
-- The `connection string`_ changed to the same format as PostgreSQL JDBC,
-  which means that setting the default schema with the connection string is not
-  supported. Use ``setDefaultSchema()`` instead.
-- Support for the experimental ``showsubcolumns`` parameter has been dropped.
 
 
 Documentation
@@ -107,7 +90,4 @@ software solely pursuant to the terms of the relevant commercial agreement.
 
 
 .. _Crate: https://github.com/crate/crate
-.. _`PostgreSQL Wire Protocol`: https://www.postgresql.org/docs/current/static/protocol.html
-.. _Bintray: https://bintray.com/crate/crate/crate-jdbc
 .. _Jitpack: https://jitpack.io/#crate/crate-jdbc
-.. _`connection string`: https://jdbc.postgresql.org/documentation/80/connect.html
