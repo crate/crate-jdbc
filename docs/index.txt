@@ -9,7 +9,23 @@ Crate provides a type 4 JDBC driver. The driver is written in Pure Java, and
 communicates in the database system's own network protocol. Because of this,
 the driver is platform independent.
 
-.. note:: This JDBC driver requires Crate 0.38.0 or newer!
+Compatibility
+=============
+
+Crate JDBC driver ``1.x.x`` requires a Crate version greater or equal than
+``0.38.0`` but lower than ``0.56.0``. Each major version of the driver is bound
+to the major version of Crate. Below, you can see the compatibility table
+for the JDBC driver version ``1.x.x``:
+
+.. csv-table::
+   :header: "Crate JDBC driver", "Crate"
+
+   "1.8.X", "0.49.X"
+   "1.9.X", "0.51.X"
+   "1.10.X", "0.54.X"
+   "1.11.X", "0.54.X"
+   "1.12.X", "0.54.X"
+   "1.13.X", "0.55.X"
 
 Download and Setup
 ==================
