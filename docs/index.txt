@@ -8,12 +8,28 @@ interfaces to SQL-compliant databases.
 Crate provides a `type 4 JDBC driver`_. The driver is written in pure Java, and
 communicates with the database using the `PostgreSQL Wire Protocol`_.
 
-Therefore, all versions of the JDBC driver >= ``2.0`` require Crate ``0.57.0``
+Compatibility
+=============
+
+All versions of the JDBC driver >= ``2.0`` require Crate ``0.57.0``
 or newer. Previous versions of the JDBC driver (``1.x``) are only compatible with
 older versions of Crate.
 
-See compatibility table in the `README`_ of the Github project for a full list
-of compatible client/server versions.
+The support for versions of the JDBC driver >= ``2.0`` with Crate version
+``0.56.x`` is **experimental**. The binding between versions of the JDBC driver
+>= ``2.0`` and Crate will be stable when ``0.57.x`` of Crate is stable.
+
+Below, you can see the compatibility table for the JDBC driver version **2.x.x**:
+
++---------------------+----------+-------------------------------------------+
+| Crate JDBC driver   | Crate    | Note                                      |
++=====================+==========+===========================================+
+| 2.X.X               | 0.56.X   | The *psql.enabled* must be set to *true*. |
+|                     |          | The *prepareThreshold* property must      |
+|                     |          | be set to 0.                              |
++---------------------+----------+-------------------------------------------+
+| 2.X.X               | 0.57.X   |                                           |
++---------------------+----------+-------------------------------------------+
 
 Download and Setup
 ==================
