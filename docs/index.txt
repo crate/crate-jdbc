@@ -8,38 +8,33 @@ interfaces to SQL-compliant databases.
 Crate provides a `type 4 JDBC driver`_. The driver is written in pure Java, and
 communicates with the database using the `PostgreSQL Wire Protocol`_.
 
-Therefore, all versions of the JDBC driver >= ``2.0`` require Crate ``0.57.0``
-or newer. Previous versions of the JDBC driver (``1.x``) are only compatible with
-older versions of Crate.
+.. note::
 
-See compatibility table in the `README`_ of the Github project for a full list
-of compatible client/server versions.
+  Differences to version 1.x.x:
+    - The `connection string`_ changed to the same format as PostgreSQL JDBC,
+      which means that setting the default schema with the connection string is
+      not supported. Use ``setSchema()`` instead or provide a schema name in a
+      SQL statement.
+    - Support for the experimental ``showsubcolumns`` parameter has been dropped.
+
 
 Download and Setup
 ==================
 
-Version 2.x
------------
+The ``crate-jdbc`` jar files are hosted on `Bintray`_ and available via
+`JCenter`_.
 
-Version 2 of the JDBC driver is currently only available on `Jitpack`_.
+In addition to ``crate-jdbc`` there is also a standalone version
+named ``crate-jdbc-standalone`` which already includes its dependencies.
 
-Using Gradle
-............
+.. note:: ``crate-jdbc-standalone`` should not be used in Maven projects,
+    but might want to be used e.g. as a driver for the `Squirrel`_ SQL client.
 
-.. code-block:: groovy
+You can download the latest standalone version directly from the
+`Bintray Repository`_.
 
-    repositories {
-        ...
-        maven { url "https://jitpack.io" }
-    }
-
-    dependencies {
-        ...
-        compile 'com.github.crate:crate-jdbc:2.x'
-    }
-
-Using Maven
-...........
+If you want to use ``crate-jdbc`` with your Maven project you need to
+add the Bintray repository to your ``pom.xml``:
 
 .. code-block:: xml
 
@@ -47,28 +42,42 @@ Using Maven
     <repositories>
         ...
         <repository>
-            <id>jitpack.io</id>
-            <name>jitpack</name>
-            <url>https://jitpack.io</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>bintray</name>
+            <url>http://dl.bintray.com/crate/crate</url>
         </repository>
     </repositories>
     ...
     <dependencies>
         ...
         <dependency>
-            <groupId>com.github.crate</groupId>
+            <groupId>io.crate</groupId>
             <artifactId>crate-jdbc</artifactId>
-            <version>2.x</version>
+            <version>...</version>
         </dependency>
     </dependencies>
     ...
 
-For unreleased/development builds you can specify a commit hash instead of the
-version (``2.x``).
 
-For usage instructions of ``1.x`` versions of the JDBC driver please refer to
-previous versions of the documentation!
+Using Gradle:
 
+.. code-block:: groovy
+
+    repositories {
+        ...
+        jcenter()
+    }
+
+    dependencies {
+        compile 'io.crate:crate-jdbc:...'
+        ...
+    }
+
+Alternatively you can follow the instructions on the Bintray repository
+overview page by clicking the "Set me up!" button.
 
 JDBC Driver Class
 =================
@@ -89,7 +98,7 @@ With Crate, this takes the following form::
 
 .. note::
 
-    The pair or list of <host>:<port> pairs must always end with trailing
+    The pair or list of <host>:<psql-port> pairs must always end with trailing
     slash.
 
 The ``jdbc:`` prefix is optional. For example. To connect to a single server
@@ -110,13 +119,12 @@ pairs can be specified by delimit them using a comma::
 
 To specify a schema, the ``setSchema`` method must be explicitly called on
 the connection. If no schema is provided, the ``doc`` default schema will be
-used::
+used:
 
 .. code-block:: java
 
     Connection conn = DriverManager.getConnection("crate://localhost:5432/");
     conn.setSchema("foo");
-
 
 .. note::
 
@@ -127,7 +135,7 @@ used::
 Crate JDBC properties
 =====================
 
-Properties can be specified when connecting to Crate using the JDBC driver::
+Properties can be specified when connecting to Crate using the JDBC driver:
 
 .. code-block:: java
 
@@ -135,7 +143,7 @@ Properties can be specified when connecting to Crate using the JDBC driver::
     properties.put(<key>, <value>);
     Connection conn = DriverManager.getConnection("crate://localhost:5432/", properties);
 
-In addition connection properties can be passed via the JDBC URL::
+In addition connection properties can be passed via the JDBC URL:
 
 .. code-block:: java
 
@@ -185,12 +193,26 @@ implementations.
 Crate
 -----
 
-Crate JDBC driver ``1.x`` requires a Crate version greater or equal than ``0.38.0``
-but lower than ``0.57``. Besides using the most recent version, it is recommended
-to use the JDBC driver version whose ``crate-client`` dependency matches the
-version of Crate server.
+All versions of the JDBC driver >= 2.0.x require Crate 0.56.0 or newer.
+Previous versions of the JDBC driver (1.x) are only compatible with older
+versions of Crate.
 
-Crate JDBC driver ``2.x`` requires a Crate version greater or equal than ``0.57.0``.
+The support for versions of the JDBC driver >= 2.0.x with Crate version
+0.56.x is **experimental**. The binding between versions of the JDBC
+driver >= 2.0.x and Crate will be stable when 0.57.x of Crate is stable.
+
+Below, you can see the compatibility table for the JDBC driver
+version 2.x.x:
+
+  +---------------------+------------+-----------------------------------------------+
+  | Crate JDBC driver   | Crate      | Note                                          |
+  +=====================+============+===============================================+
+  | ``2.0.x``           | ``0.56.x`` | The **psql.enabled** must be set to **true**. |
+  |                     |            | The **prepareThreshold** property must        |
+  |                     |            | be set to **0**.                              |
+  +---------------------+------------+-----------------------------------------------+
+  | ``2.0.x``           | ``0.57.x`` |                                               |
+  +---------------------+------------+-----------------------------------------------+
 
 
 Types
@@ -280,3 +302,5 @@ defined in that object:
 .. _`PostgreSQL JDBC Driver`: https://github.com/pgjdbc/pgjdbc
 .. _`README`: https://github.com/crate/crate-jdbc/blob/master/README.rst#compatibility
 .. _`Jitpack`: https://jitpack.io/#crate/crate-jdbc/2.0
+.. _`connection string`: https://jdbc.postgresql.org/documentation/80/connect.html
+.. _`Bintray Repository`: https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone
