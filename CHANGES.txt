@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Updated Crate client to 0.56.3
+
  - Updated Crate JDBC metadata method supportsAlterTableWithAddColumn
    to reflect the current state of Crate.
 
