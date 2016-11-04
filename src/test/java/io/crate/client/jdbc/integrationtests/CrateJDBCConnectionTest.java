@@ -538,6 +538,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
         result.next();
         assertThat(result.getString(1), is("information_schema"));
         result.next();
+        assertThat(result.getString(1), is("pg_catalog"));
+        result.next();
         assertThat(result.getString(1), is("sys"));
     }
 

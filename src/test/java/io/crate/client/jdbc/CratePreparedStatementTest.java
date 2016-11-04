@@ -71,8 +71,7 @@ public class CratePreparedStatementTest extends AbstractCrateJDBCTest {
         } else {
             SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[request.bulkArgs().length];
             Arrays.fill(results, new SQLBulkResponse.Result(null, 4));
-            return new SQLBulkResponse(new String[0], results,
-                    System.currentTimeMillis(), new DataType[0], true);
+            return new SQLBulkResponse(results, System.currentTimeMillis());
         }
     }
 
