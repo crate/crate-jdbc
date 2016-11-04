@@ -22,7 +22,6 @@
 package io.crate.client.jdbc.integrationtests;
 
 import io.crate.client.CrateClient;
-import io.crate.client.InternalCrateClient;
 import io.crate.client.jdbc.CrateConnection;
 import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.org.elasticsearch.client.transport.TransportClientNodesService;
@@ -83,13 +82,9 @@ public class CrateJDBCMultiServerTest extends CrateJDBCIntegrationTest {
     }
 
     private void verifyAddresses(CrateClient client) throws NoSuchFieldException, IllegalAccessException {
-        Field internalClient = CrateClient.class.getDeclaredField("internalClient");
-        internalClient.setAccessible(true);
-        InternalCrateClient internalCrateClient = (InternalCrateClient) internalClient.get(client);
-
-        Field nodesService = InternalCrateClient.class.getDeclaredField("nodesService");
+        Field nodesService = CrateClient.class.getDeclaredField("nodesService");
         nodesService.setAccessible(true);
-        TransportClientNodesService transportClientNodesService = (TransportClientNodesService) nodesService.get(internalCrateClient);
+        TransportClientNodesService transportClientNodesService = (TransportClientNodesService) nodesService.get(client);
         assertThat(transportClientNodesService.transportAddresses().size(), is(2));
     }
 }
