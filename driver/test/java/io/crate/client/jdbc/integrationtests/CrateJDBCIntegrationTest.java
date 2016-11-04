@@ -34,20 +34,25 @@ import org.junit.rules.ExpectedException;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class CrateJDBCIntegrationTest extends RandomizedTest {
-
-    private static final String CRATE_SERVER_VERSION = "0.57.0";
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @ClassRule
     public static CrateTestCluster testCluster = CrateTestCluster
-        .fromVersion(CRATE_SERVER_VERSION)
+        .fromVersion(getRandomServerVersion())
         .keepWorkingDir(false)
         .build();
+
+    private static String getRandomServerVersion() {
+        String[] crateVersions = new String[]{"0.56.0", "0.57.0", "0.56.1"};
+        Random r = new Random();
+        return crateVersions[r.nextInt(crateVersions.length)];
+    }
 
     @AfterClass
     public static void tearDown() throws Exception {
