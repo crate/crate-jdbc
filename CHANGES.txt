@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2016/11/04 2.0.0
+================
+
  - BREAKING:
 
    - Removed Crate client from the Crate JDBC driver. The driver uses the
