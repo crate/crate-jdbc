@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Fixed packaging issue which caused the inccorect resolution of the
+   transitive dependencies.
+
 2016/11/04 2.0.0
 ================
 

@@ -3,8 +3,9 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '1.2.3'
 }
 
-allprojects {
+group = "io.crate"
 
+allprojects {
     apply plugin: 'idea'
     apply plugin: 'java'
     apply plugin: 'maven'
@@ -16,13 +17,6 @@ allprojects {
 
     sourceCompatibility = "1.7"
     targetCompatibility = "1.7"
-
-}
-
-group = "io.crate"
-
-repositories {
-    mavenCentral()
 }
 
 dependencies {
@@ -246,6 +240,18 @@ uploadArchives {
             MavenPom pomJdbc = addFilter('crate-jdbc') {artifact, file ->
                 artifact.name == 'crate-jdbc'
             }
+
+            pomJdbc.whenConfigured { pom ->
+                pom.dependencies.clear()
+                subprojects.findAll().each {
+                    if (it.hasProperty('install')) {
+                        pom.dependencies.addAll(
+                            it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll()
+                        )
+                    }
+                }
+            }
+
             pomJdbc.project {
                 artifactId 'crate-jdbc'
                 name 'crate-jdbc'
