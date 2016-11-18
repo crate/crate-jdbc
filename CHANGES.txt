@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Fixed the issue which caused `getSchemas` and `getPrimaryKeys` to fail in
+   Crate versions higher than 0.57.
+
 2016/11/07 2.0.1
 ================
 
