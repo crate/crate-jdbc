@@ -37,13 +37,13 @@ Clone the repo::
   git clone https://github.com/crate/crate-jdbc
   cd crate-jdbc
 
-and build a JAR including all dependencies::
+and build a JAR::
 
    ./gradlew jar
 
-or::
+or build a jar including all dependencies::
 
-   ./gradlew shadowJar
+   ./gradlew standaloneJar
 
 Afterwards a JAR file of the current version exists under ``build/lib``.
 

@@ -1,7 +1,14 @@
-plugins {
-    id 'signing'
-    id 'com.github.johnrengelman.shadow' version '1.2.3'
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+    }
 }
+
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 group = "io.crate"
 
@@ -9,6 +16,7 @@ allprojects {
     apply plugin: 'idea'
     apply plugin: 'java'
     apply plugin: 'maven'
+    apply plugin: 'signing'
 
     repositories {
         mavenCentral()
@@ -67,24 +75,38 @@ task getVersion(dependsOn: [classes]) << {
     logger.quiet("version: " + version)
 }
 
-jar.dependsOn(dependsOn: [getVersion])
-jar {
+task shadedJar(type: ShadowJar, dependsOn: [getVersion]) {
     baseName 'crate-jdbc'
+    classifier ''
+    duplicatesStrategy 'fail'
+    configurations = [project.configurations.compile]
+    dependencies {
+        include(project(':pg'))
+    }
     doFirst {
         from sourceSets.main.output
-        from project(':pg').sourceSets.main.output
     }
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate.IO JDBC Driver", "Implementation-Version": project.version)
         }
     }
+    relocate 'org.postgresql', 'io.crate.shade.org.postgresql'
 }
 
-shadowJar {
+jar.dependsOn(dependsOn: [shadedJar])
+jar {
+    actions = [] // Do nothing, build shadedJar instead
+}
+
+task standaloneJar(type: ShadowJar, dependsOn: [getVersion]) {
     baseName 'crate-jdbc-standalone'
     classifier ''
     duplicatesStrategy 'fail'
+    configurations = [project.configurations.compile]
+    doFirst {
+        from sourceSets.main.output
+    }
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)", "Implementation-Version": project.version)
@@ -105,7 +127,7 @@ task buildJar(type: Jar, dependsOn: [getVersion, classes]) {
     doLast {
         ext.version = getVersion.version
         project.version = ext.version
-        tasks.shadowJar.execute()
+        tasks.standaloneJar.execute()
     }
 }
 tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
@@ -175,18 +197,18 @@ task buildSourceJarStandalone (dependsOn: [getVersion] ) << {
 
 artifacts {
     archives jar
-    archives shadowJar
+    archives standaloneJar
     archives javadocJar
     archives javadocJarStandalone
     archives sourceJar
     archives sourceJarStandalone
 }
 
-task signJars (type : Sign, dependsOn: [jar, shadowJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
+task signJars (type : Sign, dependsOn: [jar, standaloneJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
     sign configurations.archives
 }
 
-install.dependsOn([jar, shadowJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
+install.dependsOn([jar, standaloneJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
 install {
     repositories {
         mavenInstaller {

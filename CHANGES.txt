@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - shaded pgsql sources to avoid dependency conflicts in projects which are
+   depending on crate jdbc and postgresql jdbc driver
+
  - Fixed the issue which caused `getSchemas` and `getPrimaryKeys` to fail in
    Crate versions higher than 0.57.
 
