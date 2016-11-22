@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2016/11/22 2.1.0
+================
+
  - shaded pgsql sources to avoid dependency conflicts in projects which are
    depending on crate jdbc and postgresql jdbc driver
 
