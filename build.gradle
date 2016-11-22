@@ -96,6 +96,7 @@ task shadedJar(type: ShadowJar, dependsOn: [getVersion]) {
 
 jar.dependsOn(dependsOn: [shadedJar])
 jar {
+    baseName 'crate-jdbc'
     actions = [] // Do nothing, build shadedJar instead
 }
 
@@ -196,7 +197,7 @@ task buildSourceJarStandalone (dependsOn: [getVersion] ) << {
 }
 
 artifacts {
-    archives jar
+    archives shadedJar
     archives standaloneJar
     archives javadocJar
     archives javadocJarStandalone
@@ -204,11 +205,11 @@ artifacts {
     archives sourceJarStandalone
 }
 
-task signJars (type : Sign, dependsOn: [jar, standaloneJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
+task signJars (type : Sign, dependsOn: [shadedJar, standaloneJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
     sign configurations.archives
 }
 
-install.dependsOn([jar, standaloneJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
+install.dependsOn([shadedJar, standaloneJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
 install {
     repositories {
         mavenInstaller {
