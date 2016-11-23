@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Fix: In some cases the jdbc driver added a ``RETURNING`` clause
+   to insert statements which are not supported by CrateDB
+
 2016/11/22 2.1.0
 ================
 
