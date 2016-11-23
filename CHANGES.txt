@@ -5,8 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
- - Fix: In some cases the jdbc driver added an unsupported ``RETURNING`` clause
-   to ``insert``, ``update`` and ``delete`` statements
+ - Fix: usage of unsupported features like ``executeUpdate`` with return
+   columns was not catched properly
 
 2016/11/22 2.1.0
 ================
