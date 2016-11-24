@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2016/11/24 2.1.1
+================
+
  - Fix: usage of unsupported features like ``executeUpdate`` with return
    columns was not caught properly
 
