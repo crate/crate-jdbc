@@ -10,6 +10,9 @@ Unreleased
    This is important if you use both the PostgreSQL and CrateDB JDBC driver in
    the same application.
 
+2016/11/24 2.1.1
+================
+
  - Fix: usage of unsupported features like ``executeUpdate`` with return
    columns was not caught properly
 
