@@ -69,13 +69,25 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
     }
 
     @Test
+    public void testDriverRegistrationDoesNotOverridePostgres() throws Exception {
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage(
+                containsString(String.format("No suitable driver found for %s", "jdbc:postgresql://" + hostAndPort + "/")));
+        DriverManager.getConnection("jdbc:postgresql://" + hostAndPort + "/");
+    }
+
+    @Test
     public void testAccepts() throws Exception {
         assertThat(driver.acceptsURL("crate://"), is(true));
         assertThat(driver.acceptsURL("crate://localhost/foo"), is(true));
         assertThat(driver.acceptsURL("crate:///foo"), is(true));
         assertThat(driver.acceptsURL("jdbc:crate://"), is(true));
-        assertThat(driver.acceptsURL("crt://"), is(false));
+
+        assertThat(driver.acceptsURL("cr8://"), is(false));
+        assertThat(driver.acceptsURL("mysql://"), is(false));
         assertThat(driver.acceptsURL("jdbc:mysql://"), is(false));
+        assertThat(driver.acceptsURL("postgres://"), is(false));
+        assertThat(driver.acceptsURL("jdbc:postgres://"), is(false));
     }
 
     private void assertInstanceOfCrateConnection(String connString, Properties prop) throws SQLException {
