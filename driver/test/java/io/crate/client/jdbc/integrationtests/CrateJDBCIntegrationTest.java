@@ -30,6 +30,7 @@ import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
+import org.postgresql.jdbc.PgDatabaseMetaData;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -38,6 +39,8 @@ import java.util.Random;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class CrateJDBCIntegrationTest extends RandomizedTest {
+
+    private static String[] CRATE_VERSIONS = new String[]{"0.56.4", "0.57.6", "1.0.1"};
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -49,13 +52,16 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
         .build();
 
     private static String getRandomServerVersion() {
-        String[] crateVersions = new String[]{"0.56.0", "0.57.0", "0.56.1"};
+        String version = System.getenv().get("CRATE_VERSION");
+        if (version != null) {
+            return version;
+        }
         Random r = new Random();
-        return crateVersions[r.nextInt(crateVersions.length)];
+        return CRATE_VERSIONS[r.nextInt(CRATE_VERSIONS.length)];
     }
 
     @AfterClass
-    public static void tearDown() throws Exception {
+    public static void tearDown() {
         tearDownTables();
     }
 
@@ -64,17 +70,20 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
         return String.format("crate://%s:%s/", server.crateHost(), server.psqlPort());
     }
 
-    private static void tearDownTables() throws SQLException {
+    private static void tearDownTables() {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
+            PgDatabaseMetaData metaData = (PgDatabaseMetaData) conn.getMetaData();
+            String schema_column = metaData.getCrateVersion().before("0.57.0") ? "schema_name" : "table_schema";
             ResultSet rs = conn.createStatement()
-                .executeQuery("select schema_name, table_name " +
-                              "from information_schema.tables where schema_name " +
+                .executeQuery("select " + schema_column + ", table_name " +
+                              "from information_schema.tables where " + schema_column + " " +
                               "not in ('pg_catalog', 'sys', 'information_schema', 'blob')");
             while (rs.next()) {
                 conn.createStatement().execute(String.format(
-                    "drop table if exists \"%s\".\"%s\"", rs.getString("schema_name"), rs.getString("table_name")
+                    "drop table if exists \"%s\".\"%s\"", rs.getString(schema_column), rs.getString("table_name")
                 ));
             }
+        } catch (Exception ignore) {
         }
     }
 
