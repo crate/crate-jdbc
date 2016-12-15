@@ -85,7 +85,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             assertThat(resultSet.getLong(1), is(1L));
 
             resultSet = statement.executeQuery(
-                "select collect_set(schema_name) from information_schema.tables where table_name = 't'");
+                "select collect_set(table_schema) from information_schema.tables where table_name = 't'");
             resultSet.next();
 
             Object[] objects = (Object[]) resultSet.getObject(1);
@@ -98,7 +98,6 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     }
 
     @Test
-    @Ignore("set/get schema is not implemented")
     public void testConnectionWithCustomSchemaPrepareStatement() throws Exception {
         String schemaName = "my";
         String tableName = "test_a";
@@ -123,8 +122,8 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             assertThat(rSet2.next(), is(true)); // there should be a result
             assertThat(rSet2.getInt(1), is(42));
             assertThat(rSet2.getString(2), is("testing"));
-            pstmt = conn.prepareStatement("select schema_name, table_name from information_schema.tables " +
-                                          "where schema_name = ? and table_name = ?");
+            pstmt = conn.prepareStatement("select table_schema, table_name from information_schema.tables " +
+                                          "where table_schema = ? and table_name = ?");
             pstmt.setString(1, schemaName);
             pstmt.setString(2, tableName);
             assertThat(pstmt.execute(), is(true)); // there should be a return value
@@ -138,7 +137,6 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     }
 
     @Test
-    @Ignore("set/get schema is not implemented")
     public void testConnectionWithCustomSchemaBatchPrepareStatement() throws Exception {
         String schemaName = "my";
         String tableName = "test_b";
