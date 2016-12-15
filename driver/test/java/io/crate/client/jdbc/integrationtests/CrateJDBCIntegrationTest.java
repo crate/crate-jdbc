@@ -34,7 +34,6 @@ import org.junit.rules.ExpectedException;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class CrateJDBCIntegrationTest extends RandomizedTest {
@@ -44,15 +43,9 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
 
     @ClassRule
     public static CrateTestCluster testCluster = CrateTestCluster
-        .fromVersion(getRandomServerVersion())
+        .fromVersion("1.0.1")
         .keepWorkingDir(false)
         .build();
-
-    private static String getRandomServerVersion() {
-        String[] crateVersions = new String[]{"0.56.0", "0.57.0", "0.56.1"};
-        Random r = new Random();
-        return crateVersions[r.nextInt(crateVersions.length)];
-    }
 
     @AfterClass
     public static void tearDown() throws Exception {
@@ -67,12 +60,12 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
     private static void tearDownTables() throws SQLException {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             ResultSet rs = conn.createStatement()
-                .executeQuery("select schema_name, table_name " +
-                              "from information_schema.tables where schema_name " +
+                .executeQuery("select table_schema, table_name " +
+                              "from information_schema.tables where table_schema " +
                               "not in ('pg_catalog', 'sys', 'information_schema', 'blob')");
             while (rs.next()) {
                 conn.createStatement().execute(String.format(
-                    "drop table if exists \"%s\".\"%s\"", rs.getString("schema_name"), rs.getString("table_name")
+                    "drop table if exists \"%s\".\"%s\"", rs.getString("table_schema"), rs.getString("table_name")
                 ));
             }
         }
