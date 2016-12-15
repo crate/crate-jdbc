@@ -39,7 +39,7 @@ public class CrateDriver extends Driver {
 
     static {
         try {
-            deregister();
+            Driver.deregister();
             assert !isRegistered() : "The PostgreSQL driver is registered.";
             DriverManager.registerDriver(new CrateDriver());
         } catch (SQLException e) {
@@ -54,6 +54,8 @@ public class CrateDriver extends Driver {
     public Connection connect(String url, Properties info) throws SQLException {
         if (url.startsWith(PREFIX)) {
             url = String.format("%s:%s", PROTOCOL, url);
+        } else if (!url.startsWith(LONG_PREFIX)) {
+            return null;
         }
         url = url.replace(CRATE_PROTOCOL, PSQL_PROTOCOL);
         return super.connect(url, info);
