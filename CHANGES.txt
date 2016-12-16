@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2016/12/16 2.1.2
+================
+
  - Fix: Do not allow connection strings that start with ``postgresql://`` or
    ``jdbc:postgresql://``
    This is important if you use both the PostgreSQL and CrateDB JDBC driver in
