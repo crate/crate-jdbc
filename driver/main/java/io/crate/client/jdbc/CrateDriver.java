@@ -32,10 +32,14 @@ import java.util.Properties;
 public class CrateDriver extends Driver {
 
     private static final String PROTOCOL = "jdbc";
-    private static final String PSQL_PROTOCOL = "postgresql";
+
     private static final String CRATE_PROTOCOL = "crate";
-    private static final String PREFIX = CRATE_PROTOCOL + ":" + "//";
-    private static final String LONG_PREFIX = PROTOCOL + ":" + CRATE_PROTOCOL + ":" + "//";
+    private static final String CRATE_PREFIX = CRATE_PROTOCOL + ":" + "//";
+    private static final String CRATE_PREFIX_LONG = PROTOCOL + ":" + CRATE_PREFIX;
+
+    private static final String PSQL_PROTOCOL = "postgresql";
+    private static final String PSQL_PREFIX = PSQL_PROTOCOL + ":" + "//";
+    private static final String PSQL_PREFIX_LONG = PROTOCOL + ":" + PSQL_PREFIX;
 
     static {
         try {
@@ -52,18 +56,32 @@ public class CrateDriver extends Driver {
 
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
-        if (url.startsWith(PREFIX)) {
-            url = String.format("%s:%s", PROTOCOL, url);
-        } else if (!url.startsWith(LONG_PREFIX)) {
+        if (!acceptsURL(url)) {
             return null;
         }
-        url = url.replace(CRATE_PROTOCOL, PSQL_PROTOCOL);
-        return super.connect(url, info);
+        String psqlUrl = processURL(url);
+        if (psqlUrl == null) {
+            return null;
+        }
+        return super.connect(psqlUrl, info);
+    }
+
+    /*
+     * Convert crate:// or jdbc:crate:// URL to jdbc:postgresql:// URL
+     * Returns null if URL is invalid.
+     */
+    static String processURL(String url) {
+        if (url.startsWith(CRATE_PREFIX)) {
+            url = String.format("%s:%s", PROTOCOL, url);
+        } else if (!url.startsWith(CRATE_PREFIX_LONG)) {
+            return null;
+        }
+        return url.replace(CRATE_PREFIX_LONG, PSQL_PREFIX_LONG);
     }
 
     @Override
     public boolean acceptsURL(String url) {
-        return url.startsWith(PREFIX) || url.startsWith(LONG_PREFIX);
+        return url.startsWith(CRATE_PREFIX) || url.startsWith(CRATE_PREFIX_LONG);
     }
 
     @Override
