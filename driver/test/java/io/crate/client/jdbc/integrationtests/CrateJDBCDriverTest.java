@@ -76,20 +76,6 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
         DriverManager.getConnection("jdbc:postgresql://" + hostAndPort + "/");
     }
 
-    @Test
-    public void testAccepts() throws Exception {
-        assertThat(driver.acceptsURL("crate://"), is(true));
-        assertThat(driver.acceptsURL("crate://localhost/foo"), is(true));
-        assertThat(driver.acceptsURL("crate:///foo"), is(true));
-        assertThat(driver.acceptsURL("jdbc:crate://"), is(true));
-
-        assertThat(driver.acceptsURL("cr8://"), is(false));
-        assertThat(driver.acceptsURL("mysql://"), is(false));
-        assertThat(driver.acceptsURL("jdbc:mysql://"), is(false));
-        assertThat(driver.acceptsURL("postgres://"), is(false));
-        assertThat(driver.acceptsURL("jdbc:postgres://"), is(false));
-    }
-
     private void assertInstanceOfCrateConnection(String connString, Properties prop) throws SQLException {
         try (Connection conn = driver.connect(connString, prop)) {
             assertThat(conn, instanceOf(PGConnection.class));

@@ -5,6 +5,11 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Replace only first occurrence of ``crate`` in connection string (as part of
+   the protocol) when passed to PostgreSQL driver ``connect()`` implementation.
+   This could have caused a connection error in case ``crate`` was part of the
+   hostname.
+
 2016/12/16 2.1.2
 ================
 
