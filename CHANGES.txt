@@ -5,6 +5,11 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Re-implemented Connection#getMoreResults() method which is used by 3rd party
+   application to check whether more than one ResultSet is returned.
+   Since CrateDB does not support multiple results, this method will always
+   return false.
+
 2016/01/09 2.1.3
 ================
 

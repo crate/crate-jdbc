@@ -56,12 +56,6 @@ public class CrateJDBCUnsupportedFeaturesTest extends CrateJDBCIntegrationTest {
         connection.createStatement().executeUpdate("insert into test (id, name) values (3, 'hello')", new String[]{"id", "name"});
     }
 
-    @Test
-    public void testGetMoreResults() throws SQLException {
-        expectUnsupportedFeature("Statement: getMoreResults not supported");
-        connection.createStatement().getMoreResults();
-    }
-
     private void expectUnsupportedFeature(String errorMessage) {
         expectedException.expect(SQLFeatureNotSupportedException.class);
         expectedException.expectMessage(errorMessage);
