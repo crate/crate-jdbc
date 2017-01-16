@@ -358,4 +358,18 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             assertThat(conn.createStatement().execute("select 1 from sys.cluster"), is(true));
         }
     }
+
+    @Test
+    public void testGetMoreResults() throws Exception {
+        /**
+         * getMoreResults() always returns false, because CrateDB does not support multiple result sets.
+         * In Postgres multiple result sets may occur when executing multiple statements (separated by ;) or when
+         * calling stored procedures.
+         */
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            Statement stmt = conn.createStatement();
+            assertTrue(stmt.execute("select name from sys.nodes"));
+            assertFalse(stmt.getMoreResults());
+        }
+    }
 }
