@@ -5,6 +5,10 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Allow setting autocommit to false in non-strict mode.
+   Autocommit must be false otherwise ``setFetchSize()`` on the statement does
+   not have any effect and all rows are fetched at once.
+
 2017/01/20 2.1.4
 ================
 

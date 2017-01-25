@@ -46,7 +46,7 @@ public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
         Connection connection = DriverManager.getConnection(connectionString);
 
         connection.setAutoCommit(false);
-        assertThat(connection.getAutoCommit(), is(true));
+        assertThat(connection.getAutoCommit(), is(false));
 
         connection.setAutoCommit(true);
         assertThat(connection.getAutoCommit(), is(true));
@@ -89,7 +89,7 @@ public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
     public void testSetAutoCommitToFalseStrictTrue() throws SQLException {
         try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
             expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("The auto-commit mode cannot be disabled. The Crate JDBC driver does not support manual commit.");
+            expectedException.expectMessage("The auto-commit mode cannot be disabled in strict mode. The Crate JDBC driver does not support manual commit.");
             connection.setAutoCommit(false);
         }
     }
