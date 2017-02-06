@@ -5,6 +5,11 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Changed the assumeMinServerVersion default to "9.5", because CrateDB
+   emulates Postgres version 9.5.
+   This change eliminates initial SET SESSION statements which are ignored
+   on the server-side anyway.
+
 2017/02/01 2.1.5
 ================
 
