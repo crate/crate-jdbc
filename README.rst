@@ -34,7 +34,7 @@ Build JAR from source
 
 Clone the repo::
 
-  git clone https://github.com/crate/crate-jdbc
+  git clone --recursive https://github.com/crate/crate-jdbc
   cd crate-jdbc
 
 and build a JAR::
