@@ -222,7 +222,7 @@ JDBC maps SQL types to POJOs. While this mapping is straightforward
 for some crate types, for some it is not. This table shows how the crate types
 are mapped by JDBC and how they should be fetched from a ``ResultSet`` instance:
 
-.. csv-table:: Frozen Delights!
+.. csv-table:: Types
    :header: "Crate type", "PostgreSQL Type", "JDBC type", "ResultSet method used to get a value"
 
    "boolean", "bool", "BOOLEAN", "``getBoolean``"
@@ -235,9 +235,9 @@ are mapped by JDBC and how they should be fetched from a ``ResultSet`` instance:
    "string", "varchar", "VARCHAR", "``getString``"
    "timestamp", "timestamp", "TIMESTAMP", "``getDate``, ``getTime``, ``getTimestamp``"
    "ip", "varchar", "VARCHAR", "``getString``"
-   "array", "", "ARRAY", "``getArray``"
-   "geo_point", "point", "JAVA_OBJECT", "``getObject``"
-   "geo_shape", "polygon", "JAVA_OBJECT", "``getObject``"
+   "array", "array", "ARRAY", "``getArray``"
+   "geo_point", "array", "ARRAY", "``getArray``"
+   "geo_shape", "json", "JAVA_OBJECT", "``getObject``"
    "object", "json", "JAVA_OBJECT", "``getObject``"
 
 Array Types
