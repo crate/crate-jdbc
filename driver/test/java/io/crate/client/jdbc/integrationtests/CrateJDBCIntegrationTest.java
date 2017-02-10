@@ -102,7 +102,9 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
                 " double_field double," +
                 " timestamp_field timestamp," +
                 " object_field object as (\"inner\" string)," +
-                " ip_field ip" +
+                " ip_field ip," +
+                " geo_point_field geo_point," +
+                " geo_shape_field geo_shape" +
                 ") clustered by (id) into 1 shards with (number_of_replicas=0)");
         }
         ensureYellow();
@@ -116,8 +118,8 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
             PreparedStatement preparedStatement =
                 conn.prepareStatement("insert into test (id, string_field, boolean_field, byte_field, " +
                                       "short_field, integer_field, long_field, float_field, double_field, object_field, " +
-                                      "timestamp_field, ip_field) values " +
-                                      "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                      "timestamp_field, ip_field, geo_point_field, geo_shape_field) values " +
+                                      "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             preparedStatement.setInt(1, 1);
             preparedStatement.setString(2, "Youri");
             preparedStatement.setBoolean(3, true);
@@ -130,6 +132,8 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
             preparedStatement.setObject(10, objectField);
             preparedStatement.setTimestamp(11, new Timestamp(1000L));
             preparedStatement.setString(12, "127.0.0.1");
+            preparedStatement.setArray(13, conn.createArrayOf("double", new Double[]{9.7419021d, 47.4048045d}));
+            preparedStatement.setString(14, "POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))");
             preparedStatement.execute();
             conn.createStatement().execute("refresh table test");
         }

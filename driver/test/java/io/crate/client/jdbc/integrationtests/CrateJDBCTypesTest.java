@@ -1,12 +1,16 @@
 package io.crate.client.jdbc.integrationtests;
 
 import org.hamcrest.Matchers;
+import org.hamcrest.core.Is;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.jdbc.PgResultSet;
+import org.postgresql.util.PGobject;
 
 import java.sql.*;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -153,6 +157,40 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
         assertThat(resultSet, instanceOf(PgResultSet.class));
         assertThat(resultSet.next(), is(true));
         assertThat(resultSet.getString("ip_field"), is("127.0.0.1"));
+    }
+
+    @Test
+    public void testSelectGeoPoint() throws Exception {
+        ResultSet resultSet = connection.createStatement().executeQuery("select geo_point_field from test");
+        assertThat(resultSet, instanceOf(PgResultSet.class));
+        assertThat(resultSet.next(), is(true));
+        assertThat((Double[]) resultSet.getArray("geo_point_field").getArray(), Matchers.arrayContaining(9.7419021d, 47.4048045d));
+    }
+
+    @Test
+    public void testSelectGeoShape() throws Exception {
+        ResultSet resultSet = connection.createStatement().executeQuery("select geo_shape_field from test");
+        assertThat(resultSet, instanceOf(PgResultSet.class));
+        assertThat(resultSet.next(), is(true));
+        assertThat((Map) resultSet.getObject("geo_shape_field"), Is.<Map>is(new HashMap<String, Object>(){{
+            put("coordinates", Collections.singletonList(
+                    Arrays.asList(
+                            Arrays.asList(30.0, 10.0),
+                            Arrays.asList(40.0, 40.0),
+                            Arrays.asList(20.0, 40.0),
+                            Arrays.asList(10.0, 20.0),
+                            Arrays.asList(30.0, 10.0)
+                    )
+            ));
+            put("type", "Polygon");
+        }
+        }));
+        assertThat(resultSet.getObject("geo_shape_field", PGobject.class).getValue(),
+                Matchers.allOf(
+                        Matchers.containsString("\"type\":\"Polygon\""),
+                        Matchers.containsString("\"coordinates\":[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]")
+                )
+        );
     }
 
     @Test
