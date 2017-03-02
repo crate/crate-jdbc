@@ -87,6 +87,8 @@ method, e.g.::
 
     Connection conn = DriverManager.getConnection("crate://localhost:5432/");
 
+The driver class is ``io.crate.client.jdbc.CrateDriver``.
+
 JDBC URL Format
 ===============
 
