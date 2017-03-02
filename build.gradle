@@ -120,6 +120,7 @@ task standaloneJar(type: ShadowJar, dependsOn: [getVersion]) {
     relocate 'waffle', 'io.crate.shade.waffle'
     relocate 'com.sun.jna', 'io.crate.shade.com.sun.jna'
     relocate 'org.slf4j', 'io.crate.shade.org.slf4j'
+    relocate 'org.apache', 'io.crate.shade.org.apache'
     relocate 'org.osgi', 'io.crate.shade.org.osgi'
     relocate 'com.google', 'io.crate.shade.com.google'
 }
