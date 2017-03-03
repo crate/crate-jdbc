@@ -2,11 +2,14 @@
 Changes for Crate Data JDBC Client
 ==================================
 
- - Fix: Also shade ``org.apache`` packages in standalone jar to prevent
-   collisions.
-
 Unreleased
 ==========
+
+2017/03/03 2.1.6
+================
+
+ - Fix: Also shade ``org.apache`` packages in standalone jar to prevent
+   collisions.
 
 2017/02/01 2.1.5
 ================
