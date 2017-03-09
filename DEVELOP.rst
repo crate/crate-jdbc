@@ -1,44 +1,48 @@
-===========
-DEVELOPMENT
-===========
+===============
+Developer Guide
+===============
 
-Build
-=====
+Building
+========
 
-This project uses Gradle_ as build tool. It can be invoked by
-executing ``./gradlew``. The first time this command is executed it is
-bootstrapped automatically, therefore there is no need to install
-gradle on the system.
+This project uses Gradle_ as build tool.
+
+Gradle can be invoked like so::
+
+    $ ./gradlew
+    
+The first time this command is executed, Gradle is downloaded and bootstrapped
+for you automatically.
 
 Testing
 =======
 
-Unit tests are run like this::
+Run the unit tests like so::
 
-  ./gradlew test
+    $ ./gradlew test
 
-Build and Upload
-================
+Preparing a Release
+===================
 
-Before creating a new distribution, a new version and tag must be created:
+To create a new release, you must:
 
- - Add a new version to the ``io.crate.client.jdbc.CrateDriverVersion`` class.
+- Add a new version to the ``io.crate.client.jdbc.CrateDriverVersion`` class
 
- - Point the CURRENT version in that class to the newly added version.
+- Point the ``CURRENT`` version in that class to the newly added version
 
- - Add a note for the new version at the ``CHANGES.txt`` file.
+- Add a note for the new version at the ``CHANGES.txt`` file
 
- - Commit e.g. using message 'prepare release x.x.x'.
+- Commit your changes with a message like "prepare release x.x.x"
 
- - Tag commit using the ``./devtools/create_tag.sh`` script.
+- Push to origin
+ 
+- Create a tag by running ``./devtools/create_tag.sh``
 
- - Push to origin
+At this point, Jenkins will take care of building and uploading the release to
+the Maven repository.
 
-Now everything is ready for building a new distribution, either
-manually or let jenkins do the job as usual :-)
+However, if you'd like to do this manually, you can run::
 
-Building a signed jar and uploading to maven repository
-is done by gradle with the command::
+    $ ./gradlew uploadArchives
 
-    ./gradlew uploadArchives
-
+.. _Gradle: https://gradle.org/
