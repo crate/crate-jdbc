@@ -10,7 +10,7 @@ This project uses Gradle_ as build tool.
 Gradle can be invoked like so::
 
     $ ./gradlew
-    
+
 The first time this command is executed, Gradle is downloaded and bootstrapped
 for you automatically.
 
@@ -34,8 +34,8 @@ To create a new release, you must:
 
 - Commit your changes with a message like "prepare release x.x.x"
 
-- Push to origin
- 
+ - Push to ``origin/master``
+
 - Create a tag by running ``./devtools/create_tag.sh``
 
 At this point, Jenkins will take care of building and uploading the release to
