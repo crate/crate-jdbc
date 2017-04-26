@@ -220,4 +220,14 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
         assertThat(rs.getString("COLUMN_NAME"), is("id2"));
         connection.createStatement().execute("drop table t_multi_pks");
     }
+
+    @Test
+    public void testUnsupportedMethodWithEmptyImpl() throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet rs = metaData.getPseudoColumns("", "doc", "information_schema", "pg_catalog");
+        assertThat(rs.getMetaData().getColumnCount(), is(12));
+        assertThat(rs.getMetaData().getColumnName(1), is("TABLE_CAT"));
+        // The empty result doesn't contain any rows
+        assertThat(rs.next(), is(false));
+    }
 }
