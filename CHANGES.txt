@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2017/04/27 2.1.7
+================
+
  - Fix: Unsupported DatabaseMetaData methods returned a row with all values set
    to ``null`` instead of an empty result with no rows at all.
 
