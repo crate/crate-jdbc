@@ -5,13 +5,16 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
- - Fix: Unsupported DatabaseMetaData methods returned a row with all values set
-   to ``null`` instead of an empty result with no rows at all.
-
  - Changed the assumeMinServerVersion default to "9.5", because CrateDB
    emulates Postgres version 9.5.
    This change eliminates initial SET SESSION statements which are ignored
    on the server-side anyway.
+
+2017/04/27 2.1.7
+================
+
+ - Fix: Unsupported DatabaseMetaData methods returned a row with all values set
+   to ``null`` instead of an empty result with no rows at all.
 
 2017/03/03 2.1.6
 ================
