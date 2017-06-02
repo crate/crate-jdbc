@@ -5,6 +5,10 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Getting table/column metadata now retrieves the information from CrateDB's
+   ``information_schema.tables`` and ``information_schema.columns`` tables
+   for all SQL99 compliant fields.
+
  - Changed the assumeMinServerVersion default to "9.5", because CrateDB
    emulates Postgres version 9.5.
    This change eliminates initial SET SESSION statements which are ignored
