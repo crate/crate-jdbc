@@ -38,12 +38,28 @@ To create a new release, you must:
 
 - Create a tag by running ``./devtools/create_tag.sh``
 
+- Archive docs for old releases (see section below)
+
 At this point, Jenkins will take care of building and uploading the release to
 the Maven repository.
 
 However, if you'd like to do this manually, you can run::
 
     $ ./gradlew uploadArchives
+
+Archiving Docs Versions
+-----------------------
+
+Check the `versions hosted on ReadTheDocs`_.
+
+We should only be hosting the docs for `latest`, `stable`, and the most recent
+patch versions for the last two minor releases.
+
+Sometimes you might find that there are multiple older releases that need to be
+archived.
+
+You can archive releases by selecting *Edit*, unselecting the *Active*
+checkbox, and then saving.
 
 Writing Documentation
 =====================
@@ -70,3 +86,4 @@ nothing special you need to do to get the live docs to update.
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Sphinx: http://sphinx-doc.org/
 .. _Read the Docs: http://readthedocs.org/
+.. _versions hosted on ReadTheDocs: https://readthedocs.org/projects/crate-jdbc/versions/
