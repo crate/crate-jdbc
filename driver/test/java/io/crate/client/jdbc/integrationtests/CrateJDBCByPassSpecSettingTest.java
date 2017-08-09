@@ -30,6 +30,8 @@ import java.util.Properties;
 
 import static org.hamcrest.Matchers.is;
 
+import org.postgresql.util.PSQLException;
+
 public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
 
     private static Properties strictProperties = new Properties();
@@ -54,7 +56,7 @@ public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
     }
 
     @Test
-    public void tesCommitStrictFalse() throws SQLException {
+    public void testCommitStrictFalse() throws SQLException {
         Connection connection = DriverManager.getConnection(connectionString);
         connection.commit();
         assertThat(connection.getAutoCommit(), is(true));
@@ -139,4 +141,100 @@ public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
             connection.rollback();
         }
     }
+
+    @Test
+    public void testSupportsTransactionsStrictFalse() throws SQLException {
+        Connection connection = DriverManager.getConnection(connectionString);
+        DatabaseMetaData metadata = connection.getMetaData();
+        assertThat(metadata.supportsTransactions(), is (true));
+        connection.close();
+    }
+
+    @Test
+    public void testSupportsTransactionsStrictTrue() throws SQLException {
+        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
+        DatabaseMetaData metadata = connection.getMetaData();
+        assertThat(metadata.supportsTransactions(), is (false));
+        connection.close();
+    }
+
+    @Test
+    public void testGetDefaultTransactionIsolationReadCommittedStrictFalse() throws SQLException {
+        Connection connection = DriverManager.getConnection(connectionString);
+        DatabaseMetaData metadata = connection.getMetaData();
+        assertThat(metadata.getDefaultTransactionIsolation(), is (Connection.TRANSACTION_READ_COMMITTED));
+        connection.close();
+    }
+
+    @Test
+    public void testGetDefaultTransactionIsolationStrictTrue() throws SQLException {
+        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
+        DatabaseMetaData metadata = connection.getMetaData();
+        assertThat(metadata.getDefaultTransactionIsolation(), is (Connection.TRANSACTION_NONE));
+        connection.close();
+    }
+
+    @Test
+    public void testSupportsTransactionIsolationLevelStrictFalse() throws SQLException {
+        Connection connection = DriverManager.getConnection(connectionString);
+        DatabaseMetaData metadata = connection.getMetaData();
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE), is (false));
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED), is (true));
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED), is (true));
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ), is (true));
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE), is (true));
+        connection.close();
+    }
+
+    @Test
+    public void testSupportsTransactionIsolationLevelStrictTrue() throws SQLException {
+        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
+        DatabaseMetaData metadata = connection.getMetaData();
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE), is (true));
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED), is (false));
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED), is (false));
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ), is (false));
+        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE), is (false));
+        connection.close();
+    }
+
+    @Test
+    public void testSupportsDataDefinitionAndDataManipulationTransactionsStrictFalse() throws SQLException {
+        Connection connection = DriverManager.getConnection(connectionString);
+        DatabaseMetaData metadata = connection.getMetaData();
+        assertThat(metadata.supportsDataDefinitionAndDataManipulationTransactions(), is (true));
+        connection.close();
+    }
+
+    @Test
+    public void testSupportsDataDefinitionAndDataManipulationTransactionsStrictTrue() throws SQLException {
+        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
+        DatabaseMetaData metadata = connection.getMetaData();
+        assertThat(metadata.supportsDataDefinitionAndDataManipulationTransactions(), is (false));
+        connection.close();
+    }
+
+    @Test
+    public void testSetReadOnlyStrictTrue() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString,
+            strictProperties)) {
+            expectedException.expect(SQLFeatureNotSupportedException.class);
+            expectedException.expectMessage(
+                "Setting transaction isolation READ ONLY not supported.");
+            connection.setReadOnly(true);
+        }
+    }
+
+    @Test
+    public void testGetConnectionStrictTrueReadOnlyTrue() throws Exception {
+        Properties readOnlyStrictProperties = new Properties();
+        readOnlyStrictProperties.setProperty("strict", "true");
+        readOnlyStrictProperties.setProperty("readOnly", "true");
+
+        expectedException.expect(PSQLException.class);
+        expectedException.expectMessage("Read-only connections are not supported.");
+        DriverManager.getConnection(connectionString, readOnlyStrictProperties);
+    }
+
 }
+

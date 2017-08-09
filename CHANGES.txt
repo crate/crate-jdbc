@@ -14,6 +14,13 @@ Unreleased
    This change eliminates initial SET SESSION statements which are ignored
    on the server-side anyway.
 
+ - BREAKING:
+
+   - Strict mode: The driver will no longer report that transactions are
+     supported. The default transaction isolation is ``TRANSACTION_NONE``
+
+   - Strict mode: Disabled read-only connections.
+
 2017/04/27 2.1.7
 ================
 
