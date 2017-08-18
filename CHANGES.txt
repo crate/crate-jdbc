@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2017/08/18 2.2.0
+================
+
  - Getting table/column metadata now retrieves the information from CrateDB's
    ``information_schema.tables`` and ``information_schema.columns`` tables
    for all SQL99 compliant fields.
