@@ -79,8 +79,20 @@ Using Gradle:
 Alternatively you can follow the instructions on the Bintray repository
 overview page by clicking the "Set me up!" button.
 
+
+.. _jdbc_connecting_to_crate:
+
+Connecting to CrateDB server
+============================
+
+CrateDB >= 2.1 enables `Host-Based Authentication`_ by default. Clients that
+use the `PostgreSQL Wire Protocol`_ need to pass a valid database user to get
+successfully authenticated with the server. See `User Management`_ for
+more information how to administrate database users. In JDBC, the database user
+can be passed via the ``user`` key JDBC URL or :ref:`jdbc_connection_properties`.
+
 JDBC Driver Class
-=================
+-----------------
 
 A connection can be established using ``DriverManager.getConnection()``
 method, e.g.::
@@ -90,7 +102,7 @@ method, e.g.::
 The driver class is ``io.crate.client.jdbc.CrateDriver``.
 
 JDBC URL Format
-===============
+---------------
 
 With JDBC, a database is represented by a URL (Uniform Resource Locator).
 With Crate, this takes the following form::
@@ -134,15 +146,24 @@ used:
     that is used has a version that is lower than 0.48.1 the specified schema
     will be ignored and the default ``doc`` schema will be used instead.
 
-Crate JDBC properties
-=====================
 
 Properties can be specified when connecting to Crate using the JDBC driver:
+=======
+
+.. _jdbc_connection_properties:
+
+CrateDB JDBC properties
+-----------------------
+
+Properties can be specified when connecting to CrateDB using the JDBC driver.
+Here's an example that illustrates the use of Properties to establish an SSL
+connection with the database superuser ``crate``.
 
 .. code-block:: java
 
     Properties properties = new Properties();
-    properties.put(<key>, <value>);
+    properties.put("user", "crate");
+    properties.put("ssl", "true");
     Connection conn = DriverManager.getConnection("crate://localhost:5432/", properties);
 
 In addition connection properties can be passed via the JDBC URL:
@@ -306,3 +327,5 @@ defined in that object:
 .. _`Jitpack`: https://jitpack.io/#crate/crate-jdbc/2.0
 .. _`connection string`: https://jdbc.postgresql.org/documentation/80/connect.html
 .. _`Bintray Repository`: https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone
+.. _`User Management`: https://crate.io/docs/crate/reference/en/latest/sql/administration/user_management.html
+.. _`Host-Based Authentication`: https://crate.io/docs/crate/reference/en/latest/administration/hba.html
