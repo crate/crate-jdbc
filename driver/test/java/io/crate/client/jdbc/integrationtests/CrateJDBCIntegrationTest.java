@@ -27,7 +27,7 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
 import org.junit.AfterClass;
-import org.junit.ClassRule;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.postgresql.jdbc.PgDatabaseMetaData;
@@ -45,23 +45,29 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    @ClassRule
-    public static CrateTestCluster testCluster = CrateTestCluster
-        .fromVersion(getRandomServerVersion())
-        .keepWorkingDir(false)
-        .build();
+    public static CrateTestCluster testCluster;
 
     private static String getRandomServerVersion() {
         String version = System.getenv().get("CRATE_VERSION");
         if (version != null) {
             return version;
         }
-        Random r = new Random();
-        return CRATE_VERSIONS[r.nextInt(CRATE_VERSIONS.length)];
+        Random random = getRandom();
+        return CRATE_VERSIONS[random.nextInt(CRATE_VERSIONS.length)];
+    }
+
+    @BeforeClass
+    public static void setUpCluster() throws Throwable {
+        testCluster = CrateTestCluster
+                .fromVersion(getRandomServerVersion())
+                .keepWorkingDir(false)
+                .build();
+        testCluster.before();
     }
 
     @AfterClass
     public static void tearDown() {
+        testCluster.after();
         tearDownTables();
     }
 
