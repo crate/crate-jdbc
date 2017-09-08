@@ -42,7 +42,13 @@ import static org.hamcrest.core.StringContains.containsString;
 public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     private static CrateDriver driver;
-    private static final Properties PROP = new Properties();
+    private static final Properties PROP;
+
+    static {
+        PROP = new Properties();
+        PROP.setProperty("user", "crate");
+    }
+
     private static String hostAndPort;
 
     @BeforeClass
@@ -54,11 +60,11 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
 
     @Test
     public void testDriverRegistration() throws Exception {
-        Connection c1 = DriverManager.getConnection("crate://" + hostAndPort + "/");
+        Connection c1 = DriverManager.getConnection("crate://" + hostAndPort + "/doc?user=crate");
         assertThat(c1, instanceOf(PGConnection.class));
         c1.close();
 
-        Connection c2 = DriverManager.getConnection("jdbc:crate://" + hostAndPort + "/");
+        Connection c2 = DriverManager.getConnection("jdbc:crate://" + hostAndPort + "/doc?user=crate");
         assertThat(c1, instanceOf(PGConnection.class));
         c2.close();
 
@@ -96,7 +102,7 @@ public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
         assertInstanceOfCrateConnection("crate://" + hostAndPort + "/", PROP);
 
         assertInstanceOfCrateConnection("jdbc:crate://" + hostAndPort + "/db", PROP);
-        assertInstanceOfCrateConnection("crate://" + hostAndPort + "/db", new Properties());
+        assertInstanceOfCrateConnection("crate://" + hostAndPort + "/db", PROP);
 
         assertInstanceOfCrateConnection("jdbc:crate://" + hostAndPort + "/db?asdf=abcd", PROP);
         assertInstanceOfCrateConnection("crate://" + hostAndPort + "/db?asdf=abcd", PROP);

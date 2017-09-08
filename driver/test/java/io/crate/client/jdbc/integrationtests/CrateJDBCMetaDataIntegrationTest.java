@@ -31,6 +31,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
@@ -54,7 +55,7 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("TABLE_SCHEM"), is("sys"));
         assertThat(rs.getString("TABLE_NAME"), is("cluster"));
-        assertThat(rs.getString("TABLE_TYPE"), is("SYSTEM TABLE"));
+        assertThat(rs.getString("TABLE_TYPE"), anyOf(is("SYSTEM TABLE"), is("BASE TABLE")));
         assertThat(rs.next(), is(false));
     }
 
@@ -65,12 +66,12 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
 
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("TABLE_NAME"), is("cluster"));
-        assertThat(rs.getString("TABLE_TYPE"), is("SYSTEM TABLE"));
+        assertThat(rs.getString("TABLE_TYPE"), anyOf(is("SYSTEM TABLE"), is("BASE TABLE")));
 
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("TABLE_SCHEM"), is("test"));
         assertThat(rs.getString("TABLE_NAME"), is("cluster"));
-        assertThat(rs.getString("TABLE_TYPE"), is("TABLE"));
+        assertThat(rs.getString("TABLE_TYPE"), anyOf(is("TABLE"), is("BASE TABLE")));
         assertThat(rs.next(), is(false));
     }
 

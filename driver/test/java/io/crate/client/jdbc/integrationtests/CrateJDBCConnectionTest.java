@@ -28,14 +28,14 @@ import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.postgresql.util.PSQLException;
 
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Date;
 
 import static com.google.common.collect.Maps.newHashMap;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
@@ -204,8 +204,11 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     @Test
     public void testException() throws Exception {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
-            expectedException.expect(SQLException.class);
-            expectedException.expectMessage("line 1:1: no viable alternative at input 'ERROR'");
+            expectedException.expect(anyOf(instanceOf(SQLException.class), instanceOf(PSQLException.class)));
+            expectedException.expectMessage(anyOf(
+                    containsString("line 1:1: no viable alternative at input 'ERROR'"),
+                    containsString("line 1:1: mismatched input 'ERROR' expecting {'SELECT', '"))
+            );
             conn.createStatement().execute("ERROR");
         }
     }
@@ -352,7 +355,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
     public void testMultipleHostsConnectionString() throws Exception {
         CrateTestServer server = testCluster.randomServer();
         String connectionStr = String.format(
-            "crate://%s:%s,%s:%s/", server.crateHost(), server.psqlPort(), server.crateHost(), server.psqlPort()
+            "crate://%s:%s,%s:%s/doc?user=crate", server.crateHost(), server.psqlPort(), server.crateHost(), server.psqlPort()
         );
         try (Connection conn = DriverManager.getConnection(connectionStr)) {
             assertThat(conn.createStatement().execute("select 1 from sys.cluster"), is(true));

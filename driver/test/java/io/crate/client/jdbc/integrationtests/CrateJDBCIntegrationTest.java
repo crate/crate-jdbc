@@ -40,7 +40,7 @@ import java.util.Random;
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class CrateJDBCIntegrationTest extends RandomizedTest {
 
-    private static String[] CRATE_VERSIONS = new String[]{"0.56.4", "0.57.6", "1.0.1"};
+    private static String[] CRATE_VERSIONS = new String[]{"0.56.4", "0.57.6", "1.0.1", "2.1.6"};
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -73,7 +73,7 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
 
     static String getConnectionString() {
         CrateTestServer server = testCluster.randomServer();
-        return String.format("crate://%s:%s/", server.crateHost(), server.psqlPort());
+        return String.format("crate://%s:%s/doc?user=crate", server.crateHost(), server.psqlPort());
     }
 
     private static void tearDownTables() {
