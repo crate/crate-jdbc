@@ -17,6 +17,10 @@ and communicates with the database using the `PostgreSQL Wire Protocol`_.
       SQL statement.
     - Support for the experimental ``showsubcolumns`` parameter has been dropped.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
 
 Download and Setup
 ==================
