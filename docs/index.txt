@@ -91,9 +91,14 @@ Connecting to CrateDB server
 
 CrateDB >= 2.1 enables `Host-Based Authentication`_ by default. Clients that
 use the `PostgreSQL Wire Protocol`_ need to pass a valid database user to get
-successfully authenticated with the server. See `User Management`_ for
-more information how to administrate database users. In JDBC, the database user
-can be passed via the ``user`` key JDBC URL or :ref:`jdbc_connection_properties`.
+successfully authenticated with the server.
+
+If you're using the standard edition of CrateDB, you can only use the ``crate``
+user. If you're using the enterprise edition, see `User Management`_ for
+information on using other users.
+
+In JDBC, the database user can be passed via the ``user`` key JDBC URL or
+:ref:`jdbc_connection_properties`.
 
 JDBC Driver Class
 -----------------
