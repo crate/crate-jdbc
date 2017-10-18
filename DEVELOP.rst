@@ -52,8 +52,20 @@ Archiving Docs Versions
 
 Check the `versions hosted on ReadTheDocs`_.
 
-We should only be hosting the docs for `latest`, `stable`, and the most recent
-patch versions for the last two minor releases.
+We should only be hosting the docs for `latest`, the last three minor release
+branches of the last major release, and the last minor release branch
+corresponding to the last two major releases.
+
+For example:
+
+- ``latest``
+- ``2.2``
+- ``2.1``
+- ``2.0``
+- ``1.14``
+
+Because this project has not any releases with major version of ``0``, we stop
+at ``1.14``.
 
 Sometimes you might find that there are multiple older releases that need to be
 archived.
