@@ -1,1 +1,2 @@
 crate-docs-theme
+Sphinx>=1.6.3
