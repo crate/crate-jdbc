@@ -237,18 +237,22 @@ The support for versions of the JDBC driver >= 2.0.x with CrateDB version
 0.56.x is **experimental**. The binding between versions of the JDBC
 driver >= 2.0.x and CrateDB will be stable when 0.57.x of CrateDB is stable.
 
-Below, you can see the compatibility table for the JDBC driver
-version 2.x.x:
+Below, you can see the compatibility table for the JDBC driver:
 
-  +---------------------+------------+-----------------------------------------------+
-  | CrateDB JDBC driver | CrateDB    | Note                                          |
-  +=====================+============+===============================================+
-  | ``2.0.x``           | ``0.56.x`` | The **psql.enabled** must be set to **true**. |
-  |                     |            | The **prepareThreshold** property must        |
-  |                     |            | be set to **0**.                              |
-  +---------------------+------------+-----------------------------------------------+
-  | ``2.0.x``           | ``0.57.x`` |                                               |
-  +---------------------+------------+-----------------------------------------------+
++---------------------+-----------------+-----------------------------------------------+
+| CrateDB JDBC driver | CrateDB Version | Notes                                         |
++=====================+=================+===============================================+
+| ``1.x``             | ``<= 0.55.x``   | Uses transport protocol, default port 4300.   |
++---------------------+-----------------+-----------------------------------------------+
+| ``2.x``             | ``0.56.x``      | The **psql.enabled** must be set to **true**. |
+|                     |                 | The **prepareThreshold** property must        |
+|                     |                 | be set to **0**.                              |
++---------------------+-----------------+-----------------------------------------------+
+| ``2.x``             | ``>= 0.57.x``   |                                               |
++---------------------+-----------------+-----------------------------------------------+
+| ``2.x``             | ``>= 2.1.x``    | Client needs to connect with a valid database |
+|                     |                 | user to get access to CrateDB.                |
++---------------------+-----------------+-----------------------------------------------+
 
 
 Types
