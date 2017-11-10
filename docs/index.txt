@@ -89,13 +89,10 @@ overview page by clicking the "Set me up!" button.
 Connecting to CrateDB server
 ============================
 
-CrateDB >= 2.1 enables `Host-Based Authentication`_ by default. Clients that
-use the `PostgreSQL Wire Protocol`_ need to pass a valid database user to get
-successfully authenticated with the server.
-
-If you're using the standard edition of CrateDB, you can only use the ``crate``
-user. If you're using the enterprise edition, see `User Management`_ for
-information on using other users.
+CrateDB >= 2.1 requires to connect using a valid database user. If you're using
+the standard edition of CrateDB, you can only use the predefined ``crate``
+user. If you're using the enterprise edition, see `User Management`_ on
+information how to add and remove users.
 
 In JDBC, the database user can be passed via the ``user`` key JDBC URL or
 :ref:`jdbc_connection_properties`.
