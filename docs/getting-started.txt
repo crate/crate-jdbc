@@ -1,0 +1,99 @@
+===============
+Getting Started
+===============
+
+This page shows you how to get started with the :ref:`JDBC driver library for
+CrateDB <index>`.
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Install
+=======
+
+The ``crate-jdbc`` jar files are hosted on `Bintray`_ and available via
+`JCenter`_.
+
+In addition to ``crate-jdbc`` there is also a standalone version
+named ``crate-jdbc-standalone`` which already includes its dependencies.
+
+.. note:: ``crate-jdbc-standalone`` should not be used in Maven projects,
+    but might want to be used e.g. as a driver for the `Squirrel`_ SQL client.
+
+You can download the latest standalone version directly from the
+`Bintray Repository`_.
+
+Build Systems
+=============
+
+Maven Setup
+-----------
+
+If you're using `Maven`_ and you want to use ``crate-jdbc`` with your Maven
+project, you need to add the Bintray repository to your ``pom.xml``:
+
+.. code-block:: xml
+
+    ...
+    <repositories>
+        ...
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>bintray</name>
+            <url>http://dl.bintray.com/crate/crate</url>
+        </repository>
+    </repositories>
+    ...
+    <dependencies>
+        ...
+        <dependency>
+            <groupId>io.crate</groupId>
+            <artifactId>crate-jdbc</artifactId>
+            <version>...</version>
+        </dependency>
+    </dependencies>
+    ...
+
+Gradle Setup
+------------
+
+If you're using `Gradle`_, you can use this configuration:
+
+.. code-block:: groovy
+
+    repositories {
+        ...
+        jcenter()
+    }
+
+    dependencies {
+        compile 'io.crate:crate-jdbc:...'
+        ...
+    }
+
+Alternatively you can follow the instructions on the Bintray repository
+overview page by clicking the "Set me up!" button.
+
+Learning More
+=============
+
+Crate.io maintains a `sample JDBC application`_ that uses this library, which
+may be a good starting point as you learn to use it for the first time. And be
+sure to check out out the `application documentation`_.
+
+Browse the rest of the JDBC driver library :ref:`reference documentation
+<index>` for more information.
+
+.. _application documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
+.. _Bintray Repository: https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone
+.. _Bintray: https://bintray.com/crate/crate/
+.. _Gradle: https://gradle.org/
+.. _JCenter: https://bintray.com/bintray/jcenter
+.. _Maven: https://maven.apache.org/
+.. _sample JDBC application: https://github.com/crate/crate-sample-apps/tree/master/java
+.. _Squirrel: http://squirrel-sql.sourceforge.net/
