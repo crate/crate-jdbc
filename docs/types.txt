@@ -1,0 +1,82 @@
+=====
+Types
+=====
+
+JDBC maps SQL types to POJOs. While this mapping is straightforward for some
+CrateDB types, for some it is not. This table shows how the CrateDB types are
+mapped by JDBC and how they should be fetched from a ``ResultSet`` instance:
+
+.. csv-table:: Types
+   :header: "CrateDB type", "PostgreSQL Type", "JDBC type", "ResultSet method used to get a value"
+
+   "boolean", "bool", "BOOLEAN", "``getBoolean``"
+   "byte", "", "TINYINT", "``getByte``"
+   "short", "int2", "SMALLINT", "``getShort``"
+   "integer", "int4", "INTEGER", "``getInteger``"
+   "long", "int8", "BIGINT", "``getLong``"
+   "float", "float4", "REAL", "``getFloat``"
+   "double", "float8", "DOUBLE", "``getDouble``"
+   "string", "varchar", "VARCHAR", "``getString``"
+   "timestamp", "timestamp", "TIMESTAMP", "``getDate``, ``getTime``, ``getTimestamp``"
+   "ip", "varchar", "VARCHAR", "``getString``"
+   "array", "array", "ARRAY", "``getArray``"
+   "geo_point", "array", "ARRAY", "``getArray``"
+   "geo_shape", "json", "JAVA_OBJECT", "``getObject``"
+   "object", "json", "JAVA_OBJECT", "``getObject``"
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Array Types
+===========
+
+Array types map to ``java.sql.Array`` instances. Use the ``.getArray()`` to get
+the underlying java array (it is usually safe to cast it to ``Object[]``) if you prefer.
+Otherwise, to have JDBC handle the type mapping stuff for you, you can use ``.getResultSet()``
+and use the related ``ResultSetMetaData`` or another way to get the array values
+converted to Java POJOs. The ``ResultSet`` will have one column with the inner array type
+and the name of the array field (``Array.getBaseType()``) and as much rows as
+there are elements in the array.
+
+.. code-block:: java
+
+    Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery("select array_field from my_table");
+    resultSet.first();
+    Array arrayFieldArray = resultSet.getArray("array_field");
+    Object[] arrayFieldValue = arrayFieldValue.getArray();
+
+    ResultSet arrayFieldResultSet = arrayFieldArray.getResultSet();
+    arrayFieldResultSet.first();
+    String firstValue = arrayFieldResultSet.getString("array_field");
+
+When inserting arrays using a prepared statement, you must convert your java
+array to a ``java.sql.Array`` by the use of ``createArrayOf()``. This function
+takes as its first argument a CrateDB type as described above and as its second
+the array you want to convert. You can then use ``setArray()`` to set this
+converted array using a prepared statement's argument.
+
+.. code-block:: java
+
+    PreparedStatement preparedStatement = connection.prepareStatement("insert into my_table " +
+      "(string_array) values (?)");
+    preparedStatement.setArray(1, connection.createArrayOf("string", new String[]{"a", "b"}));
+    preparedStatement.execute();
+
+Object Types
+============
+
+Object columns map to a ``java.util.Map<String, Object>``. You can fetch them
+using ``ResultSet.getObject()`` and cast the result to ``Map<String, Object>``.
+Be aware that it can be ``null``. This map will contain all the nested columns
+defined in that object:
+
+.. code-block:: java
+
+    Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery("select object_field from my_table");
+    resultSet.first();
+    Map<String, Object> objValue = (Map<String, Object>)resultSet.getObject("object_field");
+    Object nestedValue = objValue.get("nested_field");

@@ -1,0 +1,60 @@
+=============
+Compatibility
+=============
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+JDBC
+====
+
+This JDBC driver follows the JDBC 4.1 standard, however the following features
+are not supported:
+
+* ``java.sql.ParameterMetaData`` as returned by e.g. ``java.sql.PreparedStatement``
+* ``DataSource``
+* ``CallableStatement`` as CrateDB does not support stored procedures
+
+For further details about compatibility with all possible JDBC features,
+see the `ResultSet`_, `ResultSetMetaData`_ and `DatabaseMetaData`_
+implementations.
+
+**Though only an optional feature, it is still worth mentioning:**
+
+* the ``ResultSet`` is read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
+  so changes to a ``ResultSet`` are not supported. Though DDL and DML statements
+  are supported using the ``Statement`` and ``PreparedStatement`` interfaces.
+
+CrateDB
+=======
+
+All versions of the JDBC driver >= 2.0.x require CrateDB 0.56.0 or newer.
+Previous versions of the JDBC driver (1.x) are only compatible with older
+versions of CrateDB.
+
+The support for versions of the JDBC driver >= 2.0.x with CrateDB version
+0.56.x is **experimental**. The binding between versions of the JDBC
+driver >= 2.0.x and CrateDB are stable for CrateDB versions 0.57.x and higher.
+
+Below, you can see the compatibility table for the JDBC driver:
+
++---------------------+-----------------+-----------------------------------------------+
+| CrateDB JDBC driver | CrateDB Version | Notes                                         |
++=====================+=================+===============================================+
+| ``1.x``             | ``<= 0.55.x``   | Uses transport protocol, default port 4300.   |
++---------------------+-----------------+-----------------------------------------------+
+| ``2.x``             | ``0.56.x``      | The **psql.enabled** must be set to **true**. |
+|                     |                 | The **prepareThreshold** property must        |
+|                     |                 | be set to **0**.                              |
++---------------------+-----------------+-----------------------------------------------+
+| ``2.x``             | ``>= 0.57.x``   |                                               |
++---------------------+-----------------+-----------------------------------------------+
+| ``2.x``             | ``>= 2.1.x``    | Client needs to connect with a valid database |
+|                     |                 | user to get access to CrateDB.                |
++---------------------+-----------------+-----------------------------------------------+
+
+.. _ResultSet: https://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html
+.. _ResultSetMetaData: https://docs.oracle.com/javase/7/docs/api/java/sql/ResultSetMetaData.html
+.. _DatabaseMetaData: https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html
