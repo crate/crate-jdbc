@@ -51,11 +51,35 @@ the following two formats are both allowed::
     jdbc:crate://localhost:5432/
 
 
-In order to connect to multiple servers multiple ``<host>:<psql-port>``
-pairs can be specified by delimit them using a comma::
+To support connection fail-over, multiple pairs of <host>:<psql-port>, delimited
+by a comma, can be specified::
 
     crate://host1.example.com:5432,host2.example.com:5432/
 
+The driver will try to connect to the hosts in the order defined by the comma
+separated list until the first successfull connection is established.
+
+.. NOTE::
+
+    If you have multiple client apps or threads connecting to the CrateDB
+    cluster, it is adviseable to shuffle the order of those pairs in each
+    instance, as this will provide a cheap form of load balancing. The goal
+    being that each client or thread is connecting to a different node by
+    default, and then moving on to the next node if that node is not available,
+    and so on. In aggregate, this should spread load fairly evenly.
+
+    Here's one way shuffle the list of hosts in Java:
+
+    .. code-block:: java
+
+        List<String> hosts = new ArrayList<>(3);
+        hosts.add("host1.example.com:5432");
+        hosts.add("host2.example.com:5432");
+        hosts.add("host3.example.com:5432");
+
+        Collections.shuffle(hosts);
+        String url = "jdbc:crate://" + String.join(",", hosts) + "/";
+        Connection conn = DriverManager.getConnection(url);
 
 To specify a schema, the ``setSchema`` method must be explicitly called on
 the connection. If no schema is provided, the ``doc`` default schema will be
