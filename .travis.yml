@@ -8,6 +8,7 @@ env:
   - CRATE_VERSION=0.57.6
   - CRATE_VERSION=1.0.1
   - CRATE_VERSION=2.2.0
+  - CRATE_VERSION=2.3.4
 
 matrix:
   exclude:
@@ -15,6 +16,8 @@ matrix:
       env: CRATE_VERSION=1.0.1
     - jdk: openjdk7
       env: CRATE_VERSION=2.2.0
+    - jdk: openjdk7
+      env: CRATE_VERSION=2.3.4
 
 cache:
   directories:

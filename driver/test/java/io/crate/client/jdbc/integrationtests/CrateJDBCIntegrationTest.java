@@ -40,12 +40,21 @@ import java.util.Random;
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class CrateJDBCIntegrationTest extends RandomizedTest {
 
-    private static String[] CRATE_VERSIONS = new String[]{"0.56.4", "0.57.6", "1.0.1", "2.2.0"};
+    private static String[] CRATE_VERSIONS = new String[]{
+            "0.56.4",
+            "0.57.6",
+            "1.0.1",
+            "1.1.6",
+            "2.0.7",
+            "2.1.9",
+            "2.2.7",
+            "2.3.4"
+    };
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    public static CrateTestCluster testCluster;
+    static CrateTestCluster testCluster;
 
     private static String getRandomServerVersion() {
         String version = System.getenv().get("CRATE_VERSION");
