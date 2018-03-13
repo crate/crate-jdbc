@@ -67,10 +67,14 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
 
     @BeforeClass
     public static void setUpCluster() throws Throwable {
-        testCluster = CrateTestCluster
-                .fromVersion(getRandomServerVersion())
-                .keepWorkingDir(false)
-                .build();
+        String downloadUrl = System.getenv().get("CRATE_URL");
+        CrateTestCluster.Builder builder;
+        if (downloadUrl != null) {
+            builder = CrateTestCluster.fromURL(downloadUrl);
+        } else {
+            builder = CrateTestCluster.fromVersion(getRandomServerVersion());
+        }
+        testCluster = builder.keepWorkingDir(false).build();
         testCluster.before();
     }
 

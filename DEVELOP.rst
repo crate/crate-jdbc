@@ -21,6 +21,16 @@ Run the unit tests like so::
 
     $ ./gradlew test
 
+Integration tests use a randomized CrateDB version. If you want to run the
+tests against a specific version you can either use the ``CRATE_VERSION`` or
+``CRATE_URL`` environment variable, e.g.::
+
+    $ CRATE_VERSION=2.3.4 ./gradlew test
+
+or::
+
+    $ CRATE_URL=https://cdn.crate.io/downloads/releases/nightly/crate-0.58.0-201611210301-7d469f8.tar.gz ./gradlew test
+
 Preparing a Release
 ===================
 
