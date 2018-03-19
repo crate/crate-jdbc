@@ -75,11 +75,11 @@ used:
 
 .. _jdbc_connection_properties:
 
-CrateDB JDBC Properties
+CrateDB JDBC Parameters
 =======================
 
-Properties can be specified when connecting to CrateDB using the JDBC driver.
-Here's an example that illustrates the use of Properties to establish an SSL
+Parameters can be specified when connecting to CrateDB using the JDBC driver.
+Here's an example that illustrates the use of paremters to establish an SSL
 connection with the database superuser ``crate``.
 
 .. code-block:: java
@@ -89,29 +89,17 @@ connection with the database superuser ``crate``.
     properties.put("ssl", "true");
     Connection conn = DriverManager.getConnection("crate://localhost:5432/", properties);
 
-In addition connection properties can be passed via the JDBC URL:
+In addition, connection parameters can be passed via the JDBC URL:
 
 .. code-block:: java
 
     Connection conn = DriverManager.getConnection("crate://localhost:5432/?property1=value1&property2=value2");
 
-CrateDB JDBC driver supports following properties:
+.. NOTE::
 
-:strict:
-    **Default**: ``false``.
+   The CrateDB JDBC driver supports all of `the PostgreSQL JDBC driver
+   parameters`_, though not all of them will make sense for CrateDB.
 
-    By default the CrateDB JDBC driver ignores the calls of unsupported
-    operations, which makes it compatible with most 3rd party applications
-    that require transactional features.
-
-    If this property is set to ``true`` it will behave strictly according to
-    CrateDBs capabilities and the JDBC specification.
-    In case an unsupported operation is called, the corresponding exception
-    will be raised.
-
-    Unsupported operations include setting auto-commit or savepoints. The
-    strict drivers reports that the database doesn't support transactions, the
-    only supported transaction isolation level is ``TRANSACTION_NONE``.
-    Read-only connections aren't supported either.
+.. _the PostgreSQL JDBC driver parameters: https://jdbc.postgresql.org/documentation/94/connect.html
 
 .. _User Management: https://crate.io/docs/crate/reference/en/latest/sql/administration/user_management.html
