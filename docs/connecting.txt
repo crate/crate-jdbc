@@ -95,10 +95,26 @@ In addition, connection parameters can be passed via the JDBC URL:
 
     Connection conn = DriverManager.getConnection("crate://localhost:5432/?property1=value1&property2=value2");
 
-.. NOTE::
+CrateDB JDBC driver supports all of `the PostgreSQL JDBC driver parameters`_,
+though not all of them will make sense for CrateDB. We have listed the most
+important ones here.
 
-   The CrateDB JDBC driver supports all of `the PostgreSQL JDBC driver
-   parameters`_, though not all of them will make sense for CrateDB.
+:strict:
+    **Default**: ``false``.
+
+    By default the CrateDB JDBC driver ignores the calls of unsupported
+    operations, which makes it compatible with most 3rd party applications
+    that require transactional features.
+
+    If this property is set to ``true`` it will behave strictly according to
+    CrateDBs capabilities and the JDBC specification.
+    In case an unsupported operation is called, the corresponding exception
+    will be raised.
+
+    Unsupported operations include setting auto-commit or savepoints. The
+    strict drivers reports that the database doesn't support transactions, the
+    only supported transaction isolation level is ``TRANSACTION_NONE``.
+    Read-only connections aren't supported either.
 
 .. _the PostgreSQL JDBC driver parameters: https://jdbc.postgresql.org/documentation/94/connect.html
 
