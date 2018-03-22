@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2018/03/22 2.3.0
+================
+
  - Updated ``getPrimaryKeys()`` method in DatabaseMetaData to work correctly
    with CrateDB 2.3.0 and newer.
 
