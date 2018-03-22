@@ -99,8 +99,7 @@ CrateDB JDBC driver supports all of `the PostgreSQL JDBC driver parameters`_,
 though not all of them will make sense for CrateDB. We have listed the most
 important ones here.
 
-:strict:
-    **Default**: ``false``.
+:strict: ``<Boolean>`` (default ``false``)
 
     By default the CrateDB JDBC driver ignores the calls of unsupported
     operations, which makes it compatible with most 3rd party applications
@@ -116,6 +115,95 @@ important ones here.
     only supported transaction isolation level is ``TRANSACTION_NONE``.
     Read-only connections aren't supported either.
 
-.. _the PostgreSQL JDBC driver parameters: https://jdbc.postgresql.org/documentation/94/connect.html
+:user: ``<String>``
 
+    The database user on whose behalf the connection is being made.
+
+:password: ``<String>``
+
+    The database user's password.
+
+:ssl: ``true``
+
+    Connect using SSL. The driver must have been compiled with SSL support.
+
+    Due to legacy implementations of the PostgreSQL JDBC driver, you must remove
+    this parameter entirely if you wish to not use SSL. Setting it to ``false``
+    will result in undefined behaviour.
+
+:loglevel: ``<Integer>``
+
+    Set the amount of logging information printed to the ``DriverManager``'s
+    current value for ``LogStream`` or ``LogWriter``. It currently supports
+    values of ``org.postgresql.Driver.DEBUG`` (2) and
+    ``org.postgresql.Driver.INFO`` (1).
+
+    ``INFO`` will log very little information while ``DEBUG`` will produce
+    significant detail. This property is only really useful if you are a
+    developer or are having problems with the driver.
+
+:prepareThreshold: ``<Integer>``
+
+    Determine the number of ``PreparedStatement`` executions required before
+    switching over to use server side prepared statements.
+
+    The default is five, meaning start using server side prepared statements on
+    the fifth execution of the same ``PreparedStatement`` object.
+
+    More information on server side prepared statements is available in the
+    PostgreSQL documentation on `Server Prepared Statements`_.
+
+:loginTimeout: ``<Integer>``
+
+    Specify how long to wait for establishment of a database connection. The
+    timeout is specified in seconds.
+
+:connectTimeout: ``<Integer>``
+
+    The timeout value used for socket connect operations.
+
+    If connecting to the server takes longer than this value, the connection is
+    broken.
+
+    The timeout is specified in seconds and a value of zero means that it is
+    disabled. The default value is ``0`` (unlimited) up to 9.4.1208, and ``10``
+    seconds since 9.4.1209
+
+    FIXME: above para needs updating for CrateDB
+
+:socketTimeout: ``<Integer>``
+
+    The timeout value used for socket connect operations.
+
+    If connecting to the server takes longer than this value, the connection is
+    broken.
+
+    The timeout is specified in seconds and a value of zero means that it is
+    disabled. The default value is ``0`` (unlimited) up to 9.4.1208, and ``10``
+    seconds since 9.4.1209
+
+    FIXME: above para needs updating for CrateDB
+
+:tcpKeepAlive: ``<Boolean>`` (default ``false``)
+
+    Enable or disable TCP keep-alive probe.
+
+:readOnly: ``<Boolean>`` (default ``false``)
+
+    Put the connection in read-only mode.
+
+:currentSchema: ``<String>``
+
+    Specify the schema to be set in the search-path.
+
+    This schema will be used to resolve unqualified object names used in
+    statements over this connection.
+
+:loadBalanceHosts: ``<Boolean>`` (default ``false``)
+
+     In default mode (i.e. disabled) hosts are connected in the given order. If
+     enabled, hosts are chosen randomly from the set of suitable candidates.
+
+.. _Server Prepared Statements: https://jdbc.postgresql.org/documentation/94/server-prepare.html
+.. _the PostgreSQL JDBC driver parameters: https://jdbc.postgresql.org/documentation/94/connect.html
 .. _User Management: https://crate.io/docs/crate/reference/en/latest/sql/administration/user_management.html
