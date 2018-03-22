@@ -283,7 +283,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             } catch (BatchUpdateException e) {
                 assertThat(
                     e.getMessage(),
-                    containsString("Validation failed for id: Cannot cast {} to type integer")
+                    containsString("Validation failed for id: {} cannot be cast to type integer")
                 );
                 assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
             }
