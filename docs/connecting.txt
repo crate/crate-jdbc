@@ -130,4 +130,16 @@ CrateDB JDBC driver supports following properties:
     only supported transaction isolation level is ``TRANSACTION_NONE``.
     Read-only connections aren't supported either.
 
+:user:
+  **Default**: the user logged into the OS
+  Specifies the CrateDB user to identify against CrateDB. You may want to set
+  this to ``crate``, which is the default user if none have been created yet.
+
+:password:
+  The password to authenticate against the CrateDB cluster.
+
+:ssl:
+  **Default**: ``false``
+  Enables an SSL (secured) connection to the CrateDB cluster.
+
 .. _User Management: https://crate.io/docs/crate/reference/en/latest/sql/administration/user_management.html
