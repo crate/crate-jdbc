@@ -79,7 +79,7 @@ CrateDB JDBC Parameters
 =======================
 
 Parameters can be specified when connecting to CrateDB using the JDBC driver.
-Here's an example that illustrates the use of paremters to establish an SSL
+Here's an example that illustrates the use of parameters to establish an SSL
 connection with the database superuser ``crate``.
 
 .. code-block:: java
