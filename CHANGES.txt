@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Updated ``getTables()`` method in DatabaseMetaData to only return tables but
+   not views with CrateBD versions greater than ``2.3.x``.
+
 2018/03/22 2.3.0
 ================
 
