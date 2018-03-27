@@ -28,6 +28,7 @@ import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
@@ -276,15 +277,18 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             PreparedStatement stmt = conn.prepareStatement("insert into test (id) values (?)");
             stmt.setObject(1, newHashMap());
             stmt.addBatch();
+            PgDatabaseMetaData metaData = (PgDatabaseMetaData) conn.getMetaData();
 
             try {
                 stmt.executeBatch();
                 fail("BatchUpdateException not thrown");
             } catch (BatchUpdateException e) {
-                assertThat(
-                    e.getMessage(),
-                    containsString("Validation failed for id: Cannot cast {} to type integer")
-                );
+                String msg = e.getMessage();
+                if (metaData.getCrateVersion().before("2.3.4")) {
+                    assertThat(msg, containsString("Validation failed for id: {} cannot be cast to type integer"));
+                } else {
+                    assertThat(msg, containsString("Validation failed for id: Cannot cast {} to type integer"));
+                }
                 assertArrayEquals(new int[]{Statement.EXECUTE_FAILED}, e.getUpdateCounts());
             }
             conn.createStatement().execute("refresh table test");
