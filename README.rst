@@ -8,23 +8,27 @@ CrateDB JDBC Driver
 
 |
 
-A JDBC_ driver for `CrateDB`_.
+A `JDBC`_ driver for `CrateDB`_.
 
-Currently, we do not provide the testing version of the Crate JDBC driver.
-As a workaround, you can build the JDBC driver jar using `Jitpack`_, or
-build it from source.
+JDBC is a core API for Java 1.1 and later. It provides a standard set of
+interfaces to SQL-compliant databases.
+
+This is a `type 4 JDBC driver`_. The driver is written in pure Java, and
+communicates with the database using the `PostgreSQL Wire Protocol`_.
 
 Prerequisites
 =============
 
-The CrateDB JDBC driver 2.x requires a CrateDB version greater than or equal to
-0.56.
+The CrateDB JDBC driver requires `Java 8`_, preferably update 20 or later. We
+recommend using `Oracle’s Java`_ on macOS and `OpenJDK`_ on Linux Systems.
 
-The CrateDB JDBC driver 1.x requires a CrateDB version less than 0.56 but
-greater than or equal to 0.38.
+Consult the `compatibility notes`_ for additional information.
 
 Installation
 ============
+
+These instructions show you how to build the CrateDB JDBC driver from the source
+code. For a conventional install, follow the `getting started`_ documentation.
 
 Clone the repository::
 
@@ -62,13 +66,20 @@ Looking for more help?
 - Chat with us on `Slack`_
 - Get `paid support`_
 
+.. _compatibility notes: https://crate.io/docs/clients/jdbc/en/latest/compatibility.html
 .. _contribution docs: CONTRIBUTING.rst
 .. _Crate.io: http://crate.io/
 .. _CrateDB: https://github.com/crate/crate
 .. _developer docs: DEVELOP.rst
+.. _getting started: https://crate.io/docs/projects/crate-jdbc/getting-started.html
+.. _Java 8: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 .. _JDBC: http://www.oracle.com/technetwork/java/overview-141217.html
 .. _Jitpack: https://jitpack.io/#crate/crate-jdbc
+.. _OpenJDK: http://openjdk.java.net/projects/jdk8/
+.. _Oracle’s Java: http://www.java.com/en/download/help/mac_install.xml
 .. _paid support: https://crate.io/pricing/
+.. _PostgreSQL Wire Protocol: https://crate.io/docs/crate/reference/en/latest/interfaces/postgres.html
 .. _Slack: https://crate.io/docs/support/slackin/
 .. _StackOverflow: https://stackoverflow.com/tags/crate
 .. _the project documentation: https://crate.io/docs/projects/crate-jdbc/
+.. _type 4 JDBC driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29

@@ -4,24 +4,26 @@
 CrateDB JDBC Driver
 ===================
 
-JDBC is a core API of Java 1.1 and later. It provides a standard set of
-interfaces to SQL-compliant databases.
+A `type 4 JDBC driver`_ driver for `CrateDB`_.
 
-CrateDB provides a `type 4 JDBC driver`_. The driver is written in pure Java,
-and communicates with the database using the `PostgreSQL Wire Protocol`_.
+`JDBC`_  provides a standard set of interfaces to SQL-compliant databases, so
+using this driver should feel familiar if you have used a JDBC driver before.
 
 .. NOTE::
 
-   The 2.x.x releases of this library differ from the 1.x.x releases in two
-   ways.
+   This document assumes familiarity with JDBC. Consult the `JDBC
+   documentation`_ for supporting material.
 
-   The `connection string`_ changed to the same format as PostgreSQL JDBC,
-   which means that setting the default schema with the connection string is
-   not supported. Use ``setSchema()`` instead or provide a schema name in a
-   SQL statement.
+.. TIP::
 
-   Additionally, support for the experimental ``showsubcolumns`` parameter has
-   been dropped.
+   There is a `sample application`_ (with its own `documentation`_) that
+   demonstrates the use of this library. This may be a useful reference as you
+   learn to use the driver for the first time.
+
+.. SEEALSO::
+
+   The CrateDB JDBC Driver is an `open source`_ project and is `hosted on
+   GitHub`_.
 
 .. rubric:: Table of Contents
 
@@ -29,10 +31,16 @@ and communicates with the database using the `PostgreSQL Wire Protocol`_.
    :maxdepth: 2
 
    getting-started
-   connecting
-   compatibility
+   connect
    types
+   compatibility
 
-.. _connection string: https://jdbc.postgresql.org/documentation/80/connect.html
+.. _CrateDB: https://crate.io/products/cratedb/
+.. _documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
+.. _hosted on GitHub: https://github.com/crate/crate-jdbc/
+.. _JDBC documentation: https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html
+.. _JDBC: http://www.oracle.com/technetwork/java/overview-141217.html
+.. _open source: https://en.wikipedia.org/wiki/Open-source_software
 .. _PostgreSQL Wire Protocol: https://www.postgresql.org/docs/current/static/protocol.html
+.. _sample application: https://github.com/crate/crate-sample-apps/tree/master/java
 .. _type 4 JDBC driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29
