@@ -50,10 +50,10 @@ Here, ``<HOST>`` is the node *host string*.
 
 A host string looks like this::
 
-    <HOSTNAME_OR_IP>:<PORT_NUMBER>
+    <HOST_ADDR>:<PORT>
 
-Here, ``<HOSTNAME_OR_IP>`` is the hostname or IP address of the CrateDB node and
-``<PORT_NUMBER>`` is a valid `psql.port`_ number.
+Here, ``<HOST_ADDR>`` is the hostname or IP address of the CrateDB node and
+``<PORT>`` is a valid `psql.port`_ number.
 
 Example host strings:
 
@@ -63,10 +63,10 @@ Example host strings:
 
 You can specify a second CrateDB node, like so::
 
-    crate://<HOST_1>,<HOST_2>/
+    crate://<HOST_ADDR_1>,<HOST_ADDR_2>/
 
-Here, ``<HOST_1>`` and ``<HOST_2>`` are the host strings for the first and
-second CrateDB nodes, respectively.
+Here, ``<HOST_ADDR_1>`` and ``<HOST_ADDR_2>`` are the host strings for the
+first and second CrateDB nodes, respectively.
 
 In fact, you can specify as many nodes as you like. Each corresponding host
 string must be separated from the previous one using a ``,`` character.
@@ -95,6 +95,8 @@ To specify a different schema, use the ``setSchema`` method, like so:
 
    The default CrateDB schema is ``doc``, and if you do not specify a schema,
    this is what will be used.
+
+   However, you can query any schema you like by specifying it in the query.
 
 .. _connection_properties:
 
@@ -161,6 +163,8 @@ The CrateDB JDBC driver supports following properties:
 
   Specifies the CrateDB user.
 
+  Defaults to the same string as the OS system user.
+
   .. NOTE::
 
      Authentication was introduced in CrateDB versions 2.1.x.
@@ -170,8 +174,6 @@ The CrateDB JDBC driver supports following properties:
 
      See the :ref:`compatibility notes <cratedb-versions>` for more
      information.
-
-  Defaults to the same string as the OS system user.
 
   .. TIP::
 
@@ -202,23 +204,25 @@ The CrateDB JDBC driver supports following properties:
 Next Steps
 ==========
 
-Once you're connected, you can use the driver by following the regular `JDBC
-API`_ documentation.
+Use the standard `JDBC API`_ documentation for the rest of your setup process.
 
-.. SEEALSO::
+.. TIP::
 
-   Documentation on :ref:`CrateDB value types <types>`.
+   Check out the `sample application`_ (and the corresponding `documentation`_)
+   for a practical demonstration of this driver in use.
 
 .. _class path: https://docs.oracle.com/javase/tutorial/essential/environment/paths.html
 .. _client-side random load balancing: https://en.wikipedia.org/wiki/Load_balancing_(computing)#Client-side_random_load_balancing
 .. _database user: https://crate.io/docs/crate/reference/en/latest/admin/user-management.html
 .. _Disabling auto-commit mode: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#disable_auto_commit
+.. _documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
 .. _failover: https://en.wikipedia.org/wiki/Failover
 .. _isolation level: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#transactions_data_integrity
 .. _JDBC API: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
 .. _JDBC documentation: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html
 .. _psql.port: https://crate.io/docs/crate/reference/en/latest/config/node.html#ports
 .. _Read-only connections: https://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)
+.. _sample application: https://github.com/crate/crate-sample-apps/tree/master/java
 .. _schema: https://crate.io/docs/crate/reference/en/latest/sql/statements/create-table.html#description
 .. _Setting and rolling back to savepoints: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#set_roll_back_savepoints
 .. _Transactions: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html
