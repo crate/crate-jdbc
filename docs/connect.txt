@@ -178,9 +178,8 @@ The CrateDB JDBC driver supports following properties:
   .. TIP::
 
      If you have not configured a custom `database user`_, you probably want to
-     authenticate as the CrateDB superuser, which is ``crate``. By default, the
-     superuser does not have a password, so you can omit the ``password``
-     property.
+     authenticate as the CrateDB superuser, which is ``crate``. The superuser
+     does not have a password, so you can omit the ``password`` property.
 
 :``password``:
 
