@@ -9,6 +9,8 @@ Compatibility
 .. contents::
    :local:
 
+.. _jdbc-implementation:
+
 JDBC Implementation
 ===================
 
@@ -23,6 +25,8 @@ However, the following notes apply:
   stored procedures.
 - `ResultSet`_ objects are read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
   so changes to a ``ResultSet`` are not supported.
+
+.. _cratedb-versions:
 
 CrateDB Versions
 ================
