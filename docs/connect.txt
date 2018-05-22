@@ -36,13 +36,13 @@ class. JDBC 4.0 will initialise this automatically if it is found on your
 
 .. _database-urls:
 
-Database URLs
-=============
+Database Connection URLs
+========================
 
 A JDBC database is represented by special type of *Uniform Resource Locator*
-(URL).
+(URL)  called a `database connection URL`_.
 
-The simplest form for CrateDB looks like this::
+The simplest database connection URL for CrateDB looks like this::
 
     crate://<HOST>/
 
@@ -227,3 +227,4 @@ Use the standard `JDBC API`_ documentation for the rest of your setup process.
 .. _Transactions: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html
 .. _URL parameters: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
 .. _User Management: https://crate.io/docs/crate/reference/en/latest/sql/administration/user_management.html
+.. _database connection URL: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
