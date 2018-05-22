@@ -9,27 +9,15 @@ Compatibility
 .. contents::
    :local:
 
-.. _jdbc-implementation:
+.. _versions:
 
-JDBC Implementation
-===================
-
-The CrateDB JDBC driver follows the JDBC 4.1 standard.
-
-However, the following notes apply:
-
-- `ParameterMetaData`_ (e.g. as returned by `PreparedStatement`_) is not
-  supported.
-- `DataSource`_ is not supported.
-- `CallableStatement`_ is not supported, as CrateDB itself does not support
-  stored procedures.
-- `ResultSet`_ objects are read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
-  so changes to a ``ResultSet`` are not supported.
+Version Notes
+=============
 
 .. _cratedb-versions:
 
-CrateDB Versions
-================
+CrateDB
+-------
 
 Consult the following table for CrateDB version compatibility notes:
 
@@ -86,6 +74,28 @@ Consult the following table for CrateDB version compatibility notes:
 |                |                 | Prior versions of CrateDB do not support  |
 |                |                 | this feature.                             |
 +----------------+-----------------+-------------------------------------------+
+
+.. _implementations:
+
+Implementation Notes
+====================
+
+.. _jdbc-implementation:
+
+JDBC
+----
+
+The CrateDB JDBC driver follows the JDBC 4.1 standard.
+
+However, the following notes apply:
+
+- `ParameterMetaData`_ (e.g. as returned by `PreparedStatement`_) is not
+  supported.
+- `DataSource`_ is not supported.
+- `CallableStatement`_ is not supported, as CrateDB itself does not support
+  stored procedures.
+- `ResultSet`_ objects are read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
+  so changes to a ``ResultSet`` are not supported.
 
 .. _ParameterMetaData: https://docs.oracle.com/javase/8/docs/api/java/sql/ParameterMetaData.html
 .. _PreparedStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html
