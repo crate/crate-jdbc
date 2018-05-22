@@ -31,8 +31,7 @@ databases in Java.
 
    getting-started
    connect
-   data-types
-   compatibility
+   appendices/index
 
 .. _CrateDB: https://crate.io/products/cratedb/
 .. _documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
