@@ -11,8 +11,8 @@ Connect to CrateDB
 
 .. _basics:
 
-The Basic
-=========
+The Basics
+==========
 
 Connect to CrateDB using the ``DriverManager`` class, like so::
 
