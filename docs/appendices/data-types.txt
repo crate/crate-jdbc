@@ -99,23 +99,15 @@ elements in the array.
 
 Here's one example:
 
-FIXME: can an engineer please add explanatory comments to this block of code.
-please explain what is being done here. please also format the code in the most
-idiomatic yet reasonable way (I have given this a go myself) - please also add
-empty lines where it makes most sense
-
 .. code-block:: java
 
-    Statement statement = connection.createStatement();
-    ResultSet resultSet = statement.executeQuery(
-        "SELECT array_field FROM my_table"
-    );
-    resultSet.first();
-    Array arrayFieldArray = resultSet.getArray("array_field");
-    Object[] arrayFieldValue = arrayFieldValue.getArray();
-    ResultSet arrayFieldResultSet = arrayFieldArray.getResultSet();
-    arrayFieldResultSet.first();
-    String firstValue = arrayFieldResultSet.getString("array_field");
+	Statement statement = connection.createStatement();
+	ResultSet resultSet = statement.executeQuery(
+		"SELECT array_field FROM my_table"
+	);
+	resultSet.first();
+	Array arrayField = resultSet.getArray("array_field");
+	Object[] arrayFieldValue = (Object[]) arrayFieldValue.getArray();
 
 When inserting arrays using a prepared statement, you must convert your array
 to a `java.sql.Array`_ by the use of ``createArrayOf()``. This function takes
@@ -123,10 +115,6 @@ as its first argument, a CrateDB type as described above and as its second the
 array you want to convert.
 
 You can then use ``setArray()`` to set this converted array.
-
-FIXME: can an engineer please add explanatory comments to this block of code.
-please explain what is being done here. please also format the code in the most
-idiomatic yet reasonable way (I have given this a go myself)
 
 For example:
 
@@ -153,21 +141,20 @@ the object.
 
    Objects can be ``null``.
 
-FIXIME: is the above right? which object? the resulting java object?
-
 FIXME: can an engineer please add explanatory comments to this block of code.
 please explain what is being done here. please also format the code in the most
 idiomatic yet reasonable way (I have given this a go myself)
 
 .. code-block:: java
 
-    Statement statement = connection.createStatement();
-    ResultSet resultSet = statement.executeQuery(
-        "SELECT object_field FROM my_table"
-    );
-    resultSet.first();
-    Map<String, Object> objValue = (Map<String, Object>)resultSet.getObject("object_field");
-    Object nestedValue = objValue.get("nested_field");
+	Statement statement = connection.createStatement();
+	ResultSet resultSet = statement.executeQuery(
+			"SELECT object_field FROM my_table"
+	);
+	resultSet.first();
+
+	Map<String, Object> objectValue = (Map<String, Object>) resultSet.getObject("object_field");
+	Object objectField = objectValue.get("nested_field");
 
 .. _java.sql.Array: https://docs.oracle.com/javase/8/docs/api/java/sql/Array.html
 .. _java.util.Map<String, Object>: https://docs.oracle.com/javase/8/docs/api/java/util/Map.html
