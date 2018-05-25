@@ -48,6 +48,9 @@ Or, build a JAR file that includes dependencies::
 
 Afterwards you can find the JAR file in the ``build/lib`` directory.
 
+Note that building the JAR files requires your environment locale set to
+``UTF-8``.
+
 Contributing
 ============
 
@@ -74,7 +77,6 @@ Looking for more help?
 .. _getting started: https://crate.io/docs/projects/crate-jdbc/getting-started.html
 .. _Java 8: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 .. _JDBC: http://www.oracle.com/technetwork/java/overview-141217.html
-.. _Jitpack: https://jitpack.io/#crate/crate-jdbc
 .. _OpenJDK: http://openjdk.java.net/projects/jdk8/
 .. _Oracle’s Java: http://www.java.com/en/download/help/mac_install.xml
 .. _paid support: https://crate.io/pricing/
