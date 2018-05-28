@@ -27,8 +27,9 @@ Consult the `compatibility notes`_ for additional information.
 Installation
 ============
 
-These instructions show you how to build the CrateDB JDBC driver from the source
-code. For a conventional install, follow the `getting started`_ documentation.
+These instructions show you how to build the CrateDB JDBC driver from the
+source code. For a conventional install (using pre-built JAR files) follow the
+`getting started`_ documentation.
 
 Clone the repository::
 
