@@ -23,9 +23,10 @@ Install
 
 .. NOTE::
 
-   These instructions show you how to do a conventional install. To build the
-   CrateDB JDBC driver from the source code, follow the `instructions on
-   GitHub`_.
+   These instructions show you how to do a conventional install.
+
+   To build the CrateDB JDBC driver from the source code, follow the
+   `instructions on GitHub`_.
 
 There are two ways to install the driver.
 
