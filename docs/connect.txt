@@ -25,7 +25,7 @@ Connect to CrateDB using the ``DriverManager`` class, like so::
 
    Consult the `Connection Properties`_ section for more information.
 
-.. TIP::
+.. SEEALSO::
 
    Consult the `JDBC documentation`_ for general information about using the
    ``DriverManager`` class.
@@ -75,7 +75,7 @@ The driver will attempt to connect to each node in the order they appear. The
 first successul connection will be used, and all other nodes will be ignored
 for the duration of that connection.
 
-.. CAUTION::
+.. NOTE::
 
    The last host string must be followed by a ``/`` character.
 
@@ -175,8 +175,6 @@ The CrateDB JDBC driver supports following properties:
      See the :ref:`compatibility notes <cratedb-versions>` for more
      information.
 
-  .. TIP::
-
      If you have not configured a custom `database user`_, you probably want to
      authenticate as the CrateDB superuser, which is ``crate``. The superuser
      does not have a password, so you can omit the ``password`` property.
@@ -205,7 +203,7 @@ Next Steps
 
 Use the standard `JDBC API`_ documentation for the rest of your setup process.
 
-.. TIP::
+.. SEEALSO::
 
    Check out the `sample application`_ (and the corresponding `documentation`_)
    for a practical demonstration of this driver in use.
