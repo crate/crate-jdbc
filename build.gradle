@@ -344,6 +344,6 @@ idea {
     }
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.5.1'
+wrapper {
+    gradleVersion = '4.8'
 }
