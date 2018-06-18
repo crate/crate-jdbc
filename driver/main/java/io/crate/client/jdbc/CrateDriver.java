@@ -22,14 +22,13 @@
 
 package io.crate.client.jdbc;
 
-import org.postgresql.Driver;
-
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-public class CrateDriver extends Driver {
+public class CrateDriver extends org.postgresql.Driver {
 
     private static final String PROTOCOL = "jdbc";
 
@@ -41,17 +40,17 @@ public class CrateDriver extends Driver {
     private static final String PSQL_PREFIX = PSQL_PROTOCOL + ":" + "//";
     private static final String PSQL_PREFIX_LONG = PROTOCOL + ":" + PSQL_PREFIX;
 
+    private static Driver registeredDriver;
+
+    /**
+     * Taken from {@link org.postgresql.Driver}
+     */
     static {
         try {
-            Driver.deregister();
-            assert !isRegistered() : "The PostgreSQL driver is registered.";
-            DriverManager.registerDriver(new CrateDriver());
+            register();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new ExceptionInInitializerError(e);
         }
-    }
-
-    public CrateDriver() {
     }
 
     @Override
@@ -97,5 +96,37 @@ public class CrateDriver extends Driver {
     @Override
     public boolean jdbcCompliant() {
         return false;
+    }
+
+    /**
+     * Copied from {@link org.postgresql.Driver#register()}.
+     */
+    public static void register() throws SQLException {
+        if (isRegistered()) {
+            throw new IllegalStateException(
+                    "Driver is already registered. It can only be registered once.");
+        }
+        Driver crateDriver = new CrateDriver();
+        DriverManager.registerDriver(crateDriver);
+        registeredDriver = crateDriver;
+    }
+
+    /**
+     * Copied from {@link org.postgresql.Driver#deregister()}.
+     */
+    public static void deregister() throws SQLException {
+        if (!isRegistered()) {
+            throw new IllegalStateException(
+                    "Driver is not registered (or it has not been registered using Driver.register() method)");
+        }
+        DriverManager.deregisterDriver(registeredDriver);
+        registeredDriver = null;
+    }
+
+    /**
+     * Copied from {@link org.postgresql.Driver#isRegistered()}.
+     */
+    public static boolean isRegistered() {
+        return registeredDriver != null;
     }
 }
