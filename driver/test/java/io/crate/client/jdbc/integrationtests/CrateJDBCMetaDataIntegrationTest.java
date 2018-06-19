@@ -148,13 +148,10 @@ public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
 
     public void testExcludeNestedColumns() throws Exception {
         ResultSet resultSet = connection.getMetaData().getColumns(null, "sys", "nodes", null);
-        int counter = 0;
         while (resultSet.next()) {
             assertFalse(resultSet.getString(4).contains("."));
             assertFalse(resultSet.getString(4).contains("["));
-            counter++;
         }
-        assertThat(counter, is(15));
     }
 
     @Test
