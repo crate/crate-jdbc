@@ -179,6 +179,10 @@ The CrateDB JDBC driver supports following properties:
      authenticate as the CrateDB superuser, which is ``crate``. The superuser
      does not have a password, so you can omit the ``password`` property.
 
+     If you are authenticating as a custom user, that user will need to have
+     `DQL privileges`_ on the ``sys.nodes`` table, because this table is used
+     for version negotiation.
+
 :``password``:
 
   Sets the password for authentication.
@@ -210,9 +214,11 @@ Use the standard `JDBC API`_ documentation for the rest of your setup process.
 
 .. _class path: https://docs.oracle.com/javase/tutorial/essential/environment/paths.html
 .. _client-side random load balancing: https://en.wikipedia.org/wiki/Load_balancing_(computing)#Client-side_random_load_balancing
+.. _database connection URL: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
 .. _database user: https://crate.io/docs/crate/reference/en/latest/admin/user-management.html
 .. _Disabling auto-commit mode: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#disable_auto_commit
 .. _documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
+.. _DQL privileges: https://crate.io/docs/crate/reference/en/latest/admin/privileges.html#dql
 .. _failover: https://en.wikipedia.org/wiki/Failover
 .. _isolation level: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#transactions_data_integrity
 .. _JDBC API: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
@@ -225,4 +231,3 @@ Use the standard `JDBC API`_ documentation for the rest of your setup process.
 .. _Transactions: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html
 .. _URL parameters: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
 .. _User Management: https://crate.io/docs/crate/reference/en/latest/sql/administration/user_management.html
-.. _database connection URL: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
