@@ -5,12 +5,16 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
-2018/07/04 2.3.1
+
+2018/07/19 2.4.0
 ================
 
  - Changed the default value of the connection property ``loadBalanceHosts`` to
    ``true``, which will randomize the order in which the client tries to connect
    to the given CrateDB hosts.
+
+2018/07/04 2.3.1
+================
 
  - Register driver class correctly so it does not require explicit
    initialization. This fixes problems with some third-party connection pooling
