@@ -201,6 +201,9 @@ The CrateDB JDBC driver supports following properties:
   strings. Over multiple connection attempts, this distributes connection
   attempts across the whole cluster, functioning as `client-side random load
   balancing`_.
+  If ``false``, the driver will try the hosts in the order they are defined.
+
+  Defaults to ``true``.
 
 Next Steps
 ==========
