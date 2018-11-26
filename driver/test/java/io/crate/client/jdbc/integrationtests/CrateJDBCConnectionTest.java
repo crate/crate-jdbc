@@ -38,6 +38,11 @@ import java.util.Date;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
 
@@ -310,7 +315,7 @@ public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
             stmt.setInt(1, 1);
             stmt.setObject(2, "baz");
             stmt.addBatch();
-            
+
             int[] results = stmt.executeBatch();
             assertArrayEquals(new int[]{1, Statement.EXECUTE_FAILED}, results);
             conn.createStatement().execute("refresh table test");

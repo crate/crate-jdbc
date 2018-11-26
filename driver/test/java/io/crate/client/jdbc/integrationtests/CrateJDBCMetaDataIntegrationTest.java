@@ -34,6 +34,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
 public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
 

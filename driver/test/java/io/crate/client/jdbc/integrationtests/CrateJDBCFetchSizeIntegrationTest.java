@@ -28,6 +28,8 @@ import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+
 
 /**
  * We are allowed to disable autoCommit (= manual commit) if strict mode is not enabled.

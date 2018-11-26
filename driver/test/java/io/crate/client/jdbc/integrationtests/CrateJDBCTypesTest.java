@@ -2,7 +2,6 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.jdbc.PgResultSet;
@@ -16,6 +15,8 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
@@ -201,7 +202,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array strArray = resultSet.getArray("str_array");
         assertThat(strArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(strArray.getBaseType(), is(Types.VARCHAR));
+        assertThat(strArray.getBaseType(), is(Types.VARCHAR));
         assertThat((Object[]) strArray.getArray(), Matchers.<Object>arrayContaining("a", "b", "c", "d"));
     }
 
@@ -213,7 +214,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array boolArray = resultSet.getArray("bool_array");
         assertThat(boolArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(boolArray.getBaseType(), is(Types.BOOLEAN));
+        assertThat(boolArray.getBaseType(), is(Types.BOOLEAN));
         assertThat((Object[]) boolArray.getArray(), Matchers.<Object>arrayContaining(true, false));
     }
 
@@ -225,7 +226,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array byteArray = resultSet.getArray("byte_array");
         assertThat(byteArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(byteArray.getBaseType(), is(Types.TINYINT));
+        assertThat(byteArray.getBaseType(), is(Types.TINYINT));
         assertThat((Object[]) byteArray.getArray(), Matchers.<Object>arrayContaining(new Byte("120"), new Byte("100")));
     }
 
@@ -237,7 +238,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array shortArray = resultSet.getArray("short_array");
         assertThat(shortArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(shortArray.getBaseType(), is(Types.SMALLINT));
+        assertThat(shortArray.getBaseType(), is(Types.SMALLINT));
         assertThat((Object[]) shortArray.getArray(), Matchers.<Object>arrayContaining(1300, 1200));
     }
 
@@ -249,7 +250,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array integerArray = resultSet.getArray("integer_array");
         assertThat(integerArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(integerArray.getBaseType(), is(Types.INTEGER));
+        assertThat(integerArray.getBaseType(), is(Types.INTEGER));
         assertThat((Object[]) integerArray.getArray(), Matchers.<Object>arrayContaining(2147483647, 234583));
     }
 
@@ -261,7 +262,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array longArray = resultSet.getArray("long_array");
         assertThat(longArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(longArray.getBaseType(), is(Types.BIGINT));
+        assertThat(longArray.getBaseType(), is(Types.BIGINT));
         assertThat((Object[]) longArray.getArray(), Matchers.<Object>arrayContaining(9223372036854775807L, 4L));
     }
 
@@ -273,7 +274,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array floatArray = resultSet.getArray("float_array");
         assertThat(floatArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(floatArray.getBaseType(), is(Types.REAL));
+        assertThat(floatArray.getBaseType(), is(Types.REAL));
         assertThat((Object[]) floatArray.getArray(), Matchers.<Object>arrayContaining(3.402f, 3.403f, 1.4f));
     }
 
@@ -285,7 +286,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array doubleArray = resultSet.getArray("double_array");
         assertThat(doubleArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(doubleArray.getBaseType(), is(Types.DOUBLE));
+        assertThat(doubleArray.getBaseType(), is(Types.DOUBLE));
         assertThat((Object[]) doubleArray.getArray(), Matchers.<Object>arrayContaining(1.79769313486231570e+308, 1.69769313486231570e+308));
     }
 
@@ -297,7 +298,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array timestampArray = resultSet.getArray("timestamp_array");
         assertThat(timestampArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(timestampArray.getBaseType(), is(Types.TIMESTAMP));
+        assertThat(timestampArray.getBaseType(), is(Types.TIMESTAMP));
         assertThat((Object[]) timestampArray.getArray(), Matchers.<Object>arrayContaining(new Timestamp(1000L), new Timestamp(2000L)));
     }
 
@@ -309,7 +310,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array ipArray = resultSet.getArray("ip_array");
         assertThat(ipArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(ipArray.getBaseType(), is(Types.VARCHAR));
+        assertThat(ipArray.getBaseType(), is(Types.VARCHAR));
         assertThat((Object[]) ipArray.getArray(), Matchers.<Object>arrayContaining("127.142.132.9", "127.0.0.1"));
     }
 
@@ -321,9 +322,9 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
 
         Array objArray = resultSet.getArray("obj_array");
         assertThat(objArray.getArray().getClass().isArray(), is(true));
-        Assert.assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
+        assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
         Object firstObject = ((Object[]) objArray.getArray())[0];
-        Assert.assertThat(firstObject, instanceOf(Map.class));
+        assertThat(firstObject, instanceOf(Map.class));
 
         Object[] mapArray = new Object[]{
             new HashMap<String, Object>() {{

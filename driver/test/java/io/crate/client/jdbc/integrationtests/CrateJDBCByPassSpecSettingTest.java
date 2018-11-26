@@ -24,13 +24,13 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.postgresql.util.PSQLException;
 
 import java.sql.*;
 import java.util.Properties;
 
 import static org.hamcrest.Matchers.is;
-
-import org.postgresql.util.PSQLException;
+import static org.junit.Assert.assertThat;
 
 public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
 
