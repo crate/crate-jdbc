@@ -127,85 +127,55 @@ task standaloneJar(type: ShadowJar, dependsOn: [getVersion]) {
     relocate 'com.google', 'io.crate.shade.com.google'
 }
 
-task buildJar(type: Jar, dependsOn: [getVersion, classes]) {
-    doLast {
-        ext.version = getVersion.version
-        project.version = ext.version
-        tasks.standaloneJar.execute()
-    }
-}
-tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
     source = sourceSets.main.allJava
 }
 
-task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+task javadocJar (type: Jar, dependsOn: [getVersion, myJavadocs]) {
     classifier = 'javadoc'
     from myJavadocs.destinationDir
-    manifest {
-        attributes("Implementation-Title": "Crate.IO JDBC Driver")
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO JDBC Driver", "Implementation-Version": project.version)
+        }
     }
 }
 
-task javadocJarStandalone (type: Jar, dependsOn: [myJavadocs]) {
+task javadocJarStandalone (type: Jar, dependsOn: [getVersion, myJavadocs]) {
     baseName 'crate-jdbc-standalone'
     classifier = 'javadoc'
     from myJavadocs.destinationDir
-    manifest {
-        attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)")
-    }
-}
-
-task buildJavadocJar (dependsOn: [getVersion, myJavadocs] ) {
     doLast {
-        ext.version = getVersion.version
-        project.version = ext.version
-        tasks.javadocJar.execute()
+        manifest {
+            attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)", "Implementation-Version": project.version)
+        }
     }
 }
 
-task buildJavadocJarStandalone (dependsOn: [getVersion, myJavadocs] ) {
-    doLast {
-        ext.version = getVersion.version
-        project.version = ext.version
-        tasks.javadocJarStandalone.execute()
-    }
-}
 
-task sourceJar (type : Jar) {
+task sourceJar (type : Jar, dependsOn: [getVersion]) {
     classifier = 'sources'
     from sourceSets.main.allSource
-    manifest {
-        attributes("Implementation-Title": "Crate.IO JDBC Driver")
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO JDBC Driver", "Implementation-Version": project.version)
+        }
     }
 }
 
-task sourceJarStandalone (type : Jar) {
+task sourceJarStandalone (type : Jar, dependsOn: [getVersion]) {
     baseName 'crate-jdbc-standalone'
     classifier = 'sources'
     from sourceSets.main.allSource
-    manifest {
-        attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)")
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO JDBC Driver (Standalone)", "Implementation-Version": project.version)
+        }
     }
 }
 
-task buildSourceJar (dependsOn: [getVersion] ) {
-    doLast {
-        ext.version = getVersion.version
-        project.version = ext.version
-        tasks.sourceJar.execute()
-    }
-}
-
-task buildSourceJarStandalone (dependsOn: [getVersion] ) {
-    doLast {
-        ext.version = getVersion.version
-        project.version = ext.version
-        tasks.sourceJarStandalone.execute()
-    }
-}
 
 artifacts {
     archives shadedJar
@@ -216,11 +186,11 @@ artifacts {
     archives sourceJarStandalone
 }
 
-task signJars (type : Sign, dependsOn: [shadedJar, standaloneJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone]) {
+task signJars (type : Sign, dependsOn: [shadedJar, standaloneJar, javadocJar, javadocJarStandalone, sourceJar, sourceJarStandalone]) {
     sign configurations.archives
 }
 
-install.dependsOn([shadedJar, standaloneJar, buildJavadocJar, buildJavadocJarStandalone, buildSourceJar, buildSourceJarStandalone])
+install.dependsOn([shadedJar, standaloneJar, javadocJar, javadocJarStandalone, sourceJar, sourceJarStandalone])
 install {
     repositories {
         mavenInstaller {
