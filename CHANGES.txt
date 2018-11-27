@@ -5,6 +5,7 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+ - Changed minimum compatibility to JDK 8.
 
 2018/07/19 2.4.0
 ================

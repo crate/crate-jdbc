@@ -23,8 +23,8 @@ allprojects {
         jcenter()
     }
 
-    sourceCompatibility = "1.7"
-    targetCompatibility = "1.7"
+    sourceCompatibility = "1.8"
+    targetCompatibility = "1.8"
 }
 
 dependencies {
@@ -298,7 +298,7 @@ test {
 idea {
     project {
         vcs = 'Git';
-        languageLevel = 'JDK_1_7';
+        languageLevel = 'JDK_1_8';
         ipr {
             withXml { provider ->
                 def node = provider.asNode();
