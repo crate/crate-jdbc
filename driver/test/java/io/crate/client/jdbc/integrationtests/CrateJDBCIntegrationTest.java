@@ -48,7 +48,9 @@ public class CrateJDBCIntegrationTest extends RandomizedTest {
             "2.0.7",
             "2.1.9",
             "2.2.7",
-            "2.3.5"
+            "2.3.5",
+            "3.0.7",
+            "3.1.3"
     };
 
     @Rule

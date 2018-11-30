@@ -239,7 +239,7 @@ public class CrateJDBCTypesTest extends CrateJDBCIntegrationTest {
         Array shortArray = resultSet.getArray("short_array");
         assertThat(shortArray.getArray().getClass().isArray(), is(true));
         assertThat(shortArray.getBaseType(), is(Types.SMALLINT));
-        assertThat((Object[]) shortArray.getArray(), Matchers.<Object>arrayContaining(1300, 1200));
+        assertThat((Object[]) shortArray.getArray(), Matchers.<Object>arrayContaining((short) 1300, (short) 1200));
     }
 
     @Test

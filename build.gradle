@@ -125,6 +125,7 @@ task standaloneJar(type: ShadowJar, dependsOn: [getVersion]) {
     relocate 'org.apache', 'io.crate.shade.org.apache'
     relocate 'org.osgi', 'io.crate.shade.org.osgi'
     relocate 'com.google', 'io.crate.shade.com.google'
+    relocate 'com.ongres', 'io.crate.shade.com.ongres'
 }
 
 
