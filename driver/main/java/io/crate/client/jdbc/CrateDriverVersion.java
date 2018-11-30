@@ -24,7 +24,7 @@ package io.crate.client.jdbc;
 
 public class CrateDriverVersion {
 
-    private static final boolean SNAPSHOT = true;
+    private static final boolean SNAPSHOT = false;
     static final CrateDriverVersion CURRENT = new CrateDriverVersion(20500, SNAPSHOT);
 
     private final int id;
