@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+2018/12/06 2.5.1
+================
+
 - Fixed support for negative row counts which was removed by 2.5.0.
 
 2018/11/30 2.5.0
