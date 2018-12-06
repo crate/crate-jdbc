@@ -26,7 +26,9 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -56,7 +58,7 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static CrateTestCluster testCluster;
+    static CrateTestCluster TEST_CLUSTER;
 
     private static String getRandomServerVersion() {
         String version = System.getenv().get("CRATE_VERSION");
@@ -76,18 +78,27 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
         } else {
             builder = CrateTestCluster.fromVersion(getRandomServerVersion());
         }
-        testCluster = builder.keepWorkingDir(false).build();
-        testCluster.before();
+        TEST_CLUSTER = builder.keepWorkingDir(false).build();
+        TEST_CLUSTER.before();
     }
 
     @AfterClass
-    public static void tearDown() {
-        testCluster.after();
+    public static void tearDownCluster() {
+        TEST_CLUSTER.after();
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        setUpTestTable();
+    }
+
+    @After
+    public void tearDown() {
         tearDownTables();
     }
 
     static String getConnectionString() {
-        CrateTestServer server = testCluster.randomServer();
+        CrateTestServer server = TEST_CLUSTER.randomServer();
         return String.format("crate://%s:%s/doc?user=crate", server.crateHost(), server.psqlPort());
     }
 
@@ -108,7 +119,7 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
         }
     }
 
-    static void setUpTestTable() throws SQLException, InterruptedException {
+    private static void setUpTestTable() throws SQLException, InterruptedException {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             conn.createStatement().execute(
                 "create table if not exists test (" +

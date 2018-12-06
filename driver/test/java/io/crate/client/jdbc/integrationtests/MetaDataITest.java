@@ -22,10 +22,16 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,19 +45,19 @@ import static org.junit.Assert.assertThat;
 
 public class MetaDataITest extends BaseIntegrationTest {
 
-    private static Connection connection;
+    private Connection conn;
 
-    @BeforeClass
-    public static void setUpTest() throws Throwable {
-        connection = DriverManager.getConnection(getConnectionString());
-        connection.createStatement().execute("create table test.cluster (arr array(int), name string)");
-        connection.createStatement().execute("create table doc.names (id int primary key, name string)");
-        connection.createStatement().execute("create table my_schema.names (id int primary key, name string)");
+    @Before
+    public void setUpTest() throws Throwable {
+        conn = DriverManager.getConnection(getConnectionString());
+        conn.createStatement().execute("create table test.cluster (arr array(int), name string)");
+        conn.createStatement().execute("create table doc.names (id int primary key, name string)");
+        conn.createStatement().execute("create table my_schema.names (id int primary key, name string)");
     }
 
     @Test
     public void testGetTables() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getTables("", "sys", "cluster", null);
 
         assertThat(rs.next(), is(true));
@@ -63,7 +69,7 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetTablesWithNullSchema() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getTables("", null, "clus%", null);
 
         assertThat(rs.next(), is(true));
@@ -79,14 +85,14 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetTablesWithEmptySchema() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getTables("", "", "clust%", null);
         assertThat(rs.next(), is(false));
     }
 
     @Test
     public void testGetColumns() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getColumns("", "test", "clus%", "ar%");
 
         assertThat(rs.next(), is(true));
@@ -101,14 +107,14 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetColumnsWithEmptySchema() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getTables("", "", "clust%", null);
         assertThat(rs.next(), is(false));
     }
 
     @Test
     public void testGetColumnsWithNullSchema() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getColumns("", null, "clus%", "name");
 
         assertThat(rs.next(), is(true));
@@ -125,7 +131,7 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetSchemasWithSchemaPattern() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getSchemas("", "tes%");
 
         assertThat(rs.next(), is(true));
@@ -136,7 +142,7 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetSchemasWithNullSchemaPattern() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getSchemas("", null);
 
         List<String> schemas = new ArrayList<>();
@@ -149,7 +155,7 @@ public class MetaDataITest extends BaseIntegrationTest {
     @Test
 
     public void testExcludeNestedColumns() throws Exception {
-        ResultSet resultSet = connection.getMetaData().getColumns(null, "sys", "nodes", null);
+        ResultSet resultSet = conn.getMetaData().getColumns(null, "sys", "nodes", null);
         while (resultSet.next()) {
             assertFalse(resultSet.getString(4).contains("."));
             assertFalse(resultSet.getString(4).contains("["));
@@ -158,7 +164,7 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testTypesResponseNoResult() throws Exception {
-        ResultSet result = connection.createStatement().executeQuery("select * from test.cluster where 1=0");
+        ResultSet result = conn.createStatement().executeQuery("select * from test.cluster where 1=0");
         ResultSetMetaData metaData = result.getMetaData();
         assertThat(metaData.getColumnCount(), is(2));
         for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) {
@@ -169,7 +175,7 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetSchemas() throws Exception {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getSchemas();
         List<String> schemas = new ArrayList<>();
         while (rs.next()) {
@@ -180,7 +186,7 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetPrimaryKeysPk() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getPrimaryKeys("", "doc", "names");
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("TABLE_SCHEM"), is("doc"));
@@ -190,14 +196,14 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetPrimaryKeysNoPk() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getPrimaryKeys("", "test", "cluster");
         assertThat(rs.next(), is(false));
     }
 
     @Test
     public void testGetPrimaryWithoutSchemaDoesNotFilter() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getPrimaryKeys("", null, "names");
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("TABLE_SCHEM"), is("doc"));
@@ -211,19 +217,19 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetPrimaryMultiplePks() throws SQLException {
-        connection.createStatement().execute("create table if not exists t_multi_pks (id int primary key, id2 int primary key, name string)");
-        DatabaseMetaData metaData = connection.getMetaData();
+        conn.createStatement().execute("create table if not exists t_multi_pks (id int primary key, id2 int primary key, name string)");
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getPrimaryKeys("", "doc", "t_multi_pks");
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("COLUMN_NAME"), is("id"));
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("COLUMN_NAME"), is("id2"));
-        connection.createStatement().execute("drop table t_multi_pks");
+        conn.createStatement().execute("drop table t_multi_pks");
     }
 
     @Test
     public void testUnsupportedMethodWithEmptyImpl() throws SQLException {
-        DatabaseMetaData metaData = connection.getMetaData();
+        DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getPseudoColumns("", "doc", "information_schema", "pg_catalog");
         assertThat(rs.getMetaData().getColumnCount(), is(12));
         assertThat(rs.getMetaData().getColumnName(1), is("TABLE_CAT"));

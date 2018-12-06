@@ -24,19 +24,27 @@ package io.crate.client.jdbc.integrationtests;
 
 import io.crate.testing.CrateTestServer;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.util.PSQLException;
 
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
 
 import static com.google.common.collect.Maps.newHashMap;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
@@ -46,26 +54,10 @@ import static org.junit.Assert.fail;
 
 public class ConnectionITest extends BaseIntegrationTest {
 
-    private static String connectionString;
-
-    @BeforeClass
-    public static void beforeClass() throws SQLException, InterruptedException {
-        connectionString = getConnectionString();
-        setUpTestTable();
-    }
-
-    @After
-    public void after() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            conn.createStatement().execute("delete from test");
-            conn.createStatement().execute("refresh table test");
-        }
-    }
-
     @Test
     @Ignore("set/get schema is not implemented")
     public void testConnectionWithCustomSchema() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             conn.setSchema("foo");
             assertThat(conn.getSchema(), is("foo"));
             Statement statement = conn.createStatement();
@@ -78,7 +70,7 @@ public class ConnectionITest extends BaseIntegrationTest {
             assertThat(resultSet.getLong(1), is(1L));
             conn.close();
 
-            Connection barConnection = DriverManager.getConnection(connectionString);
+            Connection barConnection = DriverManager.getConnection(getConnectionString());
             conn.setSchema("bar");
             assertThat(barConnection.getSchema(), is("bar"));
             statement = barConnection.createStatement();
@@ -108,7 +100,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     public void testConnectionWithCustomSchemaPrepareStatement() throws Exception {
         String schemaName = "my";
         String tableName = "test_a";
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             conn.setSchema(schemaName);
             PreparedStatement pstmt = conn.prepareStatement(
                 String.format("create table %s (first_column integer, second_column string) with (number_of_replicas=0)", tableName));
@@ -148,7 +140,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     public void testConnectionWithCustomSchemaBatchPrepareStatement() throws Exception {
         String schemaName = "my";
         String tableName = "test_b";
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             conn.setSchema(schemaName);
             PreparedStatement stmt = conn.prepareStatement(
                 String.format("create table %s (id long, ts timestamp, info string) with (number_of_replicas=0)", tableName));
@@ -173,7 +165,7 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testSelectWithoutResultUsingPreparedStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement preparedStatement = conn.prepareStatement("select * from test where id = ?");
             preparedStatement.setInt(1, 2);
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -186,7 +178,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     @Test
     public void testSelectUsingPreparedStatement() throws Exception {
         insertIntoTestTable();
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement preparedStatement = conn.prepareStatement("select * from test where id = ?");
             preparedStatement.setInt(1, 1);
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -209,7 +201,7 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testException() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             expectedException.expect(anyOf(instanceOf(SQLException.class), instanceOf(PSQLException.class)));
             expectedException.expectMessage(anyOf(
                     containsString("line 1:1: no viable alternative at input 'ERROR'"),
@@ -221,7 +213,7 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testExecuteBatchStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             Statement stmt = conn.createStatement();
             stmt.addBatch("insert into test (id) values (3)");
             stmt.addBatch("insert into test (id) values (4)");
@@ -238,7 +230,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     @Test
     @Ignore("validate batch behaviour")
     public void testExecuteBatchStatementFail() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             Statement stmt = conn.createStatement();
             stmt.addBatch("insert into test (id) values (3)");
             stmt.addBatch("insert into test (id) values (5)");
@@ -259,7 +251,7 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testExecuteBatchPreparedStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement stmt = conn.prepareStatement("insert into test (id) values (?)");
             stmt.setInt(1, 2);
             stmt.addBatch();
@@ -278,7 +270,7 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testExecuteBatchPreparedStatementFailBulkTypes() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement stmt = conn.prepareStatement("insert into test (id) values (?)");
             stmt.setObject(1, newHashMap());
             stmt.addBatch();
@@ -306,7 +298,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     @Test
     @Ignore
     public void testExecuteBatchPreparedStatementFailOne() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement stmt = conn.prepareStatement("insert into test (id, string_field) values (?, ?)");
             stmt.setInt(1, 2);
             stmt.setString(2, "foo");
@@ -327,7 +319,7 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testExecuteBatchPreparedStatementFailSyntax() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement stmt = conn.prepareStatement("insert test (id) values (?)");
             stmt.setInt(1, 2);
             stmt.addBatch();
@@ -347,14 +339,14 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testSelectWhenNothingMatches() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             assertTrue(conn.createStatement().execute("select * from test where id = 1000000"));
         }
     }
 
     @Test
     public void testExecuteUpdateWhenNothingMatches() throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             assertThat(conn.createStatement().executeUpdate("update test set string_field = 'new_value' " +
                                                             "where string_field = 'nothing_matches_this'"), is(0));
         }
@@ -362,7 +354,7 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testMultipleHostsConnectionString() throws Exception {
-        CrateTestServer server = testCluster.randomServer();
+        CrateTestServer server = TEST_CLUSTER.randomServer();
         String connectionStr = String.format(
             "crate://%s:%s,%s:%s/doc?user=crate", server.crateHost(), server.psqlPort(), server.crateHost(), server.psqlPort()
         );
@@ -378,7 +370,7 @@ public class ConnectionITest extends BaseIntegrationTest {
          * In Postgres multiple result sets may occur when executing multiple statements (separated by ;) or when
          * calling stored procedures.
          */
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             Statement stmt = conn.createStatement();
             assertTrue(stmt.execute("select name from sys.nodes"));
             assertFalse(stmt.getMoreResults());

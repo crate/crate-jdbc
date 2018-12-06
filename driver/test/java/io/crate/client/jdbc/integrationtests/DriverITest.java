@@ -44,7 +44,7 @@ import static org.junit.Assert.assertTrue;
 
 public class DriverITest extends BaseIntegrationTest {
 
-    private static CrateDriver driver;
+    private static CrateDriver DRIVER;
     private static final Properties PROP;
 
     static {
@@ -52,41 +52,41 @@ public class DriverITest extends BaseIntegrationTest {
         PROP.setProperty("user", "crate");
     }
 
-    private static String hostAndPort;
+    private static String HOST_AND_PORT;
 
     @BeforeClass
     public static void beforeClass() {
-        driver = new CrateDriver();
-        CrateTestServer server = testCluster.randomServer();
-        hostAndPort = String.format("%s:%s", server.crateHost(), server.psqlPort());
+        DRIVER = new CrateDriver();
+        CrateTestServer server = TEST_CLUSTER.randomServer();
+        HOST_AND_PORT = String.format("%s:%s", server.crateHost(), server.psqlPort());
     }
 
     @Test
     public void testDriverRegistration() throws Exception {
-        Connection c1 = DriverManager.getConnection("crate://" + hostAndPort + "/doc?user=crate");
+        Connection c1 = DriverManager.getConnection("crate://" + HOST_AND_PORT + "/doc?user=crate");
         assertThat(c1, instanceOf(PGConnection.class));
         c1.close();
 
-        Connection c2 = DriverManager.getConnection("jdbc:crate://" + hostAndPort + "/doc?user=crate");
+        Connection c2 = DriverManager.getConnection("jdbc:crate://" + HOST_AND_PORT + "/doc?user=crate");
         assertThat(c1, instanceOf(PGConnection.class));
         c2.close();
 
         expectedException.expect(SQLException.class);
         expectedException.expectMessage(
-            containsString(String.format("No suitable driver found for %s", "jdbc:mysql://" + hostAndPort + "/")));
-        DriverManager.getConnection("jdbc:mysql://" + hostAndPort + "/");
+            containsString(String.format("No suitable driver found for %s", "jdbc:mysql://" + HOST_AND_PORT + "/")));
+        DriverManager.getConnection("jdbc:mysql://" + HOST_AND_PORT + "/");
     }
 
     @Test
     public void testDriverRegistrationDoesNotOverridePostgres() throws Exception {
         expectedException.expect(SQLException.class);
         expectedException.expectMessage(
-                containsString(String.format("No suitable driver found for %s", "jdbc:postgresql://" + hostAndPort + "/")));
-        DriverManager.getConnection("jdbc:postgresql://" + hostAndPort + "/");
+                containsString(String.format("No suitable driver found for %s", "jdbc:postgresql://" + HOST_AND_PORT + "/")));
+        DriverManager.getConnection("jdbc:postgresql://" + HOST_AND_PORT + "/");
     }
 
     private void assertInstanceOfCrateConnection(String connString, Properties prop) throws SQLException {
-        try (Connection conn = driver.connect(connString, prop)) {
+        try (Connection conn = DRIVER.connect(connString, prop)) {
             assertThat(conn, instanceOf(PGConnection.class));
             assertFalse(conn.isClosed());
             assertTrue(conn.isValid(0));
@@ -94,31 +94,31 @@ public class DriverITest extends BaseIntegrationTest {
     }
 
     private void assertConnectionIsNull(String connString, Properties prop) throws SQLException {
-        try (Connection conn = driver.connect(connString, prop)) {
+        try (Connection conn = DRIVER.connect(connString, prop)) {
             assertThat(conn, is(nullValue()));
         }
     }
 
     @Test
     public void testConnectDriver() throws Exception {
-        assertInstanceOfCrateConnection("jdbc:crate://" + hostAndPort + "/", PROP);
-        assertInstanceOfCrateConnection("crate://" + hostAndPort + "/", PROP);
+        assertInstanceOfCrateConnection("jdbc:crate://" + HOST_AND_PORT + "/", PROP);
+        assertInstanceOfCrateConnection("crate://" + HOST_AND_PORT + "/", PROP);
 
-        assertInstanceOfCrateConnection("jdbc:crate://" + hostAndPort + "/db", PROP);
-        assertInstanceOfCrateConnection("crate://" + hostAndPort + "/db", PROP);
+        assertInstanceOfCrateConnection("jdbc:crate://" + HOST_AND_PORT + "/db", PROP);
+        assertInstanceOfCrateConnection("crate://" + HOST_AND_PORT + "/db", PROP);
 
-        assertInstanceOfCrateConnection("jdbc:crate://" + hostAndPort + "/db?asdf=abcd", PROP);
-        assertInstanceOfCrateConnection("crate://" + hostAndPort + "/db?asdf=abcd", PROP);
+        assertInstanceOfCrateConnection("jdbc:crate://" + HOST_AND_PORT + "/db?asdf=abcd", PROP);
+        assertInstanceOfCrateConnection("crate://" + HOST_AND_PORT + "/db?asdf=abcd", PROP);
 
-        assertConnectionIsNull("crt://" + hostAndPort + "/", PROP);
-        assertConnectionIsNull("jdbc:mysql://" + hostAndPort + "/", PROP);
-        assertConnectionIsNull("crate://" + hostAndPort, PROP);
+        assertConnectionIsNull("crt://" + HOST_AND_PORT + "/", PROP);
+        assertConnectionIsNull("jdbc:mysql://" + HOST_AND_PORT + "/", PROP);
+        assertConnectionIsNull("crate://" + HOST_AND_PORT, PROP);
     }
 
     @Test
     @Ignore("set/get schema is not implemented")
     public void testClientPropertyUrlParser() throws Exception {
-        Connection conn = DriverManager.getConnection("crate://" + hostAndPort + "/?prop1=value1&prop2=value2");
+        Connection conn = DriverManager.getConnection("crate://" + HOST_AND_PORT + "/?prop1=value1&prop2=value2");
         Properties properties = conn.getClientInfo();
         assertThat(properties.size(), is(2));
         assertThat(properties.getProperty("prop1"), is("value1"));
@@ -129,7 +129,7 @@ public class DriverITest extends BaseIntegrationTest {
     @Test
     @Ignore
     public void testNullProperty() throws Exception {
-        Connection conn = DriverManager.getConnection("crate://" + hostAndPort);
+        Connection conn = DriverManager.getConnection("crate://" + HOST_AND_PORT);
         conn.setClientInfo(null);
         conn.close();
     }
