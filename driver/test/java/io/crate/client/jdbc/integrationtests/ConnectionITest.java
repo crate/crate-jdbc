@@ -44,7 +44,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class CrateJDBCConnectionTest extends CrateJDBCIntegrationTest {
+public class ConnectionITest extends BaseIntegrationTest {
 
     private static String connectionString;
 

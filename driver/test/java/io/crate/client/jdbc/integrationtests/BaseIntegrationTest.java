@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Random;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
-public class CrateJDBCIntegrationTest extends RandomizedTest {
+public abstract class BaseIntegrationTest extends RandomizedTest {
 
     private static String[] CRATE_VERSIONS = new String[]{
             "0.56.4",

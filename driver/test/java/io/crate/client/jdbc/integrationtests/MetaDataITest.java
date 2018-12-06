@@ -37,7 +37,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-public class CrateJDBCMetaDataIntegrationTest extends CrateJDBCIntegrationTest {
+public class MetaDataITest extends BaseIntegrationTest {
 
     private static Connection connection;
 

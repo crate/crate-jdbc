@@ -38,7 +38,7 @@ import static org.junit.Assert.assertEquals;
  * will never set the QueryExecutor.QUERY_FORWARD_CURSOR flag and therefore fetch all results at once instead of
  * batching them.
  */
-public class CrateJDBCFetchSizeIntegrationTest extends CrateJDBCIntegrationTest {
+public class FetchSizeITest extends BaseIntegrationTest {
 
     /**
      * fetch size and execution flag is correctly appied if autoCommit == false

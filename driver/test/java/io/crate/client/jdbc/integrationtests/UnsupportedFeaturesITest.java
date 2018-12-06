@@ -29,7 +29,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 
-public class CrateJDBCUnsupportedFeaturesTest extends CrateJDBCIntegrationTest {
+public class UnsupportedFeaturesITest extends BaseIntegrationTest {
 
     private static Connection connection;
 

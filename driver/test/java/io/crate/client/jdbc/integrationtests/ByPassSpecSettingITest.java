@@ -32,7 +32,7 @@ import java.util.Properties;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class CrateJDBCByPassSpecSettingTest extends CrateJDBCIntegrationTest {
+public class ByPassSpecSettingITest extends BaseIntegrationTest {
 
     private static Properties strictProperties = new Properties();
     private static String connectionString;

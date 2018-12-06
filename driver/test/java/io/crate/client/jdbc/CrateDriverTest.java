@@ -27,10 +27,10 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-public class CrateJDBCDriverTest {
+public class CrateDriverTest {
 
     @Test
-    public void testProcessUrl() throws Exception {
+    public void testProcessUrl() {
         assertThat(CrateDriver.processURL("crate://localhost:5432/"), is("jdbc:postgresql://localhost:5432/"));
         assertThat(CrateDriver.processURL("jdbc:crate://localhost:5432/"), is("jdbc:postgresql://localhost:5432/"));
         assertThat(CrateDriver.processURL("postgres://localhost:5432/"), nullValue());
@@ -41,7 +41,7 @@ public class CrateJDBCDriverTest {
     }
 
     @Test
-    public void testAccepts() throws Exception {
+    public void testAccepts() {
         CrateDriver driver = new CrateDriver();
 
         assertThat(driver.acceptsURL("crate://"), is(true));

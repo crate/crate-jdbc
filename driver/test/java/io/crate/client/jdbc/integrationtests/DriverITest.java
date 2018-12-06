@@ -42,7 +42,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class CrateJDBCDriverTest extends CrateJDBCIntegrationTest {
+public class DriverITest extends BaseIntegrationTest {
 
     private static CrateDriver driver;
     private static final Properties PROP;
