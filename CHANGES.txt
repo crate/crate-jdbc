@@ -5,8 +5,14 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+- Fixed support for negative row counts which was removed by 2.5.0.
+
 2018/11/30 2.5.0
 ================
+
+ - BREAKING:
+
+   - The servers's row count of non-DDL statements will be returned instead of 0.
 
  - Added compatibility with JDK 11.
 
