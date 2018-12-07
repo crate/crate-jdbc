@@ -15,6 +15,12 @@ Unreleased
 
  - BREAKING:
 
+   - By default, SSL verification is now handled according to ``libpq`` (see
+     https://www.postgresql.org/docs/10/libpq-ssl.html) instead of using JAVA's
+     default keystore handler. To still use a key/truststore, the ``sslfactory``
+     must be changed via properties to
+     ``io.crate.shade.org.postgresql.ssl.DefaultJavaSSLFactory``.
+
    - The servers's row count of non-DDL statements will be returned instead of 0.
 
  - Added compatibility with JDK 11.
