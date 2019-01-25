@@ -66,8 +66,7 @@ Help
 Looking for more help?
 
 - Read `the project documentation`_
-- Check `StackOverflow`_ for common problems
-- Chat with us on `Slack`_
+- Chat with us via our `support channel`_
 - Get `paid support`_
 
 .. _compatibility notes: https://crate.io/docs/clients/jdbc/en/latest/compatibility.html
@@ -82,7 +81,6 @@ Looking for more help?
 .. _Oracle’s Java: http://www.java.com/en/download/help/mac_install.xml
 .. _paid support: https://crate.io/pricing/
 .. _PostgreSQL Wire Protocol: https://crate.io/docs/crate/reference/en/latest/interfaces/postgres.html
-.. _Slack: https://crate.io/docs/support/slackin/
-.. _StackOverflow: https://stackoverflow.com/tags/crate
+.. _support channel: https://crate.io/support/
 .. _the project documentation: https://crate.io/docs/projects/crate-jdbc/
 .. _type 4 JDBC driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29
