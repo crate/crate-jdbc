@@ -42,17 +42,11 @@ import java.util.Random;
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public abstract class BaseIntegrationTest extends RandomizedTest {
 
-    private static String[] CRATE_VERSIONS = new String[]{
-            "0.56.4",
-            "0.57.6",
-            "1.0.1",
-            "1.1.6",
-            "2.0.7",
-            "2.1.9",
-            "2.2.7",
-            "2.3.5",
+    private static final String[] CRATE_VERSIONS = new String[]{
+            "2.3.12",
             "3.0.7",
-            "3.1.3"
+            "3.1.3",
+            "3.2.4"
     };
 
     @Rule
