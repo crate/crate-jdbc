@@ -23,7 +23,6 @@
 package io.crate.client.jdbc.integrationtests;
 
 import io.crate.testing.CrateTestServer;
-import org.hamcrest.Matchers;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.postgresql.jdbc.PgDatabaseMetaData;
@@ -37,8 +36,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Date;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.Matchers.anyOf;
@@ -55,111 +52,46 @@ import static org.junit.Assert.fail;
 public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
-    @Ignore("set/get schema is not implemented")
-    public void testConnectionWithCustomSchema() throws Exception {
+    public void testConnectionWithCustomSchema() throws SQLException, InterruptedException {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             conn.setSchema("foo");
             assertThat(conn.getSchema(), is("foo"));
-            Statement statement = conn.createStatement();
-            statement.execute("create table t (x string) with (number_of_replicas=0)");
+
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE TABLE t (name STRING) WITH (number_of_replicas=0)");
             ensureYellow();
-            statement.execute("insert into t (x) values ('a')");
-            statement.execute("refresh table t");
-            ResultSet resultSet = statement.executeQuery("select count(*) from t");
-            resultSet.next();
-            assertThat(resultSet.getLong(1), is(1L));
-            conn.close();
 
-            Connection barConnection = DriverManager.getConnection(getConnectionString());
-            conn.setSchema("bar");
-            assertThat(barConnection.getSchema(), is("bar"));
-            statement = barConnection.createStatement();
-            statement.execute("create table t (x string) with (number_of_replicas=0)");
-            ensureYellow();
-            statement.execute("insert into t (x) values ('a')");
-            statement.execute("refresh table t");
-            resultSet = conn.createStatement().executeQuery("select count(*) from t)");
-            assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getLong(1), is(1L));
+            ResultSet rs = stmt.executeQuery(
+                    "SELECT table_schema " +
+                    "FROM information_schema.TABLES " +
+                    "WHERE table_name = 't'"
+            );
 
-            resultSet = statement.executeQuery(
-                "select collect_set(schema_name) from information_schema.tables where table_name = 't'");
-            resultSet.next();
-
-            Object[] objects = (Object[]) resultSet.getObject(1);
-            String[] schemas = Arrays.copyOf(objects, objects.length, String[].class);
-            assertThat(schemas, Matchers.arrayContainingInAnyOrder("foo", "bar"));
-            barConnection.close();
-            conn.createStatement().execute("drop table foo.t");
-            conn.createStatement().execute("drop table bar.t");
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getObject(1), is("foo"));
+            assertThat(rs.next(), is(false));
         }
     }
 
     @Test
-    @Ignore("set/get schema is not implemented")
     public void testConnectionWithCustomSchemaPrepareStatement() throws Exception {
-        String schemaName = "my";
-        String tableName = "test_a";
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
-            conn.setSchema(schemaName);
-            PreparedStatement pstmt = conn.prepareStatement(
-                String.format("create table %s (first_column integer, second_column string) with (number_of_replicas=0)", tableName));
-            assertThat(pstmt.execute(), is(false));
-            ensureYellow();
-            pstmt = conn.prepareStatement(
-                String.format("insert into %s (first_column, second_column) values (?, ?)", tableName));
-            pstmt.setInt(1, 42);
-            pstmt.setString(2, "testing");
-            assertThat(pstmt.execute(), is(false));
-            pstmt = conn.prepareStatement(
-                String.format("refresh table %s", tableName));
-            pstmt.execute();
-            pstmt = conn.prepareStatement(
-                String.format("select * from %s", tableName));
-            assertThat(pstmt.execute(), is(true)); // there should be a return value
-            ResultSet rSet2 = pstmt.getResultSet();
-            assertThat(rSet2.next(), is(true)); // there should be a result
-            assertThat(rSet2.getInt(1), is(42));
-            assertThat(rSet2.getString(2), is("testing"));
-            pstmt = conn.prepareStatement("select schema_name, table_name from information_schema.tables " +
-                                          "where schema_name = ? and table_name = ?");
-            pstmt.setString(1, schemaName);
-            pstmt.setString(2, tableName);
-            assertThat(pstmt.execute(), is(true)); // there should be a return value
-            ResultSet rSet = pstmt.getResultSet();
-            assertThat(rSet.next(), is(true)); // there should be a result
-            assertThat(rSet.getString(1), is(schemaName));
-            assertThat(rSet.getString(2), is(tableName));
-            conn.prepareStatement(String.format("drop table %s", tableName)).execute();
-            conn.close();
-        }
-    }
+            conn.setSchema("bar");
 
-    @Test
-    @Ignore("set/get schema is not implemented")
-    public void testConnectionWithCustomSchemaBatchPrepareStatement() throws Exception {
-        String schemaName = "my";
-        String tableName = "test_b";
-        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
-            conn.setSchema(schemaName);
             PreparedStatement stmt = conn.prepareStatement(
-                String.format("create table %s (id long, ts timestamp, info string) with (number_of_replicas=0)", tableName));
-            stmt.execute();
+                    "CREATE TABLE t (id INTEGER) WITH (number_of_replicas=0)");
+            assertThat(stmt.execute(), is(false));
             ensureYellow();
-            stmt = conn.prepareStatement(
-                String.format("INSERT INTO %s (id, ts, info) values (?, ?, ?)", tableName));
-            String text = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor.";
-            for (long i = 1; i < 10 + 1; i++) {
-                stmt.setLong(1, i);
-                stmt.setTimestamp(2, new Timestamp(new Date().getTime()));
-                stmt.setString(3, text);
-                stmt.addBatch();
-                if (i % 5 == 0) {
-                    assertThat(stmt.executeBatch(), is(new int[]{1, 1, 1, 1, 1}));
-                }
-            }
-            conn.prepareStatement(String.format("drop table %s", tableName)).execute();
-            conn.close();
+
+            ResultSet rs = conn.createStatement().executeQuery(
+                    "SELECT table_schema " +
+                    "FROM information_schema.TABLES " +
+                    "WHERE table_name = 't'"
+            );
+
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getObject(1), is("bar"));
+            assertThat(rs.next(), is(false));
         }
     }
 

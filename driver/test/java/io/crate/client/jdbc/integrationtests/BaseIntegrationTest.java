@@ -98,15 +98,14 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
 
     private static void tearDownTables() {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
-            PgDatabaseMetaData metaData = (PgDatabaseMetaData) conn.getMetaData();
-            String schema_column = metaData.getCrateVersion().before("0.57.0") ? "schema_name" : "table_schema";
-            ResultSet rs = conn.createStatement()
-                .executeQuery("select " + schema_column + ", table_name " +
-                              "from information_schema.tables where " + schema_column + " " +
-                              "not in ('pg_catalog', 'sys', 'information_schema', 'blob')");
+            ResultSet rs = conn.createStatement().executeQuery(
+                    "SELECT table_schema, table_name " +
+                    "FROM information_schema.tables " +
+                    "WHERE table_schema not in ('pg_catalog', 'sys', 'information_schema', 'blob')"
+                );
             while (rs.next()) {
                 conn.createStatement().execute(String.format(
-                    "drop table if exists \"%s\".\"%s\"", rs.getString(schema_column), rs.getString("table_name")
+                    "DROP TABLE IF EXISTS \"%s\".\"%s\"", rs.getString("table_schema"), rs.getString("table_name")
                 ));
             }
         } catch (Exception ignore) {
