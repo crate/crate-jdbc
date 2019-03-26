@@ -5,6 +5,7 @@ import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.util.PGobject;
 
@@ -38,20 +39,30 @@ public class TypesITest extends BaseIntegrationTest {
     }
 
     private static void setUpArrayTable() throws SQLException, InterruptedException {
-        CONNECTION.createStatement().execute(
-            "create table if not exists arrayTest (" +
-            " id integer primary key," +
-            " str_array array(string)," +
-            " bool_array array(boolean)," +
-            " byte_array array(byte)," +
-            " short_array array(short)," +
-            " integer_array array(integer)," +
-            " long_array array(long)," +
-            " float_array array(float)," +
-            " double_array array(double)," +
-            " timestamp_array array(timestamp)," +
-            " obj_array array(object)" +
-            ") clustered by (id) into 1 shards with (number_of_replicas=0)");
+        String stmt = "create table if not exists arrayTest (" +
+                      " id integer primary key," +
+                      " str_array array(string)," +
+                      " bool_array array(boolean)," +
+                      " byte_array array(byte)," +
+                      " short_array array(short)," +
+                      " integer_array array(integer)," +
+                      " long_array array(long)," +
+                      " float_array array(float)," +
+                      " double_array array(double)," +
+                      " timestamp_array array(timestamp),";
+
+        // CrateDB < 4.0.0 does not map ip arrays correctly to a pg type
+        PgDatabaseMetaData metaData = (PgDatabaseMetaData) CONNECTION.getMetaData();
+        if (metaData.getCrateVersion().before("4.0.0")) {
+            stmt = stmt + " ip_array array(string),";
+        } else {
+            stmt = stmt + " ip_array array(ip),";
+        }
+
+        stmt = stmt + " obj_array array(object)" +
+                      ") clustered by (id) into 1 shards with (number_of_replicas=0)";
+
+        CONNECTION.createStatement().execute(stmt);
         ensureYellow();
     }
 
