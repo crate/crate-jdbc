@@ -4,7 +4,7 @@
 CrateDB JDBC Driver
 ===================
 
-A `type 4 JDBC driver`_ driver for `CrateDB`_.
+A `type 4 JDBC driver`_ for `CrateDB`_.
 
 `JDBC`_  is a standard Java API that provides a common interfaces for accessing
 databases in Java.
