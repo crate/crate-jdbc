@@ -137,24 +137,22 @@ You can fetch them using ``ResultSet.getObject()`` and cast the result to
 ``Map<String, Object>``. This ``Map`` will contain all nested columns defined in
 the object.
 
-.. CAUTION::
-
-   Objects can be ``null``.
-
-FIXME: can an engineer please add explanatory comments to this block of code.
-please explain what is being done here. please also format the code in the most
-idiomatic yet reasonable way (I have given this a go myself)
+Here's an example:
 
 .. code-block:: java
 
-	Statement statement = connection.createStatement();
-	ResultSet resultSet = statement.executeQuery(
-			"SELECT object_field FROM my_table"
-	);
-	resultSet.first();
+    Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery(
+        "SELECT object_field FROM my_table"
+    );
+    resultSet.first();
 
-	Map<String, Object> objectValue = (Map<String, Object>) resultSet.getObject("object_field");
-	Object objectField = objectValue.get("nested_field");
+    Map<String, Object> objectValue = (Map<String, Object>) resultSet.getObject("object_field");
+    Object objectField = objectValue.get("nested_field");
+
+.. CAUTION::
+
+   Objects can be ``null``.
 
 .. _java.sql.Array: https://docs.oracle.com/javase/8/docs/api/java/sql/Array.html
 .. _java.util.Map<String, Object>: https://docs.oracle.com/javase/8/docs/api/java/util/Map.html
