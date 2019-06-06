@@ -11,7 +11,7 @@ Connect to CrateDB
 
 .. _basics:
 
-The Basics
+The basics
 ==========
 
 Connect to CrateDB using the ``DriverManager`` class, like so::
@@ -36,7 +36,7 @@ class. JDBC 4.0 will initialise this automatically if it is found on your
 
 .. _database-urls:
 
-Database Connection URLs
+Database connection URLs
 ========================
 
 A JDBC database is represented by special type of *Uniform Resource Locator*
@@ -81,7 +81,7 @@ for the duration of that connection.
 
 .. _schema-selection:
 
-Schema Selection
+Schema selection
 ================
 
 To specify a different schema, use the ``setSchema`` method, like so:
@@ -100,7 +100,7 @@ To specify a different schema, use the ``setSchema`` method, like so:
 
 .. _connection_properties:
 
-Connection Properties
+Connection properties
 =====================
 
 Database connections have number of configurable properties.
@@ -205,7 +205,7 @@ The CrateDB JDBC driver supports following properties:
 
   Defaults to ``true``.
 
-Next Steps
+Next steps
 ==========
 
 Use the standard `JDBC API`_ documentation for the rest of your setup process.

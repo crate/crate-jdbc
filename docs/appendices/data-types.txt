@@ -9,7 +9,7 @@ Data Types
 .. contents::
    :local:
 
-Type Mapping
+Type mapping
 ============
 
 JDBC maps SQL types to `Plain Old Java Objects`_ (POJOs).
@@ -83,7 +83,7 @@ __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#JAVA_OBJECT
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#array
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#ARRAY
 
-Array Types
+Array types
 -----------
 
 Array types map to `java.sql.Array`_ instances.
@@ -128,7 +128,7 @@ For example:
     ));
     preparedStatement.execute();
 
-Object Types
+Object types
 ------------
 
 Object columns map to a `java.util.Map<String, Object>`_ object.
