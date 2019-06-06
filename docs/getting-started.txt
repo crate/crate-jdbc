@@ -42,7 +42,7 @@ want and download manually.
    The standalone JAR file should not be used in a Maven project. It does,
    however, function nicely as a plugin for tools such as `SQuirreL`_.
 
-Set Up as a Dependency
+Set up as a dependency
 ======================
 
 This section shows you how to set up the CrateDB JDBC driver as a
@@ -112,7 +112,7 @@ Then add ``crate-jdb`` as a dependency, like so:
         ...
     }
 
-Next Steps
+Next steps
 ==========
 
 Once the JDBC driver is set up, you probably want to :ref:`connect to CrateDB
