@@ -1,7 +1,7 @@
 .. _index:
 
 ===================
-CrateDB JDBC Driver
+CrateDB JDBC driver
 ===================
 
 A `type 4 JDBC driver`_ for `CrateDB`_.
@@ -21,10 +21,10 @@ databases in Java.
 
 .. SEEALSO::
 
-   The CrateDB JDBC Driver is an open source project and is `hosted on
+   The CrateDB JDBC driver is an open source project and is `hosted on
    GitHub`_.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. toctree::
    :maxdepth: 2
