@@ -5,11 +5,19 @@ import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.util.PGobject;
 
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -177,10 +185,19 @@ public class TypesITest extends BaseIntegrationTest {
 
     @Test
     public void testSelectGeoPoint() throws Exception {
-        ResultSet resultSet = CONNECTION.createStatement().executeQuery("select geo_point_field from test");
-        assertThat(resultSet, instanceOf(PgResultSet.class));
-        assertThat(resultSet.next(), is(true));
-        assertThat((Double[]) resultSet.getArray("geo_point_field").getArray(), Matchers.arrayContaining(9.7419021d, 47.4048045d));
+        ResultSet rs = CONNECTION.createStatement().executeQuery("SELECT geo_point_field FROM test");
+        PgDatabaseMetaData metaData = (PgDatabaseMetaData) CONNECTION.getMetaData();
+
+        assertThat(rs, instanceOf(PgResultSet.class));
+        assertThat(rs.next(), is(true));
+        // for versions >= 4.1.0 the representation of geo points is changed to a `PGpoint`
+        // instead of `Double[]`.
+        if (metaData.getCrateVersion().before("4.1.0")) {
+            assertThat((Double[]) rs.getArray("geo_point_field").getArray(),
+                    Matchers.arrayContaining(9.7419021d, 47.4048045d));
+        } else {
+            assertThat(rs.getObject("geo_point_field"), is(new PGpoint(9.7419021d, 47.4048045d)));
+        }
     }
 
     @Test
