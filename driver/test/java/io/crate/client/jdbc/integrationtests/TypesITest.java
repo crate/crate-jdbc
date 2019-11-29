@@ -348,25 +348,38 @@ public class TypesITest extends BaseIntegrationTest {
 
     @Test
     public void testSelectObjectArrayType() throws Exception {
-        ResultSet resultSet = CONNECTION.createStatement().executeQuery("select obj_array from arrayTest");
+        ResultSet resultSet = CONNECTION.createStatement()
+                .executeQuery("SELECT obj_array FROM arrayTest");
         assertThat(resultSet, instanceOf(PgResultSet.class));
         assertThat(resultSet.next(), is(true));
 
         Array objArray = resultSet.getArray("obj_array");
         assertThat(objArray.getArray().getClass().isArray(), is(true));
         assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
-        Object firstObject = ((Object[]) objArray.getArray())[0];
-        assertThat(firstObject, instanceOf(Map.class));
 
-        Object[] mapArray = new Object[]{
-            new HashMap<String, Object>() {{
-                put("element1", "testing");
-            }}, new HashMap<String, Object>() {{
-            put("element2", "testing2");
-        }}
-        };
+        PgDatabaseMetaData metaData = (PgDatabaseMetaData) CONNECTION.getMetaData();
+        // CrateDB >= 4.1.0 maps the `array(object)` data type to
+        // the `PGArray(JSON)` instead of `JSON` Postgres type.
+        if (metaData.getCrateVersion().before("4.1.0")) {
+            Object[] expectedArray = new Object[]{
+                    new HashMap<String, Object>() {{
+                        put("element1", "testing");
+                    }},
+                    new HashMap<String, Object>() {{
+                        put("element2", "testing2");
+                    }}};
 
-        assertThat((Object[]) objArray.getArray(), Matchers.arrayContaining(mapArray));
+            assertThat(objArray.getArray(), is(expectedArray));
+        } else {
+            PGobject firstObj = new PGobject();
+            firstObj.setType("json");
+            firstObj.setValue("{\"element1\":\"testing\"}");
+            PGobject secondObj = new PGobject();
+            secondObj.setType("json");
+            secondObj.setValue("{\"element2\":\"testing2\"}");
+
+            assertThat(objArray.getArray(), is(new Object[]{firstObj, secondObj}));
+        }
     }
 
     @Test
