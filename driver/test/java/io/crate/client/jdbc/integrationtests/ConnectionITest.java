@@ -213,7 +213,12 @@ public class ConnectionITest extends BaseIntegrationTest {
                 fail("BatchUpdateException not thrown");
             } catch (BatchUpdateException e) {
                 String msg = e.getMessage();
-                if (metaData.getCrateVersion().before("2.3.4")) {
+
+                if (metaData.getCrateVersion().compareTo("4.2.0") >= 0) {
+                    assertThat(msg, containsString(
+                            "The type 'object' of the insert source 'col1' " +
+                            "is not convertible to the type 'integer' of target column 'id'"));
+                } else if (metaData.getCrateVersion().before("2.3.4")) {
                     assertThat(msg, containsString("Validation failed for id: {} cannot be cast to type integer"));
                 } else {
                     assertThat(msg, containsString("Validation failed for id: Cannot cast {} to type integer"));
