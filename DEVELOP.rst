@@ -77,11 +77,8 @@ For example:
 Because this project has not any releases with major version of ``0``, we stop
 at ``1.14``.
 
-Sometimes you might find that there are multiple older releases that need to be
-archived.
-
-You can archive releases by selecting *Edit*, unselecting the *Active*
-checkbox, and then saving.
+To make changes to the RTD configuration (e.g., to activate or deactivate a
+release version), please contact the `@crate/docs`_ team.
 
 Writing Documentation
 =====================
@@ -104,6 +101,7 @@ The output can then be found in the `out/html` directory.
 The docs are automatically built from Git by `Read the Docs`_ and there is
 nothing special you need to do to get the live docs to update.
 
+.. _@crate/docs: https://github.com/orgs/crate/teams/docs
 .. _Gradle: https://gradle.org/
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Sphinx: http://sphinx-doc.org/
