@@ -10,14 +10,7 @@ import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.util.PGobject;
 
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -196,7 +189,11 @@ public class TypesITest extends BaseIntegrationTest {
             assertThat((Double[]) rs.getArray("geo_point_field").getArray(),
                     Matchers.arrayContaining(9.7419021d, 47.4048045d));
         } else {
-            assertThat(rs.getObject("geo_point_field"), is(new PGpoint(9.7419021d, 47.4048045d)));
+            Object geoPoint = rs.getObject("geo_point_field");
+            assertThat(geoPoint, Matchers.instanceOf(PGpoint.class));
+            PGpoint point = (PGpoint) geoPoint;
+            assertThat(point.x, Matchers.closeTo(9.7419, 0.001));
+            assertThat(point.y, Matchers.closeTo(47.4048, 0.001));
         }
     }
 

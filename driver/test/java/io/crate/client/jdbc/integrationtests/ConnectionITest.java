@@ -23,6 +23,7 @@
 package io.crate.client.jdbc.integrationtests;
 
 import io.crate.testing.CrateTestServer;
+import org.hamcrest.Matchers;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.postgresql.jdbc.PgDatabaseMetaData;
@@ -215,9 +216,10 @@ public class ConnectionITest extends BaseIntegrationTest {
                 String msg = e.getMessage();
 
                 if (metaData.getCrateVersion().compareTo("4.2.0") >= 0) {
-                    assertThat(msg, containsString(
-                            "The type 'object' of the insert source 'col1' " +
-                            "is not convertible to the type 'integer' of target column 'id'"));
+                    assertThat(msg, Matchers.allOf(
+                            containsString("The type 'object' of the insert source "),
+                            containsString("is not convertible to the type 'integer' of target column 'id'"))
+                    );
                 } else if (metaData.getCrateVersion().before("2.3.4")) {
                     assertThat(msg, containsString("Validation failed for id: {} cannot be cast to type integer"));
                 } else {
