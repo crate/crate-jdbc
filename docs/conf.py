@@ -1,1 +1,1 @@
-from crate.theme.rtd.conf.clients_jdbc import *
+from crate.theme.rtd.conf.jdbc import *
