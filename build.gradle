@@ -1,16 +1,23 @@
+
 buildscript {
     repositories {
-        jcenter()
         mavenCentral()
+        // Note that this is still required, until the various dependencies we use migrate over to maven central.
+        // jcenter is going to be available until February 2022.
+        jcenter()
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.3'
+        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.30.0'
     }
 }
 
+import org.gradle.api.internal.artifacts.publish.DefaultPublishArtifact
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 group = "io.crate"
+
+apply plugin: 'io.codearte.nexus-staging'
 
 allprojects {
     apply plugin: 'idea'
@@ -135,6 +142,7 @@ task myJavadocs(type: Javadoc, dependsOn: processResources) {
 }
 
 task javadocJar (type: Jar, dependsOn: [getVersion, myJavadocs]) {
+    baseName 'crate-jdbc'
     classifier = 'javadoc'
     from myJavadocs.destinationDir
     doLast {
@@ -157,6 +165,7 @@ task javadocJarStandalone (type: Jar, dependsOn: [getVersion, myJavadocs]) {
 
 
 task sourceJar (type : Jar, dependsOn: [getVersion]) {
+    baseName 'crate-jdbc'
     classifier = 'sources'
     from sourceSets.main.allSource
     doLast {
@@ -208,8 +217,8 @@ install {
     }
 }
 
-project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
-project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
+project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
+project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
 project.ext.url = 'https://crate.io'
 project.ext.scm = {
     url 'https://github.com/crate/crate-jdbc'
@@ -233,12 +242,23 @@ project.ext.developers = {
 
 uploadArchives.dependsOn([signJars])
 uploadArchives {
-    repositories{
+    repositories {
         mavenDeployer {
             beforeDeployment {
                 MavenDeployment deployment -> signing.signPom(deployment)
-                if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
-                    throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
+                if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
+                    throw new StopExecutionException("uploadArchives cannot be called without maven username and password")
+                }
+                // This is a (very) un-pretty way of attaching the asc files as artifacts to the deployment.
+                // The mavenDeployer is pretty old, not documented very well - and does not pick up .asc files.
+                // Here we're slightly abusing the system and creating "fake" .asc artifacts for each .jar file,
+                // because we know for certain that if we got there, the asc files must exist.
+                // If we don't do this, Sonatype will not allow promotion to maven central.
+                artifacts.each { ca ->
+                    if (ca.file.path.endsWith('jar')) {
+                        def ascfile = file(ca.file.path + '.asc')
+                        deployment.addArtifact(new DefaultPublishArtifact(ca.name, "jar.asc", "jar.asc", ca.classifier, null, ascfile))
+                    }
                 }
             }
 
@@ -267,6 +287,10 @@ uploadArchives {
                 developers project.ext.developers
             }
 
+            MavenPom ascPom = addFilter('asc') {artifact, file -> artifact.ext == "asc" }
+            ascPom.artifactId = 'crate-jdbc'
+            ascPom.groupId = project.group
+
             MavenPom pomJdbcStandalone = addFilter('crate-jdbc-standalone') {artifact, file ->
                 artifact.name == 'crate-jdbc-standalone'
             }
@@ -283,8 +307,8 @@ uploadArchives {
                 developers project.ext.developers
             }
 
-            repository(id: 'crate-jdbc', url: 'https://api.bintray.com/maven/crate/crate/crate-jdbc') {
-                authentication(userName: project.ext.bintrayUsername, password: project.ext.bintrayPassword)
+            repository(id: 'crate-jdbc', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
+                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
             }
         }
     }
