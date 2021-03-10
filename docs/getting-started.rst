@@ -21,6 +21,10 @@ Consult the `compatibility notes`_ for additional information.
 Install
 =======
 
+Following the sunsetting of Bintray/JCenter, `crate-jdbc` has moved to `Maven Central`_.
+Versions < 2.6.0 will not be migrated. If you are using an older version, please
+consider upgrading, or building the artifacts manually.
+
 .. NOTE::
 
    These instructions show you how to do a conventional install.
@@ -30,12 +34,11 @@ Install
 
 There are two ways to install the driver.
 
-The regular CrateDB JDBC driver JAR files are hosted on `Bintray`_ and are
-available via `JCenter`_.
+The regular CrateDB JDBC driver JAR files are hosted on `Maven Central`_.
 
 Alternatively, you can download a single, standalone JAR file that bundles the
-driver dependencies. Use the `Bintray file navigator`_ to locate the version you
-want and download manually.
+driver dependencies. Use `The Maven Central Browser`_ to locate the version
+you want to download manually.
 
 .. CAUTION::
 
@@ -48,34 +51,10 @@ Set up as a dependency
 This section shows you how to set up the CrateDB JDBC driver as a
 dependency using Maven or Gradle; two popular build tools for Java projects.
 
-.. SEEALSO::
-
-   Select the blue *SET ME UP!* button located in the top right-hand corner of
-   the `Bintray overview page`_ for supplementary instructions.
-
 Maven
 -----
 
-If you're using `Maven`_, you first need to add the Bintray repository to your
-``pom.xml`` file:
-
-.. code-block:: xml
-
-    ...
-    <repositories>
-        ...
-        <repository>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>central</id>
-            <name>bintray</name>
-            <url>http://dl.bintray.com/crate/crate</url>
-        </repository>
-    </repositories>
-    ...
-
-Then add ``crate-jdb`` ass a dependency, like so:
+Add ``crate-jdb`` as a dependency, like so:
 
 .. code-block:: xml
 
@@ -93,14 +72,14 @@ Then add ``crate-jdb`` ass a dependency, like so:
 Gradle
 ------
 
-If you're using `Gradle`_, you first need to add the JCenter repository to your
+If you're using `Gradle`_, you first need to add the MavenCentral repository to your
 ``build.gradle`` file:
 
 .. code-block:: groovy
 
     repositories {
         ...
-        jcenter()
+        mavenCentral()
     }
 
 Then add ``crate-jdb`` as a dependency, like so:
@@ -118,15 +97,12 @@ Next steps
 Once the JDBC driver is set up, you probably want to :ref:`connect to CrateDB
 <connect>`.
 
-.. _Bintray file navigator: https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone
-.. _Bintray overview page: https://bintray.com/crate/crate/crate-jdbc
-.. _Bintray: https://bintray.com/crate/crate/crate-jdbc
+.. _Maven Central: https://repo1.maven.org/maven2/io/crate/crate-jdbc/
+.. _The Maven Central Browser: : https://repo1.maven.org/maven2/io/crate/crate-jdbc-standalone/
 .. _compatibility notes: https://crate.io/docs/clients/jdbc/en/latest/compatibility.html
 .. _Gradle: https://gradle.org/
 .. _instructions on GitHub: https://github.com/crate/crate-jdbc/
 .. _Java 8: http://www.oracle.com/technetwork/java/javase/downloads/index.html
-.. _JCenter: https://bintray.com/bintray/jcenter
-.. _Maven: https://maven.apache.org/
 .. _OpenJDK: http://openjdk.java.net/projects/jdk8/
 .. _Oracle’s Java: http://www.java.com/en/download/help/mac_install.xml
 .. _SQuirreL: https://crate.io/a/use-cratedb-squirrel-basic-java-desktop-client/
