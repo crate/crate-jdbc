@@ -5,6 +5,9 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+- Migrated from Bintray to Maven Central. All new releases to go to Maven Central
+  from now on.
+
 2019/07/02 2.6.0
 ================
 
