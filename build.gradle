@@ -218,7 +218,7 @@ install {
 }
 
 project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
-project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
+project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
 project.ext.url = 'https://crate.io'
 project.ext.scm = {
     url 'https://github.com/crate/crate-jdbc'
