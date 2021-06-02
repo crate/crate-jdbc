@@ -2,9 +2,7 @@
 CrateDB JDBC Driver
 ===================
 
-.. image:: https://travis-ci.org/crate/crate-jdbc.svg?branch=master
-        :target: https://travis-ci.org/crate/crate-jdbc
-        :alt: Test
+|tests| |docs| |rtd| |maven-central|
 
 |
 
@@ -26,6 +24,14 @@ Consult the `compatibility notes`_ for additional information.
 
 Installation
 ============
+
+The driver comes in two variants, available on Maven Central at `crate-jdbc`_
+and `crate-jdbc-standalone`_.
+
+The package specification is ``io.crate:crate-jdbc-standalone:2.6.0``.
+
+Build
+=====
 
 These instructions show you how to build the CrateDB JDBC driver from the
 source code. For a conventional install (using pre-built JAR files) follow the
@@ -68,8 +74,11 @@ Looking for more help?
 - Read the `project docs`_
 - Check out our `support channels`_
 
+
 .. _compatibility notes: https://crate.io/docs/clients/jdbc/en/latest/compatibility.html
 .. _contribution docs: CONTRIBUTING.rst
+.. _crate-jdbc: https://repo1.maven.org/maven2/io/crate/crate-jdbc/
+.. _crate-jdbc-standalone: https://repo1.maven.org/maven2/io/crate/crate-jdbc-standalone/
 .. _Crate.io: http://crate.io/
 .. _CrateDB: https://github.com/crate/crate
 .. _developer docs: DEVELOP.rst
@@ -82,3 +91,21 @@ Looking for more help?
 .. _project docs: https://crate.io/docs/projects/crate-jdbc/
 .. _support channels: https://crate.io/support/
 .. _type 4 JDBC driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29
+
+
+
+.. |tests| image:: https://travis-ci.org/crate/crate-jdbc.svg?branch=master
+    :alt: CI status
+    :target: https://travis-ci.org/crate/crate-jdbc
+
+.. |docs| image:: https://github.com/crate/crate-jdbc/actions/workflows/docs.yml/badge.svg
+    :alt: Documentation: Link checker
+    :target: https://github.com/crate/crate-jdbc/actions/workflows/docs.yml
+
+.. |rtd| image:: https://readthedocs.org/projects/crate-jdbc/badge/
+    :alt: Read the Docs status
+    :target: https://readthedocs.org/projects/crate-jdbc/
+
+.. |maven-central| image:: https://maven-badges.herokuapp.com/maven-central/io.crate/crate-jdbc/badge.svg
+    :alt: Latest release on Maven Central
+    :target: https://repo1.maven.org/maven2/io/crate/crate-jdbc/

@@ -38,7 +38,7 @@ databases in Java.
 .. _hosted on GitHub: https://github.com/crate/crate-jdbc/
 .. _JDBC tutorial: https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html
 .. _JDBC documentation: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
-.. _JDBC: http://www.oracle.com/technetwork/java/overview-141217.html
+.. _JDBC: https://en.wikipedia.org/wiki/Java_Database_Connectivity
 .. _PostgreSQL Wire Protocol: https://www.postgresql.org/docs/current/static/protocol.html
 .. _sample application: https://github.com/crate/crate-sample-apps/tree/master/java
-.. _type 4 JDBC driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_.E2.80.93_Database-Protocol_driver_.28Pure_Java_driver.29
+.. _type 4 JDBC driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_%E2%80%93_Database-Protocol_driver/Thin_Driver(Pure_Java_driver)

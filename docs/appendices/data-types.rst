@@ -68,11 +68,11 @@ __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#n
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#REAL
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#numeric-types
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#DOUBLE
-__ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#string
+__ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#character-types
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#VARCHAR
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#ip
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#VARCHAR
-__ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#timestamp
+__ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#date-and-time-types
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#TIMESTAMP
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#geo-point
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#ARRAY

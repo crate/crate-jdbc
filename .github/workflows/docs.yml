@@ -1,0 +1,30 @@
+name: docs
+
+on:
+  pull_request: ~
+  push:
+    branches:
+      - master
+
+jobs:
+  documentation:
+
+    name: Build docs on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Acquire sources
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Build docs
+        run: |
+          cd docs && make check

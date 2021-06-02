@@ -1,3 +1,3 @@
 from crate.theme.rtd.conf.jdbc import *
 
-exclude_patterns = ['eggs/**', 'requirements.txt']
+exclude_patterns = ['.crate-docs/**', 'requirements.txt']
