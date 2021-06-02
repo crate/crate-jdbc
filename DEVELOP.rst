@@ -87,16 +87,11 @@ The docs live under the docs directory.
 
 The docs are written written with ReStructuredText_ and processed with Sphinx_.
 
-Prepare the docs setup by running::
-
-  $ python3 bootstrap.py
-  $ ./bin/buildout -N
-
 Build the docs by running::
 
-  $ bin/sphinx
-
-The output can then be found in the `out/html` directory.
+    cd docs
+    make html
+    open .crate-docs/.build/index.html
 
 The docs are automatically built from Git by `Read the Docs`_ and there is
 nothing special you need to do to get the live docs to update.

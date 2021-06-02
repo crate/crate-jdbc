@@ -53,7 +53,7 @@ A host string looks like this::
     <HOST_ADDR>:<PORT>
 
 Here, ``<HOST_ADDR>`` is the hostname or IP address of the CrateDB node and
-``<PORT>`` is a valid `psql.port`_ number.
+``<PORT>`` is a valid :ref:`psql.port <crate-reference:conf_ports>` number.
 
 Example host strings:
 
@@ -175,13 +175,15 @@ The CrateDB JDBC driver supports following properties:
      See the :ref:`compatibility notes <cratedb-versions>` for more
      information.
 
-     If you have not configured a custom `database user`_, you probably want to
-     authenticate as the CrateDB superuser, which is ``crate``. The superuser
-     does not have a password, so you can omit the ``password`` property.
+     If you have not configured a custom
+     :ref:`database user <crate-reference:administration_user_management>`,
+     you probably want to authenticate as the CrateDB superuser, which is
+     ``crate``. The superuser does not have a password, so you can omit the
+     ``password`` property.
 
      If you are authenticating as a custom user, that user will need to have
-     `DQL privileges`_ on the ``sys.nodes`` table, because this table is used
-     for version negotiation.
+     :ref:`DQL privileges <crate-reference:privileges-intro>` on the
+     ``sys.nodes`` table, because this table is used for version negotiation.
 
 :``password``:
 
@@ -218,18 +220,14 @@ Use the standard `JDBC API`_ documentation for the rest of your setup process.
 .. _class path: https://docs.oracle.com/javase/tutorial/essential/environment/paths.html
 .. _client-side random load balancing: https://en.wikipedia.org/wiki/Load_balancing_(computing)#Client-side_random_load_balancing
 .. _database connection URL: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
-.. _database user: https://crate.io/docs/crate/reference/en/latest/admin/user-management.html
 .. _Disabling auto-commit mode: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#disable_auto_commit
 .. _documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
-.. _DQL privileges: https://crate.io/docs/crate/reference/en/latest/admin/privileges.html#dql
 .. _failover: https://en.wikipedia.org/wiki/Failover
 .. _isolation level: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#transactions_data_integrity
 .. _JDBC API: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
 .. _JDBC documentation: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html
-.. _psql.port: https://crate.io/docs/crate/reference/en/latest/config/node.html#ports
 .. _Read-only connections: https://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)
 .. _sample application: https://github.com/crate/crate-sample-apps/tree/master/java
-.. _schema: https://crate.io/docs/crate/reference/en/latest/sql/statements/create-table.html#description
 .. _Setting and rolling back to savepoints: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#set_roll_back_savepoints
 .. _Transactions: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html
 .. _URL parameters: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url

@@ -66,13 +66,7 @@ Consult the following table for CrateDB version compatibility notes:
 |                |                 | database user to access CrateDB.          |
 |                |                 |                                           |
 |                |                 | The default CrateDB user is ``crate`` and |
-|                |                 | has no password is set.                   |
-|                |                 |                                           |
-|                |                 | The `enterprise edition`_ of CrateDB      |
-|                |                 | allows you to `create your own users`_.   |
-|                |                 |                                           |
-|                |                 | Prior versions of CrateDB do not support  |
-|                |                 | this feature.                             |
+|                |                 | has no password set.                      |
 +----------------+-----------------+-------------------------------------------+
 
 .. _implementations:
@@ -102,8 +96,6 @@ However, the following notes apply:
 .. _DataSource: https://docs.oracle.com/javase/8/docs/api/javax/sql/DataSource.html
 .. _CallableStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html
 .. _ResultSet: https://docs.oracle.com/javase/8/docs/api/java/sql/ResultSet.html
-.. _enterprise edition: https://crate.io/products/cratedb-enterprise/
-.. _create your own users: https://crate.io/docs/crate/reference/en/latest/admin/user-management.html
 .. _setSchema(): https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#setSchema-java.lang.String-
 .. _connection string: https://jdbc.postgresql.org/documentation/80/connect.html
 .. _the PostgreSQL JDBC driver: https://jdbc.postgresql.org/

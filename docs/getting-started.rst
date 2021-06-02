@@ -16,12 +16,12 @@ Prerequisites
 The CrateDB JDBC driver requires `Java 8`_, preferably update 20 or later. We
 recommend using `Oracle’s Java`_ on macOS and `OpenJDK`_ on Linux Systems.
 
-Consult the `compatibility notes`_ for additional information.
+Consult the :ref:`compatibility notes <compatibility>` for additional information.
 
 Install
 =======
 
-Following the sunsetting of Bintray/JCenter, `crate-jdbc` has moved to `Maven Central`_.
+Following the sunsetting of Bintray/JCenter, `crate-jdbc`_ has moved to Maven Central.
 Versions < 2.6.0 will not be migrated. If you are using an older version, please
 consider upgrading, or building the artifacts manually.
 
@@ -34,11 +34,10 @@ consider upgrading, or building the artifacts manually.
 
 There are two ways to install the driver.
 
-The regular CrateDB JDBC driver JAR files are hosted on `Maven Central`_.
+The regular CrateDB JDBC driver JAR files `crate-jdbc`_ are hosted on Maven Central.
 
 Alternatively, you can download a single, standalone JAR file that bundles the
-driver dependencies. Use `The Maven Central Browser`_ to locate the version
-you want to download manually.
+driver dependencies, called `crate-jdbc-standalone`_.
 
 .. CAUTION::
 
@@ -54,7 +53,7 @@ dependency using Maven or Gradle; two popular build tools for Java projects.
 Maven
 -----
 
-Add ``crate-jdb`` as a dependency, like so:
+Add ``crate-jdbc`` as a dependency, like so:
 
 .. code-block:: xml
 
@@ -72,7 +71,7 @@ Add ``crate-jdb`` as a dependency, like so:
 Gradle
 ------
 
-If you're using `Gradle`_, you first need to add the MavenCentral repository to your
+If you're using `Gradle`_, you first need to add the Maven Central repository to your
 ``build.gradle`` file:
 
 .. code-block:: groovy
@@ -82,7 +81,7 @@ If you're using `Gradle`_, you first need to add the MavenCentral repository to 
         mavenCentral()
     }
 
-Then add ``crate-jdb`` as a dependency, like so:
+Then add ``crate-jdbc`` as a dependency, like so:
 
 .. code-block:: groovy
 
@@ -97,9 +96,8 @@ Next steps
 Once the JDBC driver is set up, you probably want to :ref:`connect to CrateDB
 <connect>`.
 
-.. _Maven Central: https://repo1.maven.org/maven2/io/crate/crate-jdbc/
-.. _The Maven Central Browser: : https://repo1.maven.org/maven2/io/crate/crate-jdbc-standalone/
-.. _compatibility notes: https://crate.io/docs/clients/jdbc/en/latest/compatibility.html
+.. _crate-jdbc: https://repo1.maven.org/maven2/io/crate/crate-jdbc/
+.. _crate-jdbc-standalone: https://repo1.maven.org/maven2/io/crate/crate-jdbc-standalone/
 .. _Gradle: https://gradle.org/
 .. _instructions on GitHub: https://github.com/crate/crate-jdbc/
 .. _Java 8: http://www.oracle.com/technetwork/java/javase/downloads/index.html
