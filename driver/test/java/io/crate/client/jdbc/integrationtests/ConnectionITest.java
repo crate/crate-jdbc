@@ -26,6 +26,7 @@ import io.crate.testing.CrateTestServer;
 import org.hamcrest.Matchers;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.postgresql.jdbc.CrateVersion;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.util.PSQLException;
 
@@ -215,7 +216,10 @@ public class ConnectionITest extends BaseIntegrationTest {
             } catch (BatchUpdateException e) {
                 String msg = e.getMessage();
 
-                if (metaData.getCrateVersion().compareTo("4.2.0") >= 0) {
+                CrateVersion version = metaData.getCrateVersion(); // Don't query version several times.
+                if (version.compareTo("4.7.0") >= 0) {
+                    assertThat(msg, containsString("Cannot cast value `{}` to type `integer`"));
+                } else if (version.compareTo("4.2.0") >= 0) {
                     assertThat(msg, Matchers.allOf(
                             containsString("The type 'object' of the insert source "),
                             containsString("is not convertible to the type 'integer' of target column 'id'"))
