@@ -31,6 +31,12 @@ or::
 
     $ CRATE_URL=https://cdn.crate.io/downloads/releases/nightly/crate-0.58.0-201611210301-7d469f8.tar.gz ./gradlew test
 
+For debugging purposes, integration tests can be run against any CrateDB build.
+Build tar.gz file by running ./gradlew distTar from crate repository and set
+path to the generated file to the ``CRATE_PATH`` environment variable, e.g.::
+
+    $ CRATE_PATH=../crate/app/build/distributions/crate-4.7.0-SNAPSHOT-3edf1b4f2f2.tar.gz ./gradlew test
+
 Preparing a Release
 ===================
 

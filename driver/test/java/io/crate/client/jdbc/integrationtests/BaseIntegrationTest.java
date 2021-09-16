@@ -72,7 +72,12 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
         if (downloadUrl != null) {
             builder = CrateTestCluster.fromURL(downloadUrl);
         } else {
-            builder = CrateTestCluster.fromVersion(getRandomServerVersion());
+            String filePath = System.getenv().get("CRATE_PATH");
+            if (filePath != null) {
+                builder = CrateTestCluster.fromFile(filePath);
+            } else {
+                builder = CrateTestCluster.fromVersion(getRandomServerVersion());
+            }
         }
         TEST_CLUSTER = builder.keepWorkingDir(false).build();
         TEST_CLUSTER.before();
