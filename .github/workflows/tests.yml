@@ -1,0 +1,26 @@
+---
+name: tests
+on:
+  pull_request: ~
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 11
+
+      - name: Run gradle test
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: test
