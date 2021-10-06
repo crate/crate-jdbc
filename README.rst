@@ -94,9 +94,9 @@ Looking for more help?
 
 
 
-.. |tests| image:: https://travis-ci.org/crate/crate-jdbc.svg?branch=master
-    :alt: CI status
-    :target: https://travis-ci.org/crate/crate-jdbc
+.. |tests| image:: https://github.com/crate/crate-jdbc/actions/workflows/tests.yml/badge.svg?branch=master
+    :alt: Build status
+    :target: https://github.com/crate/crate-jdbc/actions/workflows/tests.yml?query=branch=master
 
 .. |docs| image:: https://github.com/crate/crate-jdbc/actions/workflows/docs.yml/badge.svg
     :alt: Documentation: Link checker
