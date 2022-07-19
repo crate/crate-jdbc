@@ -189,7 +189,7 @@ public class MetaDataITest extends BaseIntegrationTest {
         DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getPrimaryKeys("", "doc", "names");
         assertThat(rs.next(), is(true));
-        assertThat(rs.getString("TABLE_SCHEM"), is("doc"));
+        assertThat(rs.getString("TABLE_SCHEM"), is("crate"));
         assertThat(rs.getString("TABLE_NAME"), is("names"));
         assertThat(rs.getString("COLUMN_NAME"), is("id"));
     }
@@ -206,11 +206,11 @@ public class MetaDataITest extends BaseIntegrationTest {
         DatabaseMetaData metaData = conn.getMetaData();
         ResultSet rs = metaData.getPrimaryKeys("", null, "names");
         assertThat(rs.next(), is(true));
-        assertThat(rs.getString("TABLE_SCHEM"), is("doc"));
+        assertThat(rs.getString("TABLE_SCHEM"), is("crate"));
         assertThat(rs.getString("TABLE_NAME"), is("names"));
         assertThat(rs.getString("COLUMN_NAME"), is("id"));
         assertThat(rs.next(), is(true));
-        assertThat(rs.getString("TABLE_SCHEM"), is("my_schema"));
+        assertThat(rs.getString("TABLE_SCHEM"), is("crate"));
         assertThat(rs.getString("TABLE_NAME"), is("names"));
         assertThat(rs.getString("COLUMN_NAME"), is("id"));
     }
