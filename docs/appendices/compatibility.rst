@@ -97,5 +97,5 @@ However, the following notes apply:
 .. _CallableStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html
 .. _ResultSet: https://docs.oracle.com/javase/8/docs/api/java/sql/ResultSet.html
 .. _setSchema(): https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#setSchema-java.lang.String-
-.. _connection string: https://jdbc.postgresql.org/documentation/80/connect.html
+.. _connection string: https://jdbc.postgresql.org/documentation/use/#connecting-to-the-database
 .. _the PostgreSQL JDBC driver: https://jdbc.postgresql.org/
