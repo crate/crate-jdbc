@@ -2,9 +2,7 @@
 buildscript {
     repositories {
         mavenCentral()
-        // Note that this is still required, until the various dependencies we use migrate over to maven central.
-        // jcenter is going to be available until February 2022.
-        jcenter()
+        gradlePluginPortal()
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.3'
@@ -27,7 +25,7 @@ allprojects {
 
     repositories {
         mavenCentral()
-        jcenter()
+        gradlePluginPortal()
     }
 
     sourceCompatibility = "1.8"
