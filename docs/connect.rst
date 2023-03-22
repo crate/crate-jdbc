@@ -9,6 +9,27 @@ Connect to CrateDB
 .. contents::
    :local:
 
+
+.. _introduction:
+
+Introduction
+============
+
+The CrateDB JDBC driver provides the ``io.crate.client.jdbc.CrateDriver``
+class. JDBC 4.0 will initialise this class automatically if it is found on your
+`class path`_.
+
+.. NOTE::
+
+    For CrateDB versions 2.1.x and later, you must configure a database user
+    when connecting. Consult the `Connection Properties`_ section for more
+    information.
+
+.. SEEALSO::
+
+    Please also consult the JDBC documentation for general information about
+    how to `establish a connection using the DriverManager`_.
+
 .. _basics:
 
 The basics
@@ -17,22 +38,6 @@ The basics
 Connect to CrateDB using the ``DriverManager`` class, like so::
 
     Connection conn = DriverManager.getConnection("crate://localhost:5432/");
-
-.. NOTE::
-
-   For CrateDB versions 2.1.x and later, you must configure a database user
-   when connecting.
-
-   Consult the `Connection Properties`_ section for more information.
-
-.. SEEALSO::
-
-   Consult the `JDBC documentation`_ for general information about using the
-   ``DriverManager`` class.
-
-The CrateDB JDBC driver provides the ``io.crate.client.jdbc.CrateDriver``
-class. JDBC 4.0 will initialise this automatically if it is found on your
-`class path`_.
 
 .. _database-urls:
 
@@ -211,23 +216,19 @@ Next steps
 ==========
 
 Use the standard `JDBC API`_ documentation for the rest of your setup process.
+Also have a look at corresponding code :ref:`examples`.
 
-.. SEEALSO::
-
-   Check out the `sample application`_ (and the corresponding `documentation`_)
-   for a practical demonstration of this driver in use.
 
 .. _class path: https://docs.oracle.com/javase/tutorial/essential/environment/paths.html
 .. _client-side random load balancing: https://en.wikipedia.org/wiki/Load_balancing_(computing)#Client-side_random_load_balancing
 .. _database connection URL: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
 .. _Disabling auto-commit mode: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#disable_auto_commit
 .. _documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
+.. _establish a connection using the DriverManager: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html
 .. _failover: https://en.wikipedia.org/wiki/Failover
 .. _isolation level: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#transactions_data_integrity
 .. _JDBC API: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
-.. _JDBC documentation: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html
 .. _Read-only connections: https://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)
-.. _sample application: https://github.com/crate/crate-sample-apps/tree/master/java
 .. _Setting and rolling back to savepoints: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#set_roll_back_savepoints
 .. _Transactions: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html
 .. _URL parameters: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url

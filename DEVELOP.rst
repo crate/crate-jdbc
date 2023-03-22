@@ -1,6 +1,22 @@
 ===============
-Developer Guide
+Developer guide
 ===============
+
+These instructions show you how to build the CrateDB JDBC driver from the
+source code, and how to invoke the test suite. For a conventional install
+(using pre-built JAR files), follow the `installation documentation`_.
+
+
+Acquire source
+==============
+
+Clone the repository::
+
+    $ git clone --recursive https://github.com/crate/crate-jdbc
+
+Change directory into the repository::
+
+    $ cd crate-jdbc
 
 Building
 ========
@@ -13,6 +29,20 @@ Gradle can be invoked like so::
 
 The first time this command is executed, Gradle is downloaded and bootstrapped
 for you automatically.
+
+Build a regular JAR file::
+
+    $ ./gradlew jar
+
+Or, build a JAR file that includes dependencies::
+
+    $ ./gradlew standaloneJar
+
+Afterwards you can find the JAR file in the ``build/lib`` directory.
+
+Note that building the JAR files requires your environment locale set to
+``UTF-8``.
+
 
 Testing
 =======
@@ -104,6 +134,7 @@ nothing special you need to do to get the live docs to update.
 
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
 .. _Gradle: https://gradle.org/
+.. _installation documentation: https://crate.io/docs/jdbc/en/latest/getting-started.html
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Sphinx: http://sphinx-doc.org/
 .. _Read the Docs: http://readthedocs.org/
