@@ -1,8 +1,9 @@
 .. _compatibility:
+.. _compatibility-notes:
 
-=============
-Compatibility
-=============
+===================
+Compatibility notes
+===================
 
 .. rubric:: Table of contents
 
