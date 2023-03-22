@@ -24,6 +24,17 @@ database using the `PostgreSQL Wire Protocol`_.
 databases in Java.
 
 
+*****
+About
+*****
+
+Overview
+========
+
+- This JDBC driver is needed in certain scenarios like the one outlined at
+  `Apache Kafka, Apache Flink, and CrateDB`_.
+- Officially, and for general purpose use, we recommend to use the canonical
+  `PostgreSQL JDBC Driver`_ instead.
 *************
 Documentation
 *************
@@ -52,6 +63,7 @@ Examples
   "guestbook" application, using `Spring Data JDBC`_.
 
 
+.. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/stacks/kafka-flink
 .. _Basic example for connecting to CrateDB using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
 .. _CrateDB: https://crate.io/products/cratedb/
 .. _hosted on GitHub: https://github.com/crate/crate-jdbc/
