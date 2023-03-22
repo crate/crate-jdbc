@@ -70,33 +70,7 @@ Consult the following table for CrateDB version compatibility notes:
 |                |                 | has no password set.                      |
 +----------------+-----------------+-------------------------------------------+
 
-.. _implementations:
 
-Implementation notes
-====================
-
-.. _jdbc-implementation:
-
-JDBC
-----
-
-The CrateDB JDBC driver follows the JDBC 4.1 standard.
-
-However, the following notes apply:
-
-- `ParameterMetaData`_ (e.g. as returned by `PreparedStatement`_) is not
-  supported.
-- `DataSource`_ is not supported.
-- `CallableStatement`_ is not supported, as CrateDB itself does not support
-  stored procedures.
-- `ResultSet`_ objects are read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
-  so changes to a ``ResultSet`` are not supported.
-
-.. _ParameterMetaData: https://docs.oracle.com/javase/8/docs/api/java/sql/ParameterMetaData.html
-.. _PreparedStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html
-.. _DataSource: https://docs.oracle.com/javase/8/docs/api/javax/sql/DataSource.html
-.. _CallableStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html
-.. _ResultSet: https://docs.oracle.com/javase/8/docs/api/java/sql/ResultSet.html
 .. _setSchema(): https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#setSchema-java.lang.String-
 .. _connection string: https://jdbc.postgresql.org/documentation/use/#connecting-to-the-database
 .. _the PostgreSQL JDBC driver: https://jdbc.postgresql.org/
