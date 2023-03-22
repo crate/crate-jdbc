@@ -77,7 +77,7 @@ Then, add ``crate-jdbc`` as a dependency:
 .. code-block:: groovy
 
     dependencies {
-        compile 'io.crate:crate-jdbc:2.6.0'
+        implementation 'io.crate:crate-jdbc:2.6.0'
     }
 
 Next steps
