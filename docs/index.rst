@@ -82,13 +82,18 @@ Examples
 - The `sample application`_ and the corresponding `sample application
   documentation`_ demonstrate the use of the driver on behalf of an example
   "guestbook" application, using `Spring Data JDBC`_.
+- The article `Build a data ingestion pipeline using Kafka, Flink, and CrateDB`_,
+  and the accompanying repositories `Apache Kafka, Apache Flink, and CrateDB`_
+  and `Flink example jobs for CrateDB`_.
 
 
 .. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/stacks/kafka-flink
 .. _Basic example for connecting to CrateDB using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
+.. _Build a data ingestion pipeline using Kafka, Flink, and CrateDB: https://dev.to/crate/build-a-data-ingestion-pipeline-using-kafka-flink-and-cratedb-1h5o
 .. _CallableStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html
 .. _CrateDB: https://crate.io/products/cratedb/
 .. _DataSource: https://docs.oracle.com/javase/8/docs/api/javax/sql/DataSource.html
+.. _Flink example jobs for CrateDB: https://github.com/crate/cratedb-flink-jobs
 .. _hosted on GitHub: https://github.com/crate/crate-jdbc/
 .. _JDBC API documentation: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
 .. _JDBC tutorial: https://docs.oracle.com/javase/tutorial/jdbc/basics/
