@@ -24,6 +24,8 @@ database using the `PostgreSQL Wire Protocol`_.
 databases in Java.
 
 
+.. _about:
+
 *****
 About
 *****
@@ -31,10 +33,21 @@ About
 Overview
 ========
 
-- This JDBC driver is needed in certain scenarios like the one outlined at
-  `Apache Kafka, Apache Flink, and CrateDB`_.
-- Officially, and for general purpose use, we recommend to use the canonical
-  `PostgreSQL JDBC Driver`_ instead.
+For general purpose use, we recommend to use the official `PostgreSQL JDBC
+Driver`_.
+
+*This* JDBC driver is needed in certain scenarios like the one outlined at
+`Apache Kafka, Apache Flink, and CrateDB`_. The background is that, when using
+the ``postgresql://`` JDBC driver prefix, the `Apache Flink JDBC Connector`_
+will implicitly select the corresponding dialect implementation for PostgreSQL.
+
+In turn, this will employ a few behaviours that strictly expect a PostgreSQL
+server on the other end, so that some operations will croak on databases
+offering wire-compatibility with PostgreSQL, but do not provide certain
+features like the `hstore`_ or `jsonb`_ extensions. Also, tools like `Dataiku`_
+need this driver to implement transaction commands like ``ROLLBACK`` as a
+no-op.
+
 
 .. _implementations:
 .. _jdbc-implementation:
@@ -87,17 +100,21 @@ Examples
   and `Flink example jobs for CrateDB`_.
 
 
+.. _Apache Flink JDBC Connector: https://github.com/apache/flink-connector-jdbc
 .. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/stacks/kafka-flink
 .. _Basic example for connecting to CrateDB and CrateDB Cloud using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
 .. _Build a data ingestion pipeline using Kafka, Flink, and CrateDB: https://dev.to/crate/build-a-data-ingestion-pipeline-using-kafka-flink-and-cratedb-1h5o
 .. _CallableStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html
 .. _CrateDB: https://crate.io/products/cratedb/
+.. _Dataiku: https://www.dataiku.com/
 .. _DataSource: https://docs.oracle.com/javase/8/docs/api/javax/sql/DataSource.html
 .. _Flink example jobs for CrateDB: https://github.com/crate/cratedb-flink-jobs
 .. _hosted on GitHub: https://github.com/crate/crate-jdbc/
+.. _hstore: https://www.postgresql.org/docs/current/hstore.html
 .. _JDBC API documentation: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
 .. _JDBC tutorial: https://docs.oracle.com/javase/tutorial/jdbc/basics/
 .. _JDBC: https://en.wikipedia.org/wiki/Java_Database_Connectivity
+.. _jsonb: https://www.postgresql.org/docs/current/datatype-json.html
 .. _ParameterMetaData: https://docs.oracle.com/javase/8/docs/api/java/sql/ParameterMetaData.html
 .. _pgjdbc driver fork: https://github.com/crate/pgjdbc
 .. _PostgreSQL JDBC Driver: https://github.com/pgjdbc/pgjdbc
