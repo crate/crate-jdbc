@@ -76,9 +76,9 @@ API documentation`_.
 Examples
 ========
 
-- The `Basic example for connecting to CrateDB using JDBC`_ demonstrates
-  CrateDB's PostgreSQL wire protocol compatibility by exercising a basic
-  example using both the vanilla pgJDBC Driver and the CrateDB JDBC Driver.
+- The `Basic example for connecting to CrateDB and CrateDB Cloud using JDBC`_
+  demonstrates CrateDB's PostgreSQL wire protocol compatibility by exercising a
+  basic example using both the vanilla pgJDBC Driver and the CrateDB JDBC Driver.
 - The `sample application`_ and the corresponding `sample application
   documentation`_ demonstrate the use of the driver on behalf of an example
   "guestbook" application, using `Spring Data JDBC`_.
@@ -88,7 +88,7 @@ Examples
 
 
 .. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/stacks/kafka-flink
-.. _Basic example for connecting to CrateDB using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
+.. _Basic example for connecting to CrateDB and CrateDB Cloud using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
 .. _Build a data ingestion pipeline using Kafka, Flink, and CrateDB: https://dev.to/crate/build-a-data-ingestion-pipeline-using-kafka-flink-and-cratedb-1h5o
 .. _CallableStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html
 .. _CrateDB: https://crate.io/products/cratedb/
