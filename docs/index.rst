@@ -100,14 +100,47 @@ Examples
   and `Flink example jobs for CrateDB`_.
 
 
+
+*******************
+Project information
+*******************
+
+Resources
+=========
+- `Source code <https://github.com/crate/crate-jdbc>`_
+- `Documentation <https://crate.io/docs/jdbc/>`_
+- `Maven Repository <https://repo1.maven.org/maven2/io/crate/>`_
+
+Contributions
+=============
+The CrateDB legacy JDBC driver library is an open source project, and is
+managed on GitHub. Every kind of contribution, feedback, or patch, is much
+welcome. `Create an issue`_ or submit a patch if you think we should include a
+new feature, or to report or fix a bug.
+
+Development
+===========
+In order to setup a development environment on your workstation, please head
+over to the `development sandbox`_ documentation. When you see the software
+tests succeed, you should be ready to start hacking.
+
+License
+=======
+The project is licensed under the terms of the Apache 2.0 license, like
+`CrateDB itself <CrateDB source_>`_, see `LICENSE`_.
+
+
 .. _Apache Flink JDBC Connector: https://github.com/apache/flink-connector-jdbc
 .. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/stacks/kafka-flink
 .. _Basic example for connecting to CrateDB and CrateDB Cloud using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
 .. _Build a data ingestion pipeline using Kafka, Flink, and CrateDB: https://dev.to/crate/build-a-data-ingestion-pipeline-using-kafka-flink-and-cratedb-1h5o
 .. _CallableStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html
 .. _CrateDB: https://crate.io/products/cratedb/
+.. _CrateDB source: https://github.com/crate/crate
+.. _Create an issue: https://github.com/crate/crate-jdbc/issues
 .. _Dataiku: https://www.dataiku.com/
 .. _DataSource: https://docs.oracle.com/javase/8/docs/api/javax/sql/DataSource.html
+.. _development sandbox: https://github.com/crate/crate-jdbc/blob/master/DEVELOP.rst
 .. _Flink example jobs for CrateDB: https://github.com/crate/cratedb-flink-jobs
 .. _hosted on GitHub: https://github.com/crate/crate-jdbc/
 .. _hstore: https://www.postgresql.org/docs/current/hstore.html
@@ -115,6 +148,7 @@ Examples
 .. _JDBC tutorial: https://docs.oracle.com/javase/tutorial/jdbc/basics/
 .. _JDBC: https://en.wikipedia.org/wiki/Java_Database_Connectivity
 .. _jsonb: https://www.postgresql.org/docs/current/datatype-json.html
+.. _LICENSE: https://github.com/crate/crate-jdbc/blob/master/LICENSE
 .. _ParameterMetaData: https://docs.oracle.com/javase/8/docs/api/java/sql/ParameterMetaData.html
 .. _pgjdbc driver fork: https://github.com/crate/pgjdbc
 .. _PostgreSQL JDBC Driver: https://github.com/pgjdbc/pgjdbc
