@@ -1,10 +1,22 @@
-name: docs
+name: Documentation
 
 on:
   pull_request: ~
   push:
     branches:
       - master
+
+  # Allow job to be triggered manually.
+  workflow_dispatch:
+
+  # Run each night.
+  schedule:
+    - cron: '0 7 * * *'
+
+# Cancel in-progress jobs when pushing to the same branch.
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   documentation:
@@ -18,13 +30,13 @@ jobs:
 
     steps:
       - name: Acquire sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: '3.11'
 
-      - name: Build docs
+      - name: Validate documentation
         run: |
           cd docs && make check
