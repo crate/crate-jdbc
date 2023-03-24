@@ -16,8 +16,22 @@ concurrency:
 
 jobs:
   test:
-    name: Run tests
-    runs-on: [ubuntu-latest]
+
+    name: "Java: ${{ matrix.java-version }}
+     CrateDB: ${{ matrix.cratedb-version }}
+     on ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest']
+        java-version: ['11']
+        cratedb-version: ['4.8.4', '5.2.5']
+
+    env:
+      JAVA_VERSION: ${{ matrix.java-version }}
+      CRATE_VERSION: ${{ matrix.cratedb-version }}
+
     steps:
 
       - name: Acquire sources
@@ -29,7 +43,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '${{ matrix.java-version }}'
           cache: 'gradle'
 
       - name: Run gradle test

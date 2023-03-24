@@ -2,9 +2,8 @@
 queue_rules:
   - name: default
     conditions:
-      - check-success~=^Run tests
-      - check-success~=^Build docs on ubuntu-latest
-      - check-success~=^Build docs on macos-latest
+      - check-success~=^Tests
+      - check-success~=^Build docs
       - check-success~=docs/readthedocs.org
 
 pull_request_rules:
@@ -12,9 +11,8 @@ pull_request_rules:
     conditions:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
-      - status-success~=^Run tests
-      - status-success~=^Build docs on ubuntu-latest
-      - status-success~=^Build docs on macos-latest
+      - status-success~=^Tests
+      - status-success~=^Build docs
       - status-success~=docs/readthedocs.org
     actions:
       queue:
