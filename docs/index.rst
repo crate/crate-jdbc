@@ -24,11 +24,42 @@ database using the `PostgreSQL Wire Protocol`_.
 databases in Java.
 
 
-.. _about:
+.. _synopsis:
 
-*****
-About
-*****
+********
+Synopsis
+********
+
+Connect to CrateDB instance running on ``localhost``.
+
+.. code-block:: java
+
+    import java.sql.Connection;
+    import java.sql.DriverManager;
+
+    Connection conn = DriverManager.getConnection("jdbc:crate://localhost:5432/");
+
+Connect to CrateDB Cloud.
+
+.. code-block:: java
+
+    import java.sql.Connection;
+    import java.sql.DriverManager;
+    import java.util.Properties;
+
+    Properties connectionProps = new Properties();
+    connectionProps.put("user", "admin");
+    connectionProps.put("password", "<PASSWORD>");
+    connectionProps.put("tcpKeepAlive", true);
+
+    Connection conn = DriverManager.getConnection("jdbc:crate://example.aks1.westeurope.azure.cratedb.net:5432/", connectionProps);
+
+
+.. _details:
+
+*******
+Details
+*******
 
 Overview
 ========
