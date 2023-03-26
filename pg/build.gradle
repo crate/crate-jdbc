@@ -11,7 +11,7 @@ configurations {
 }
 
 dependencies {
-    api 'com.github.dblock.waffle:waffle-jna:1.7.5'
+    api 'com.github.dblock.waffle:waffle-jna:1.8.1'
     implementation 'net.java.dev.jna:jna:4.2.1'
     implementation 'net.java.dev.jna:jna-platform:4.2.1'
     implementation 'org.slf4j:jcl-over-slf4j:1.7.12'
