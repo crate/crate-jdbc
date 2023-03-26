@@ -40,7 +40,7 @@ dependencies {
     testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.7.1') {
         exclude group: 'junit', module: 'junit'
     }
-    testCompile ("org.mockito:mockito-core:2.23.4") {
+    testCompile ("org.mockito:mockito-core:5.2.0") {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
 }
