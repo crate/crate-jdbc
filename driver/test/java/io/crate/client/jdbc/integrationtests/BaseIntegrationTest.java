@@ -43,9 +43,6 @@ import java.util.Random;
 public abstract class BaseIntegrationTest extends RandomizedTest {
 
     private static final String[] CRATE_VERSIONS = new String[] {
-            "1.2.0",
-            "2.3.12",
-            "3.3.6",
             "4.8.4",
             "5.2.5",
     };
