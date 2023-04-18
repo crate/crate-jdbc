@@ -5,13 +5,18 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+- Changed ``getPrimaryKeys()`` SQL stmt to use the table schema as the schema
+  instead of the table catalog. This fixes compatibility with CrateDB >= 5.1.0
+  as all catalog fields at the ``information_schema.tables`` schema expose now
+  the correct catalog value (``crate``) instead of the table schema.
+
 - Migrated from Bintray to Maven Central. All new releases to go to Maven Central
   from now on.
 
 2019/07/02 2.6.0
 ================
 
-- Added compatiblity for column type changes of
+- Added compatibility for column type changes of
   ``information_schema.columns.is_generated`` on CrateDB >= 4.0.0
 
 2018/12/06 2.5.1
