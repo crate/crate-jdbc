@@ -54,7 +54,7 @@ Connect to CrateDB Cloud.
     connectionProps.put("password", "<PASSWORD>");
     connectionProps.put("tcpKeepAlive", true);
 
-    Connection conn = DriverManager.getConnection("jdbc:crate://example.aks1.westeurope.azure.cratedb.net:5432/", connectionProps);
+    Connection conn = DriverManager.getConnection("jdbc:crate://example.aks1.westeurope.azure.cratedb.net:5432/?user=crate", connectionProps);
 
 
 .. _details:
