@@ -26,13 +26,8 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
-import org.postgresql.jdbc.PgDatabaseMetaData;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -44,7 +39,7 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
 
     private static final String[] CRATE_VERSIONS = new String[] {
             "4.8.4",
-            "5.2.5",
+            "5.3.0",
     };
 
     @Rule
