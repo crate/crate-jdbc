@@ -43,6 +43,24 @@ Afterwards you can find the JAR file in the ``build/lib`` directory.
 Note that building the JAR files requires your environment locale set to
 ``UTF-8``.
 
+Build, sign and publish the JAR files locally
+---------------------------------------------
+
+To test the build and publishing process, you can build, sign and publish the
+JAR files locally::
+
+    $ ./gradlew publishJdbcPublicationToMavenLocal
+
+or for the standalong version which includes dependencies::
+
+    $ ./gradlew publishJdbcStandalonePublicationToMavenLocal
+
+For the signing to work, you need to have the required (ascii) key and password
+configured under the following ENVIRONMENT variables:
+
+ - `ORG_GRADLE_PROJECT_signingKey`          <- the private key in ascii format
+ - `ORG_GRADLE_PROJECT_signingPassword`     <- the password for the private key
+
 
 Testing
 =======
@@ -91,7 +109,7 @@ the Maven repository.
 
 However, if you'd like to do this manually, you can run::
 
-    $ ./gradlew uploadArchives
+    $ ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
 
 Archiving Docs Versions
 -----------------------

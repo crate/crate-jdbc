@@ -7,19 +7,18 @@ def srcRoot = 'upstream/pgjdbc/src'
 
 configurations {
     jcp
-    processedMainCompile
+    processedMainCompile.extendsFrom(implementation)
 }
 
 dependencies {
-    compile 'com.github.dblock.waffle:waffle-jna:1.7.5'
-    compile 'net.java.dev.jna:jna:4.2.1'
-    compile 'net.java.dev.jna:jna-platform:4.2.1'
-    compile 'org.slf4j:jcl-over-slf4j:1.7.12'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.5.3'
-    compile 'org.osgi:org.osgi.enterprise:4.2.0'
-    compile 'org.osgi:org.osgi.core:4.3.1'
-    compile 'com.ongres.scram:client:1.0.0-beta.2'
-    processedMainCompile configurations.compile
+    api 'com.github.dblock.waffle:waffle-jna:1.7.5'
+    implementation 'net.java.dev.jna:jna:4.2.1'
+    implementation 'net.java.dev.jna:jna-platform:4.2.1'
+    implementation 'org.slf4j:jcl-over-slf4j:1.7.12'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.5.3'
+    implementation 'org.osgi:org.osgi.enterprise:4.2.0'
+    implementation 'org.osgi:org.osgi.core:4.3.1'
+    implementation 'com.ongres.scram:client:1.0.0-beta.2'
     jcp('com.igormaznitsa:jcp:6.0.1') {
         exclude group: 'org.apache.maven.*'
         exclude group: 'org.codehaus.*'
@@ -83,15 +82,7 @@ sourceSets {
     }
 }
 
-compileJava {
-    dependsOn preprocessJava
-    source = sourceSets.processedMain.java
-    options.warnings = false
-    options.deprecation = false
-    options.compilerArgs << '-XDignore.symbol.file'
-    options.fork = true
-    options.forkOptions.executable = 'javac'
-}
+compileJava.dependsOn preprocessJava
 
 test {
     enabled = false;
