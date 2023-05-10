@@ -109,7 +109,10 @@ the Maven repository.
 
 However, if you'd like to do this manually, you can run::
 
-    $ ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
+    $ ./gradlew clean ublishToSonatype closeAndReleaseSonatypeStagingRepository
+
+This requires you to have the required (ascii) key and password configured,
+see `Build, sign and publish the JAR files locally`_.
 
 Archiving Docs Versions
 -----------------------
