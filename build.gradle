@@ -10,6 +10,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 allprojects {
     apply plugin: 'idea'
     apply plugin: "java-library"
+    compileJava {options.encoding = "UTF-8"}
     repositories {
         mavenCentral()
         gradlePluginPortal()
