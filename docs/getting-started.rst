@@ -56,7 +56,7 @@ Add ``crate-jdbc`` as a dependency, like so:
         <dependency>
             <groupId>io.crate</groupId>
             <artifactId>crate-jdbc</artifactId>
-            <version>2.6.0</version>
+            <version>2.7.0</version>
         </dependency>
     </dependencies>
 
@@ -77,7 +77,7 @@ Then, add ``crate-jdbc`` as a dependency:
 .. code-block:: groovy
 
     dependencies {
-        implementation 'io.crate:crate-jdbc:2.6.0'
+        implementation 'io.crate:crate-jdbc:2.7.0'
     }
 
 Next steps
