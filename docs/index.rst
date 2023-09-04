@@ -176,7 +176,7 @@ The project is licensed under the terms of the Apache 2.0 license, like
 .. _JDBC 4.1 specification: https://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf
 .. _JDBC API documentation: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
 .. _JDBC tutorial: https://docs.oracle.com/javase/tutorial/jdbc/basics/
-.. _JDBC Type 4 driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_%E2%80%93_Database-Protocol_driver/Thin_Driver(Pure_Java_driver)
+.. _JDBC Type 4 driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_%E2%80%93_Database-Protocol_driver/Thin_Driver_(Pure_Java_driver)
 .. _jsonb: https://www.postgresql.org/docs/current/datatype-json.html
 .. _LICENSE: https://github.com/crate/crate-jdbc/blob/master/LICENSE
 .. _pgjdbc driver fork: https://github.com/crate/pgjdbc
