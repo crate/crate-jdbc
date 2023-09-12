@@ -89,7 +89,7 @@ Once the JDBC driver is set up, you probably want to :ref:`connect to CrateDB
 
 .. _crate-jdbc: https://repo1.maven.org/maven2/io/crate/crate-jdbc/
 .. _crate-jdbc-standalone: https://repo1.maven.org/maven2/io/crate/crate-jdbc-standalone/
-.. _developer guide: ../DEVELOP.rst
+.. _developer guide: https://github.com/crate/crate-jdbc/blob/master/DEVELOP.rst
 .. _Gradle: https://gradle.org/
 .. _instructions on GitHub: https://github.com/crate/crate-jdbc
 .. _OpenJDK: https://openjdk.org/
