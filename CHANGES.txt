@@ -5,6 +5,8 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
+- Bumped the required JRE version to 11
+
 2023/04/18 2.7.0
 ================
 
