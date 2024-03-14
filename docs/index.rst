@@ -161,7 +161,7 @@ The project is licensed under the terms of the Apache 2.0 license, like
 
 
 .. _Apache Flink JDBC Connector: https://github.com/apache/flink-connector-jdbc
-.. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/stacks/kafka-flink
+.. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/application/apache-kafka-flink
 .. _Basic example for connecting to CrateDB and CrateDB Cloud using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
 .. _Build a data ingestion pipeline using Kafka, Flink, and CrateDB: https://dev.to/crate/build-a-data-ingestion-pipeline-using-kafka-flink-and-cratedb-1h5o
 .. _CrateDB: https://crate.io/products/cratedb/
