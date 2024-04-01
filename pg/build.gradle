@@ -19,7 +19,7 @@ dependencies {
     implementation 'org.osgi:org.osgi.enterprise:5.0.0'
     implementation 'org.osgi:org.osgi.core:4.3.1'
     implementation 'com.ongres.scram:client:1.0.0-beta.2'
-    jcp('com.igormaznitsa:jcp:6.0.1') {
+    jcp('com.igormaznitsa:jcp:7.1.1') {
         exclude group: 'org.apache.maven.*'
         exclude group: 'org.codehaus.*'
     }
