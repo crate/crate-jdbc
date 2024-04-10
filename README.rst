@@ -39,7 +39,7 @@ Contributing
 ============
 
 The CrateDB JDBC driver library is an open source project, and is `managed on
-GitHub`_. We appreciate contributions of any kind.
+GitHub`_. We appreciate contributions of any kind. Thank you!
 
 
 .. _Contributing: CONTRIBUTING.rst
