@@ -1,1 +1,1 @@
-crate-docs-theme==0.32.0.dev14
+crate-docs-theme==0.32.0.dev15
