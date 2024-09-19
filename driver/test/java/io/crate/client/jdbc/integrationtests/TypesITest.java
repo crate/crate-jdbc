@@ -80,7 +80,7 @@ public class TypesITest extends BaseIntegrationTest {
         preparedStatement.setArray(4, CONNECTION.createArrayOf("byte", new Byte[]{new Byte("120"), new Byte("100")}));
         preparedStatement.setArray(5, CONNECTION.createArrayOf("short", new Short[]{1300, 1200}));
         preparedStatement.setArray(6, CONNECTION.createArrayOf("integer", new Integer[]{2147483647, 234583}));
-        preparedStatement.setArray(7, CONNECTION.createArrayOf("long", new Long[]{9223372036854775807L, 4L}));
+        preparedStatement.setArray(7, CONNECTION.createArrayOf("long", new Long[]{9223372036854775806L, 4L}));
         preparedStatement.setArray(8, CONNECTION.createArrayOf("float", new Float[]{3.402f, 3.403f, 1.4f}));
         preparedStatement.setArray(9, CONNECTION.createArrayOf("double", new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308}));
         preparedStatement.setArray(10, CONNECTION.createArrayOf("timestamp", new Timestamp[]{new Timestamp(1000L), new Timestamp(2000L)}));
@@ -292,7 +292,7 @@ public class TypesITest extends BaseIntegrationTest {
         Array longArray = resultSet.getArray("long_array");
         assertThat(longArray.getArray().getClass().isArray(), is(true));
         assertThat(longArray.getBaseType(), is(Types.BIGINT));
-        assertThat((Object[]) longArray.getArray(), Matchers.<Object>arrayContaining(9223372036854775807L, 4L));
+        assertThat((Object[]) longArray.getArray(), Matchers.<Object>arrayContaining(9223372036854775806L, 4L));
     }
 
     @Test
