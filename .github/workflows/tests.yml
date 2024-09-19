@@ -17,7 +17,7 @@ concurrency:
 jobs:
   test:
 
-    name: "Java: ${{ matrix.java-version }}
+    name: "Test Java: ${{ matrix.java-version }}
      CrateDB: ${{ matrix.cratedb-version }}
      on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
