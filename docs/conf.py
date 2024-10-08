@@ -1,5 +1,12 @@
 from crate.theme.rtd.conf.jdbc import *
 
-exclude_patterns = ['eggs/**', 'requirements.txt']
-site_url = 'https://crate.io/docs/jdbc/en/latest/'
-extensions = ['sphinx_sitemap']
+exclude_patterns = ['.crate-docs/**', 'requirements.txt']
+
+linkcheck_anchors_ignore = [
+    r"diff-.*",
+]
+
+# Enable version chooser.
+html_context.update({
+    "display_version": True,
+})
