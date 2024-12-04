@@ -2,7 +2,7 @@
 Installation
 ============
 
-Learn how to install and get started with the :ref:`CrateDB legacy JDBC driver
+Learn how to install and get started with the :ref:`CrateDB JDBC driver
 <index>`.
 
 .. rubric:: Table of contents

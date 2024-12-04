@@ -1,6 +1,6 @@
-==========================
-CrateDB legacy JDBC driver
-==========================
+===================
+CrateDB JDBC driver
+===================
 
 |tests| |docs| |rtd| |maven-central|
 
@@ -27,7 +27,7 @@ the JAR from source, please follow up reading the `developer guide`_.
 Documentation and help
 ======================
 
-- `CrateDB legacy JDBC driver documentation`_
+- `CrateDB JDBC driver documentation`_
 - `CrateDB reference documentation`_
 - `JDBC tutorial`_
 - `JDBC API documentation`_
@@ -47,7 +47,7 @@ GitHub`_. We appreciate contributions of any kind.
 .. _crate-jdbc-standalone: https://repo1.maven.org/maven2/io/crate/crate-jdbc-standalone/
 .. _Crate.io: http://crate.io/
 .. _CrateDB: https://github.com/crate/crate
-.. _CrateDB legacy JDBC driver documentation: https://crate.io/docs/projects/crate-jdbc/
+.. _CrateDB JDBC driver documentation: https://crate.io/docs/projects/crate-jdbc/
 .. _CrateDB reference documentation: https://crate.io/docs/reference/
 .. _developer guide: DEVELOP.rst
 .. _installation documentation: https://crate.io/docs/jdbc/en/latest/getting-started.html
