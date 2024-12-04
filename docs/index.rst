@@ -1,8 +1,8 @@
 .. _index:
 
-##########################
-CrateDB legacy JDBC driver
-##########################
+###################
+CrateDB JDBC Driver
+###################
 
 .. rubric:: Table of contents
 
@@ -143,7 +143,7 @@ Resources
 
 Contributions
 =============
-The CrateDB legacy JDBC driver library is an open source project, and is
+The CrateDB JDBC driver library is an open source project, and is
 managed on GitHub. Every kind of contribution, feedback, or patch, is much
 welcome. `Create an issue`_ or submit a patch if you think we should include a
 new feature, or to report or fix a bug.
