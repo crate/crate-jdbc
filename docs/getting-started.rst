@@ -25,14 +25,15 @@ The driver comes in two variants, available on Maven Central at the
 
 - `crate-jdbc`_
 
-  The driver JAR, suitable to be used as a dependency in your project.
+  The driver JAR, suitable to be used as a dependency in your Maven or
+  Gradle project.
 
 - `crate-jdbc-standalone`_
 
   A single, standalone JAR file, that bundles all the
   driver dependencies, suitable to be used as a plugin for tools such as
-  `SQuirreL`_. This variant should not be used as a dependency in a Maven or
-  Gradle project.
+  `DataGrip`_, `DBeaver`_, `SQuirreL`_, etc.. This variant should not be
+  used as a dependency in a Maven or Gradle project.
 
 .. SEEALSO::
 
@@ -90,6 +91,8 @@ Once the JDBC driver is set up, you probably want to :ref:`connect to CrateDB
 .. _crate-jdbc: https://repo1.maven.org/maven2/io/crate/crate-jdbc/
 .. _crate-jdbc-standalone: https://repo1.maven.org/maven2/io/crate/crate-jdbc-standalone/
 .. _developer guide: https://github.com/crate/crate-jdbc/blob/master/DEVELOP.rst
+.. _DataGrip: https://www.jetbrains.com/datagrip/
+.. _DBeaver: https://dbeaver.io/about/
 .. _Gradle: https://gradle.org/
 .. _instructions on GitHub: https://github.com/crate/crate-jdbc
 .. _OpenJDK: https://openjdk.org/
