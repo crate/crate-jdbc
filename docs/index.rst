@@ -57,47 +57,6 @@ Connect to CrateDB Cloud.
     Connection conn = DriverManager.getConnection("jdbc:crate://example.aks1.westeurope.azure.cratedb.net:5432/?user=crate", connectionProps);
 
 
-.. _details:
-
-*******
-Details
-*******
-
-Overview
-========
-
-For general purpose use, we recommend to use the official `PostgreSQL JDBC
-Driver`_.
-
-*This* JDBC driver is needed in certain scenarios like the one outlined at
-`Apache Kafka, Apache Flink, and CrateDB`_. The background is that, when using
-the ``postgresql://`` JDBC driver prefix, the `Apache Flink JDBC Connector`_
-will implicitly select the corresponding dialect implementation for PostgreSQL.
-
-In turn, this will employ a few behaviours that strictly expect a PostgreSQL
-server on the other end, so that some operations will fail on databases
-offering wire-compatibility with PostgreSQL, but do not provide certain
-features like the `hstore`_ or `jsonb`_ extensions. Also, tools like `Dataiku`_
-need this driver to implement transaction commands like ``ROLLBACK`` as a
-no-op.
-
-
-.. _differences:
-
-Differences
-===========
-
-The driver is based upon a fork of the `PostgreSQL JDBC Driver`_, see `pgjdbc
-driver fork`_. On a high-level perspective, this list enumerates a few
-behavioral differences.
-
-- The CrateDB driver deserializes objects to a Map, the official one treats them as JSON.
-- A few metadata functions have been adjusted to better support CrateDB's type system.
-
-Read up on further details at the :ref:`internals` section.
-
-
-
 *************
 Documentation
 *************
@@ -160,26 +119,21 @@ The project is licensed under the terms of the Apache 2.0 license, like
 `CrateDB itself <CrateDB source_>`_, see `LICENSE`_.
 
 
-.. _Apache Flink JDBC Connector: https://github.com/apache/flink-connector-jdbc
-.. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/application/apache-kafka-flink
+.. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/framework/flink
 .. _Basic example for connecting to CrateDB and CrateDB Cloud using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
 .. _Build a data ingestion pipeline using Kafka, Flink, and CrateDB: https://dev.to/crate/build-a-data-ingestion-pipeline-using-kafka-flink-and-cratedb-1h5o
 .. _CrateDB: https://crate.io/products/cratedb/
 .. _CrateDB source: https://github.com/crate/crate
 .. _Create an issue: https://github.com/crate/crate-jdbc/issues
-.. _Dataiku: https://www.dataiku.com/
 .. _development sandbox: https://github.com/crate/crate-jdbc/blob/master/DEVELOP.rst
 .. _Flink example jobs for CrateDB: https://github.com/crate/cratedb-flink-jobs
 .. _hosted on GitHub: https://github.com/crate/crate-jdbc/
-.. _hstore: https://www.postgresql.org/docs/current/hstore.html
 .. _JDBC: https://en.wikipedia.org/wiki/Java_Database_Connectivity
 .. _JDBC 4.1 specification: https://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf
 .. _JDBC API documentation: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
 .. _JDBC tutorial: https://docs.oracle.com/javase/tutorial/jdbc/basics/
 .. _JDBC Type 4 driver: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_%E2%80%93_Database-Protocol_driver/Thin_Driver_(Pure_Java_driver)
-.. _jsonb: https://www.postgresql.org/docs/current/datatype-json.html
 .. _LICENSE: https://github.com/crate/crate-jdbc/blob/master/LICENSE
-.. _pgjdbc driver fork: https://github.com/crate/pgjdbc
 .. _PostgreSQL JDBC Driver: https://github.com/pgjdbc/pgjdbc
 .. _PostgreSQL Wire Protocol: https://www.postgresql.org/docs/current/protocol.html
 .. _sample application: https://github.com/crate/crate-sample-apps/tree/main/java-spring
