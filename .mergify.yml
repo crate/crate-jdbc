@@ -1,20 +1,19 @@
----
 queue_rules:
   - name: default
-    conditions:
-      - check-success~=^Test Java
-      - check-success=docs/readthedocs.org:crate-jdbc
-      - check-success=verification/cla-signed
-
-pull_request_rules:
-  - name: automatic merge
-    conditions:
+    queue_conditions:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
       - status-success~=^Test Java
       - status-success=docs/readthedocs.org:crate-jdbc
       - status-success=verification/cla-signed
+    merge_conditions:
+      - check-success~=^Test Java
+      - check-success=docs/readthedocs.org:crate-jdbc
+      - check-success=verification/cla-signed
+    merge_method: rebase
+
+pull_request_rules:
+  - name: automatic merge
+    conditions: []
     actions:
       queue:
-        method: rebase
-        name: default
