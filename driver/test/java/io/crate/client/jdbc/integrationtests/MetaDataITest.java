@@ -24,6 +24,8 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.postgresql.jdbc.CrateVersion;
+import org.postgresql.jdbc.PgDatabaseMetaData;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -69,12 +71,21 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     @Test
     public void testGetTablesWithNullSchema() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
+        PgDatabaseMetaData metaData = (PgDatabaseMetaData) conn.getMetaData();
         ResultSet rs = metaData.getTables("", null, "clus%", null);
 
         assertThat(rs.next(), is(true));
+        assertThat(rs.getString("TABLE_SCHEM"), is("sys"));
         assertThat(rs.getString("TABLE_NAME"), is("cluster"));
         assertThat(rs.getString("TABLE_TYPE"), anyOf(is("SYSTEM TABLE"), is("BASE TABLE")));
+
+        // sys.cluster_health is added to CrateDB 6.0
+        if (metaData.getCrateVersion().compareTo("6.0.0") >= 0) {
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getString("TABLE_SCHEM"), is("sys"));
+            assertThat(rs.getString("TABLE_NAME"), is("cluster_health"));
+            assertThat(rs.getString("TABLE_TYPE"), anyOf(is("SYSTEM TABLE"), is("BASE TABLE")));
+        }
 
         assertThat(rs.next(), is(true));
         assertThat(rs.getString("TABLE_SCHEM"), is("test"));
