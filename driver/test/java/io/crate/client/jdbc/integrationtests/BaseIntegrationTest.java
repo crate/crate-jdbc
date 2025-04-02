@@ -39,7 +39,7 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
 
     private static final String[] CRATE_VERSIONS = new String[] {
             "4.8.4",
-            "5.3.0",
+            "5.10.3",
     };
 
     @Rule
