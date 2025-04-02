@@ -25,7 +25,12 @@ jobs:
       fail-fast: false
       matrix:
         os: ['ubuntu-latest']
-        java-version: ['11']
+        java-version: [
+          '11',
+          '17',
+          '21',
+          '25',
+        ]
         cratedb-version: [
           '5.10.3',
         ]
