@@ -4,12 +4,6 @@
 Connect to CrateDB
 ==================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 .. _introduction:
 
 Introduction
