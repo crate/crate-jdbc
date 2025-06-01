@@ -23,6 +23,8 @@
 package io.crate.client.jdbc.integrationtests;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakAction;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
@@ -34,7 +36,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@ThreadLeakLingering(linger = 250000)
 public abstract class BaseIntegrationTest extends RandomizedTest {
 
     private static final String[] CRATE_VERSIONS = new String[] {
@@ -90,7 +93,7 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws SQLException {
         tearDownTables();
     }
 

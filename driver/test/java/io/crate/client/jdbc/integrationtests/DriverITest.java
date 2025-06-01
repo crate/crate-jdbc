@@ -112,7 +112,13 @@ public class DriverITest extends BaseIntegrationTest {
 
         assertConnectionIsNull("crt://" + HOST_AND_PORT + "/", PROP);
         assertConnectionIsNull("jdbc:mysql://" + HOST_AND_PORT + "/", PROP);
-        assertConnectionIsNull("crate://" + HOST_AND_PORT, PROP);
+    }
+
+    @Test
+    public void testConnectDriverInvalidURL() throws Exception {
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage(containsString("Unable to parse URL"));
+        DriverManager.getConnection("crate://" + HOST_AND_PORT); // missing '/' in the end of the URL
     }
 
     @Test

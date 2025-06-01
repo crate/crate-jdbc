@@ -121,8 +121,8 @@ public class ConnectionITest extends BaseIntegrationTest {
             assertThat(resultSet.getInt("id"), is(1));
             assertThat(resultSet.getString("string_field"), is("Youri"));
             assertThat(resultSet.getBoolean("boolean_field"), is(true));
-            assertThat(resultSet.getByte("byte_field"), is(new Byte("120")));
-            assertThat(resultSet.getShort("short_field"), is(new Short("1000")));
+            assertThat(resultSet.getByte("byte_field"), is(Byte.valueOf("120")));
+            assertThat(resultSet.getShort("short_field"), is(Short.valueOf("1000")));
             assertThat(resultSet.getInt("integer_field"), is(1200000));
             assertThat(resultSet.getLong("long_field"), is(120000000000L));
             assertThat(resultSet.getFloat("float_field"), is(1.4f));

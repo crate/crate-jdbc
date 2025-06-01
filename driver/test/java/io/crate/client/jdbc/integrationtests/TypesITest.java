@@ -77,7 +77,7 @@ public class TypesITest extends BaseIntegrationTest {
         preparedStatement.setArray(2, CONNECTION.createArrayOf("string", new String[]{"a", "b", "c", "d"}));
         preparedStatement.setArray(2, CONNECTION.createArrayOf("string", new String[]{"a", "b", "c", "d"}));
         preparedStatement.setArray(3, CONNECTION.createArrayOf("boolean", new Boolean[]{true, false}));
-        preparedStatement.setArray(4, CONNECTION.createArrayOf("byte", new Byte[]{new Byte("120"), new Byte("100")}));
+        preparedStatement.setArray(4, CONNECTION.createArrayOf("byte", new Byte[]{Byte.valueOf("120"), Byte.valueOf("100")}));
         preparedStatement.setArray(5, CONNECTION.createArrayOf("short", new Short[]{1300, 1200}));
         preparedStatement.setArray(6, CONNECTION.createArrayOf("integer", new Integer[]{2147483647, 234583}));
         preparedStatement.setArray(7, CONNECTION.createArrayOf("long", new Long[]{9223372036854775806L, 4L}));
@@ -117,7 +117,7 @@ public class TypesITest extends BaseIntegrationTest {
         ResultSet resultSet = CONNECTION.createStatement().executeQuery("select byte_field from test");
         assertThat(resultSet, instanceOf(PgResultSet.class));
         assertThat(resultSet.next(), is(true));
-        assertThat(resultSet.getByte("byte_field"), is(new Byte("120")));
+        assertThat(resultSet.getByte("byte_field"), is(Byte.valueOf("120")));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class TypesITest extends BaseIntegrationTest {
         ResultSet resultSet = CONNECTION.createStatement().executeQuery("select short_field from test");
         assertThat(resultSet, instanceOf(PgResultSet.class));
         assertThat(resultSet.next(), is(true));
-        assertThat(resultSet.getShort("short_field"), is(new Short("1000")));
+        assertThat(resultSet.getShort("short_field"), is(Short.valueOf("1000")));
     }
 
     @Test
@@ -256,7 +256,7 @@ public class TypesITest extends BaseIntegrationTest {
         Array byteArray = resultSet.getArray("byte_array");
         assertThat(byteArray.getArray().getClass().isArray(), is(true));
         assertThat(byteArray.getBaseType(), is(Types.TINYINT));
-        assertThat((Object[]) byteArray.getArray(), Matchers.<Object>arrayContaining(new Byte("120"), new Byte("100")));
+        assertThat((Object[]) byteArray.getArray(), Matchers.<Object>arrayContaining(Byte.valueOf("120"), Byte.valueOf("100")));
     }
 
     @Test
