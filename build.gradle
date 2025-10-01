@@ -29,7 +29,7 @@ dependencies {
     testImplementation ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
         exclude group: 'junit', module: 'junit'
     }
-    testImplementation ("org.mockito:mockito-core:5.11.0") {
+    testImplementation ("org.mockito:mockito-core:5.20.0") {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
 }
