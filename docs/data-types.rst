@@ -1,4 +1,4 @@
-.. _data-types:
+.. _crate_jdbc_data-types:
 
 ==========
 Data types

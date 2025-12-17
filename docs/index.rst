@@ -1,4 +1,4 @@
-.. _index:
+.. _crate_jdbc_index:
 
 ###################
 CrateDB JDBC Driver
@@ -10,7 +10,7 @@ Introduction
 
 A `JDBC`_ driver for `CrateDB`_, based on the `PostgreSQL JDBC Driver`_ which is adhering to the `JDBC 4.1 specification`_. It is written in pure Java, and communicates with the database using the `PostgreSQL Wire Protocol`_.
 
-.. _synopsis:
+.. _crate_jdbc_synopsis:
 
 ********
 Synopsis
@@ -40,7 +40,7 @@ Connect to CrateDB Cloud:
 
     Connection conn = DriverManager.getConnection("jdbc:crate://example.aks1.westeurope.azure.cratedb.net:5432/?user=crate", connectionProps);
 
-.. _examples:
+.. _crate_jdbc_examples:
 
 Examples
 ========

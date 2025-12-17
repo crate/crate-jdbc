@@ -1,5 +1,5 @@
-.. _details:
-.. _internals:
+.. _crate_jdbc_details:
+.. _crate_jdbc_internals:
 
 #########
 Internals
@@ -39,9 +39,9 @@ identifier.
     into many applications out of the box.
 
 
-.. _differences:
-.. _implementations:
-.. _jdbc-implementation:
+.. _crate_jdbc_differences:
+.. _crate_jdbc_implementations:
+.. _crate_jdbc_jdbc-implementation:
 
 *********************
 Differences to pgJDBC

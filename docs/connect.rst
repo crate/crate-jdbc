@@ -1,10 +1,10 @@
-.. _connect:
+.. _crate_jdbc_connect:
 
 ==================
 Connect to CrateDB
 ==================
 
-.. _introduction:
+.. _crate_jdbc_introduction:
 
 Introduction
 ============
@@ -24,7 +24,7 @@ class. JDBC 4.0 will initialise this class automatically if it is found on your
     Please also consult the JDBC documentation for general information about
     how to `establish a connection using the DriverManager`_.
 
-.. _basics:
+.. _crate_jdbc_basics:
 
 The basics
 ==========
@@ -33,7 +33,7 @@ Connect to CrateDB using the ``DriverManager`` class, like so::
 
     Connection conn = DriverManager.getConnection("crate://localhost:5432/");
 
-.. _database-urls:
+.. _crate_jdbc_database-urls:
 
 Database connection URLs
 ========================
@@ -78,7 +78,7 @@ for the duration of that connection.
 
    The last host string must be followed by a ``/`` character.
 
-.. _schema-selection:
+.. _crate_jdbc_schema-selection:
 
 Schema selection
 ================
@@ -97,7 +97,7 @@ To specify a different schema, use the ``setSchema`` method, like so:
 
    However, you can query any schema you like by specifying it in the query.
 
-.. _connection_properties:
+.. _crate_jdbc_connection_properties:
 
 Connection properties
 =====================
