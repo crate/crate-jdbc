@@ -140,8 +140,8 @@ public class ConnectionITest extends BaseIntegrationTest {
             expectedException.expectMessage(anyOf(
                     containsString("line 1:1: no viable alternative at input 'ERROR'"),
                     containsString("line 1:1: mismatched input 'ERROR' expecting {'SELECT', '"),
-                    // CrateDB 6.2.2: https://github.com/crate/crate/pull/19095
-                    containsString("line 1:1: extraneous input 'ERROR' expecting {'SELECT', '")
+                    // CrateDB 6.3.0: https://github.com/crate/crate-jdbc/issues/481
+                    containsString("line 1:1: extraneous input 'ERROR' expecting {")
                     )
             );
             conn.createStatement().execute("ERROR");
