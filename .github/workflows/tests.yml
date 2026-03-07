@@ -28,6 +28,7 @@ jobs:
         java-version: ['11']
         cratedb-version: [
           '5.10.16',
+          '6.2.2',
         ]
 
     env:
