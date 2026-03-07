@@ -9,7 +9,7 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "daily"
 
   - package-ecosystem: "github-actions"
     directory: "/"
