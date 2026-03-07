@@ -27,7 +27,6 @@ jobs:
         os: ['ubuntu-latest']
         java-version: ['11']
         cratedb-version: [
-          '4.8.4',
           '5.10.3',
         ]
 
