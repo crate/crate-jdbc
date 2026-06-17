@@ -220,7 +220,9 @@ public class ConnectionITest extends BaseIntegrationTest {
                 String msg = e.getMessage();
 
                 CrateVersion version = metaData.getCrateVersion(); // Don't query version several times.
-                if (version.compareTo("4.7.0") >= 0) {
+                if (version.compareTo("6.4.0") >= 0) {
+                    assertThat(msg, containsString("Cannot convert VALUES element in row 1 of type `object` to `integer` for `id`"));
+                } else if (version.compareTo("4.7.0") >= 0) {
                     assertThat(msg, containsString("Cannot cast value `{}` to type `integer`"));
                 } else if (version.compareTo("4.2.0") >= 0) {
                     assertThat(msg, Matchers.allOf(
