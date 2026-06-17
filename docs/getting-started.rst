@@ -92,4 +92,4 @@ Once the JDBC driver is set up, you probably want to :ref:`connect to CrateDB
 .. _OpenJDK: https://openjdk.org/
 .. _Oracle’s Java: https://www.oracle.com/java/technologies/downloads/
 .. _repository root folder: https://repo1.maven.org/maven2/io/crate/
-.. _SQuirreL: https://crate.io/blog/use-cratedb-squirrel-basic-java-desktop-client
+.. _SQuirreL: http://www.squirrelsql.org
