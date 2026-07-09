@@ -1,11 +1,14 @@
 package io.crate.client.jdbc.integrationtests;
 
+import org.hamcrest.Matcher;
+import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.geometric.PGpoint;
+import org.postgresql.jdbc.CrateVersion;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.jdbc.PgResultSet;
 import org.postgresql.util.PGobject;
@@ -14,12 +17,14 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class TypesITest extends BaseIntegrationTest {
 
@@ -187,7 +192,7 @@ public class TypesITest extends BaseIntegrationTest {
         // instead of `Double[]`.
         if (metaData.getCrateVersion().before("4.1.0")) {
             assertThat((Double[]) rs.getArray("geo_point_field").getArray(),
-                    Matchers.arrayContaining(9.7419021d, 47.4048045d));
+                    arrayContaining(9.7419021d, 47.4048045d));
         } else {
             Object geoPoint = rs.getObject("geo_point_field");
             assertThat(geoPoint, Matchers.instanceOf(PGpoint.class));
@@ -255,8 +260,27 @@ public class TypesITest extends BaseIntegrationTest {
 
         Array byteArray = resultSet.getArray("byte_array");
         assertThat(byteArray.getArray().getClass().isArray(), is(true));
-        assertThat(byteArray.getBaseType(), is(Types.TINYINT));
-        assertThat((Object[]) byteArray.getArray(), Matchers.<Object>arrayContaining(new Byte("120"), new Byte("100")));
+        // For more information, see: https://github.com/crate/crate/pull/19578.
+        assertThat(byteArray.getBaseType(), is(mappingForByteType()));
+        assertThat((Object[]) byteArray.getArray(), arrayContaining(mappingForByteValues(120, 100)));
+    }
+
+    private int mappingForByteType() throws SQLException {
+        CrateVersion version = ((PgDatabaseMetaData) CONNECTION.getMetaData()).getCrateVersion();
+        return version.compareTo("6.5.0") >= 0 ? Types.SMALLINT : Types.TINYINT;
+    }
+
+    private Number[] mappingForByteValues(int... ints) throws SQLException {
+        boolean tinyInt = mappingForByteType() == Types.TINYINT;
+        Number[] numbers = new Number[ints.length];
+        for (int i = 0; i < ints.length; i++) {
+            if (tinyInt) {
+                numbers[i] = (byte) ints[i];
+            } else {
+                numbers[i] = (short) ints[i];
+            }
+        }
+        return numbers;
     }
 
     @Test
