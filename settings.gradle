@@ -1,1 +1,1 @@
-include 'pg'
+rootProject.name = 'crate-jdbc'

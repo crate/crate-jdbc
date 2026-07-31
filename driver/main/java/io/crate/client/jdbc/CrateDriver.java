@@ -23,64 +23,122 @@
 package io.crate.client.jdbc;
 
 import java.sql.Connection;
-import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Properties;
 
+/**
+ * JDBC driver for CrateDB: accepts {@code crate://} and
+ * {@code jdbc:crate://} URLs, connects through stock pgjdbc over the
+ * PostgreSQL wire protocol, and hands out {@link CrateConnection}s that
+ * adapt the few behaviors where CrateDB differs from PostgreSQL.
+ *
+ * <p>{@code jdbc:postgresql://} URLs are deliberately not accepted; they
+ * remain the province of a (possibly co-installed) PostgreSQL driver.</p>
+ */
 public class CrateDriver extends org.postgresql.Driver {
 
-    private static final String PROTOCOL = "jdbc";
-
-    private static final String CRATE_PROTOCOL = "crate";
-    private static final String CRATE_PREFIX = CRATE_PROTOCOL + ":" + "//";
-    private static final String CRATE_PREFIX_LONG = PROTOCOL + ":" + CRATE_PREFIX;
-
-    private static final String PSQL_PROTOCOL = "postgresql";
-    private static final String PSQL_PREFIX = PSQL_PROTOCOL + ":" + "//";
-    private static final String PSQL_PREFIX_LONG = PROTOCOL + ":" + PSQL_PREFIX;
-
-    private static Driver registeredDriver;
+    private static final String CRATE_PREFIX = "crate://";
+    private static final String CRATE_PREFIX_LONG = "jdbc:" + CRATE_PREFIX;
+    private static final String PSQL_PREFIX_LONG = "jdbc:postgresql://";
 
     /**
-     * Taken from {@link org.postgresql.Driver}
+     * Connection defaults suited to a multi-node CrateDB cluster; each
+     * applies only when the caller does not set the property in the URL or
+     * the {@link Properties}.
      */
+    private static final String[][] DEFAULT_PROPERTIES = {
+        {"loadBalanceHosts", "true"},
+        {"assumeMinServerVersion", "9.5"},
+    };
+
+    private static CrateDriver registeredDriver;
+
     static {
         try {
             register();
+            deregisterBundledPgjdbc();
         } catch (SQLException e) {
             throw new ExceptionInInitializerError(e);
         }
     }
 
+    /**
+     * In the standalone (shaded) artifact, the bundled pgjdbc superclass
+     * self-registers with the DriverManager during class initialization and
+     * would answer {@code jdbc:postgresql://} URLs. Those URLs belong to a
+     * real PostgreSQL driver, so the bundled copy is taken out of the
+     * DriverManager again. In the unshaded artifact the superclass is
+     * vanilla pgjdbc itself, whose registration must be left untouched.
+     */
+    private static void deregisterBundledPgjdbc() throws SQLException {
+        Class<?> superClass = CrateDriver.class.getSuperclass();
+        if (!superClass.getName().startsWith("io.crate.shade.")) {
+            return;
+        }
+        for (java.sql.Driver driver : java.util.Collections.list(DriverManager.getDrivers())) {
+            if (driver.getClass() == superClass) {
+                DriverManager.deregisterDriver(driver);
+            }
+        }
+    }
+
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
-        if (!acceptsURL(url)) {
-            return null;
-        }
         String psqlUrl = processURL(url);
         if (psqlUrl == null) {
             return null;
         }
-        return super.connect(psqlUrl, info);
+        Properties properties = new Properties();
+        if (info != null) {
+            properties.putAll(info);
+        }
+        for (String[] defaultProperty : DEFAULT_PROPERTIES) {
+            String name = defaultProperty[0];
+            if (!properties.containsKey(name) && !urlContainsParameter(psqlUrl, name)) {
+                properties.setProperty(name, defaultProperty[1]);
+            }
+        }
+        Connection connection = super.connect(psqlUrl, properties);
+        return connection == null ? null : new CrateConnection(connection);
     }
 
-    /*
-     * Convert crate:// or jdbc:crate:// URL to jdbc:postgresql:// URL
-     * Returns null if URL is invalid.
+    /**
+     * Rewrites the leading {@code crate://} or {@code jdbc:crate://} scheme
+     * to {@code jdbc:postgresql://}; returns null for any other URL. Only
+     * the scheme prefix is rewritten — the remainder of the URL, including
+     * parameter values that happen to contain the scheme string, passes
+     * through untouched.
      */
     static String processURL(String url) {
-        if (url.startsWith(CRATE_PREFIX)) {
-            url = String.format("%s:%s", PROTOCOL, url);
-        } else if (!url.startsWith(CRATE_PREFIX_LONG)) {
-            return null;
+        String lowerCased = url.toLowerCase(Locale.ENGLISH);
+        if (lowerCased.startsWith(CRATE_PREFIX)) {
+            return PSQL_PREFIX_LONG + url.substring(CRATE_PREFIX.length());
         }
-        return url.replace(CRATE_PREFIX_LONG, PSQL_PREFIX_LONG);
+        if (lowerCased.startsWith(CRATE_PREFIX_LONG)) {
+            return PSQL_PREFIX_LONG + url.substring(CRATE_PREFIX_LONG.length());
+        }
+        return null;
+    }
+
+    private static boolean urlContainsParameter(String url, String name) {
+        int queryStart = url.indexOf('?');
+        if (queryStart < 0) {
+            return false;
+        }
+        for (String parameter : url.substring(queryStart + 1).split("&")) {
+            if (parameter.startsWith(name + "=")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
     public boolean acceptsURL(String url) {
-        return url.startsWith(CRATE_PREFIX) || url.startsWith(CRATE_PREFIX_LONG);
+        String lowerCased = url.toLowerCase(Locale.ENGLISH);
+        return lowerCased.startsWith(CRATE_PREFIX) || lowerCased.startsWith(CRATE_PREFIX_LONG);
     }
 
     @Override
@@ -99,33 +157,28 @@ public class CrateDriver extends org.postgresql.Driver {
     }
 
     /**
-     * Copied from {@link org.postgresql.Driver#register()}.
+     * Registers this driver with the {@link DriverManager}. The pgjdbc
+     * superclass registers itself separately through its own service
+     * entry; this registration only answers the crate URL schemes.
      */
     public static void register() throws SQLException {
         if (isRegistered()) {
             throw new IllegalStateException(
-                    "Driver is already registered. It can only be registered once.");
+                "Driver is already registered. It can only be registered once.");
         }
-        Driver crateDriver = new CrateDriver();
-        DriverManager.registerDriver(crateDriver);
-        registeredDriver = crateDriver;
+        registeredDriver = new CrateDriver();
+        DriverManager.registerDriver(registeredDriver);
     }
 
-    /**
-     * Copied from {@link org.postgresql.Driver#deregister()}.
-     */
     public static void deregister() throws SQLException {
         if (!isRegistered()) {
             throw new IllegalStateException(
-                    "Driver is not registered (or it has not been registered using Driver.register() method)");
+                "Driver is not registered (or it has not been registered using Driver.register() method)");
         }
         DriverManager.deregisterDriver(registeredDriver);
         registeredDriver = null;
     }
 
-    /**
-     * Copied from {@link org.postgresql.Driver#isRegistered()}.
-     */
     public static boolean isRegistered() {
         return registeredDriver != null;
     }
