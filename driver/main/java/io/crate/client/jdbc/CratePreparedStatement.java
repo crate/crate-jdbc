@@ -17,95 +17,126 @@
 
 package io.crate.client.jdbc;
 
-import java.sql.Connection;
+import java.sql.Array;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLType;
-import java.util.Map;
 
 /**
- * Binds {@code Map} parameters as json so they land in CrateDB OBJECT
- * columns (stock pgjdbc would try the PostgreSQL hstore extension, which
- * CrateDB does not provide), and hands out {@link CrateResultSet}s.
+ * Adds binding parameters the way CrateDB expects them (see
+ * {@link CrateParameters}) to what {@link CrateStatement} already does with
+ * running them.
  */
 public class CratePreparedStatement extends ForwardingPreparedStatement {
 
-    private final CrateConnection connection;
-
-    CratePreparedStatement(PreparedStatement delegate, CrateConnection connection) {
-        super(delegate);
-        this.connection = connection;
+    CratePreparedStatement(PreparedStatement delegate, CrateConnection connection) throws SQLException {
+        super(delegate, connection);
     }
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        if (x instanceof Map) {
-            delegate.setObject(parameterIndex, CrateJson.toJsonObject(x));
-        } else {
-            delegate.setObject(parameterIndex, x);
+        if (!bound(parameterIndex, x)) {
+            preparedDelegate.setObject(parameterIndex, x);
         }
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-        if (x instanceof Map) {
-            delegate.setObject(parameterIndex, CrateJson.toJsonObject(x));
-        } else {
-            delegate.setObject(parameterIndex, x, targetSqlType);
+        if (!bound(parameterIndex, x)) {
+            preparedDelegate.setObject(parameterIndex, x, targetSqlType);
         }
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
-        if (x instanceof Map) {
-            delegate.setObject(parameterIndex, CrateJson.toJsonObject(x));
-        } else {
-            delegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
+        if (!bound(parameterIndex, x)) {
+            preparedDelegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
         }
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
-        if (x instanceof Map) {
-            delegate.setObject(parameterIndex, CrateJson.toJsonObject(x));
-        } else {
-            delegate.setObject(parameterIndex, x, targetSqlType);
+        if (!bound(parameterIndex, x)) {
+            preparedDelegate.setObject(parameterIndex, x, targetSqlType);
         }
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-        if (x instanceof Map) {
-            delegate.setObject(parameterIndex, CrateJson.toJsonObject(x));
-        } else {
-            delegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
+        if (!bound(parameterIndex, x)) {
+            preparedDelegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
         }
     }
 
     @Override
+    public void setArray(int parameterIndex, Array x) throws SQLException {
+        CrateParameters.bindArray(preparedDelegate, parameterIndex, x);
+    }
+
+    /**
+     * What the rows this statement would produce hold, in the terms this
+     * driver reads them in — the same answer the rows themselves give.
+     */
+    @Override
+    public ResultSetMetaData getMetaData() throws SQLException {
+        ResultSetMetaData metaData = preparedDelegate.getMetaData();
+        return metaData == null ? null : new CrateResultSetMetaData(metaData);
+    }
+
+    /**
+     * What this statement's parameters take, in the terms this driver binds
+     * them in — the same forms {@link #setObject} accepts.
+     */
+    @Override
+    public ParameterMetaData getParameterMetaData() throws SQLException {
+        ParameterMetaData metaData = preparedDelegate.getParameterMetaData();
+        return metaData == null ? null : new CrateParameterMetaData(metaData);
+    }
+
+    /**
+     * Binds the parameter when CrateDB needs it in a form of its own, and
+     * reports whether it did. A value that needs no conversion is left to the
+     * caller, which hands it to pgJDBC with the target type it was given.
+     */
+    private boolean bound(int parameterIndex, Object x) throws SQLException {
+        Object converted = CrateParameters.toPg(x, getConnection());
+        if (converted == x) {
+            return false;
+        }
+        CrateParameters.bind(preparedDelegate, parameterIndex, converted);
+        return true;
+    }
+
+    @Override
     public ResultSet executeQuery() throws SQLException {
-        return new CrateResultSet(delegate.executeQuery());
+        ResultSet rows;
+        try (CrateQueryTimeout bound = bounded()) {
+            rows = preparedDelegate.executeQuery();
+        }
+        return resultSet(rows);
     }
 
     @Override
-    public ResultSet executeQuery(String sql) throws SQLException {
-        return new CrateResultSet(delegate.executeQuery(sql));
+    public boolean execute() throws SQLException {
+        try (CrateQueryTimeout bound = bounded()) {
+            return preparedDelegate.execute();
+        }
     }
 
     @Override
-    public ResultSet getResultSet() throws SQLException {
-        ResultSet rs = delegate.getResultSet();
-        return rs == null ? null : new CrateResultSet(rs);
+    public int executeUpdate() throws SQLException {
+        try (CrateQueryTimeout bound = bounded()) {
+            return preparedDelegate.executeUpdate();
+        }
     }
 
     @Override
-    public ResultSet getGeneratedKeys() throws SQLException {
-        return new CrateResultSet(delegate.getGeneratedKeys());
-    }
-
-    @Override
-    public Connection getConnection() {
-        return connection;
+    public long executeLargeUpdate() throws SQLException {
+        try (CrateQueryTimeout bound = bounded()) {
+            return preparedDelegate.executeLargeUpdate();
+        }
     }
 }

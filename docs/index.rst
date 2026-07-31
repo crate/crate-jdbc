@@ -8,7 +8,12 @@ CrateDB JDBC Driver
 Introduction
 ************
 
-A `JDBC`_ driver for `CrateDB`_, built on top of the official `PostgreSQL JDBC Driver`_ (JDBC 4.2). It is written in pure Java, communicates with the database using the `PostgreSQL Wire Protocol`_, and adds a thin adaptation layer for the behaviors where CrateDB differs from PostgreSQL — see :ref:`internals`.
+A `JDBC`_ driver for `CrateDB`_, built on the official `PostgreSQL JDBC
+Driver`_ (JDBC 4.2). It is written in pure Java, speaks the `PostgreSQL Wire
+Protocol`_, and adds a thin adaptation layer for the behaviors where CrateDB
+differs from PostgreSQL — see :ref:`internals`. It requires Java 11 and
+CrateDB 6.0 or later; :ref:`choosing` compares it with using stock pgJDBC
+directly.
 
 .. _synopsis:
 
@@ -23,9 +28,11 @@ Connect to CrateDB instance running on ``localhost``:
     import java.sql.Connection;
     import java.sql.DriverManager;
 
-    Connection conn = DriverManager.getConnection("jdbc:crate://localhost:5432/");
+    Connection conn = DriverManager.getConnection(
+        "jdbc:crate://localhost:5432/doc?user=crate");
 
-Connect to CrateDB Cloud:
+Connect to CrateDB Cloud. Connection properties are strings, including the
+ones that stand for a boolean:
 
 .. code-block:: java
 
@@ -36,9 +43,11 @@ Connect to CrateDB Cloud:
     Properties connectionProps = new Properties();
     connectionProps.put("user", "admin");
     connectionProps.put("password", "<PASSWORD>");
-    connectionProps.put("tcpKeepAlive", true);
+    connectionProps.put("sslmode", "require");
+    connectionProps.put("tcpKeepAlive", "true");
 
-    Connection conn = DriverManager.getConnection("jdbc:crate://example.aks1.westeurope.azure.cratedb.net:5432/?user=crate", connectionProps);
+    Connection conn = DriverManager.getConnection(
+        "jdbc:crate://example.aks1.westeurope.azure.cratedb.net:5432/doc", connectionProps);
 
 .. _examples:
 
@@ -67,6 +76,8 @@ For general help about `JDBC`_, please consult the `JDBC tutorial`_ and the `JDB
     getting-started
     connect
     data-types
+    limitations
+    choosing
     internals
     migration
 
@@ -81,12 +92,12 @@ For general help about `JDBC`_, please consult the `JDBC tutorial`_ and the `JDB
 .. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/framework/flink
 .. _Basic example for connecting to CrateDB and CrateDB Cloud using JDBC: https://github.com/crate/cratedb-examples/tree/main/by-language/java-jdbc
 .. _Build a data ingestion pipeline using Kafka, Flink, and CrateDB: https://dev.to/crate/build-a-data-ingestion-pipeline-using-kafka-flink-and-cratedb-1h5o
-.. _CrateDB: https://crate.io/products/cratedb/
+.. _CrateDB: https://cratedb.com/database
 .. _CrateDB source: https://github.com/crate/crate
 .. _Flink example jobs for CrateDB: https://github.com/crate/cratedb-flink-jobs
 .. _hosted on GitHub: https://github.com/crate/crate-jdbc/
 .. _JDBC: https://en.wikipedia.org/wiki/Java_Database_Connectivity
-.. _JDBC API documentation: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
+.. _JDBC API documentation: https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/java/sql/package-summary.html
 .. _JDBC tutorial: https://docs.oracle.com/javase/tutorial/jdbc/basics/
 .. _PostgreSQL JDBC Driver: https://github.com/pgjdbc/pgjdbc
 .. _PostgreSQL Wire Protocol: https://www.postgresql.org/docs/current/protocol.html

@@ -17,9 +17,19 @@
 
 package io.crate.client.jdbc;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.core.exc.StreamConstraintsException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLState;
 
+import java.io.IOException;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 
 /**
@@ -30,25 +40,96 @@ import java.sql.SQLException;
  */
 final class CrateJson {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = mapper();
+
+    /**
+     * How values cross between Java and CrateDB's json.
+     *
+     * <ul>
+     * <li>{@code java.time} values travel as the ISO-8601 text CrateDB reads a
+     *     timestamp from. Written as epoch numbers instead — Jackson's other
+     *     option — a value without a zone has no epoch to write and comes out
+     *     as an array of its fields.</li>
+     * <li>A whole number is read back as a {@code Long}, because a whole number
+     *     in a CrateDB OBJECT is a {@code bigint} whatever its magnitude.
+     *     Sizing the Java type to the value instead would make the type of what
+     *     a column reads as depend on the row.</li>
+     * <li>No ceiling on how long a single value may be. Jackson's own guards
+     *     against a hostile document — 20 million characters to a string, 1000
+     *     digits to a number — describe a document arriving from somewhere
+     *     untrusted. What is read here is a column value the server accepted
+     *     and this driver has already buffered, so refusing to parse it would
+     *     only make data other clients can read unreadable through this one.</li>
+     * <li>The nesting ceiling stays, because that one is not about trust:
+     *     reading and writing json recurse, and a structure deep enough would
+     *     exhaust the stack rather than raise anything a caller can act on.</li>
+     * </ul>
+     */
+    private static ObjectMapper mapper() {
+        JsonFactory factory = JsonFactory.builder()
+            .streamReadConstraints(StreamReadConstraints.builder()
+                .maxStringLength(Integer.MAX_VALUE)
+                .maxNumberLength(Integer.MAX_VALUE)
+                .build())
+            .build();
+        return JsonMapper.builder(factory)
+            .addModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .enable(DeserializationFeature.USE_LONG_FOR_INTS)
+            .build();
+    }
 
     private CrateJson() {
     }
 
     static Object parse(String json) throws SQLException {
+        return parse(json, Object.class);
+    }
+
+    static <T> T parse(String json, Class<T> type) throws SQLException {
         try {
-            return MAPPER.readValue(json, Object.class);
-        } catch (Exception e) {
-            throw new SQLException("Cannot parse json value: " + json, e);
+            return MAPPER.readValue(json, type);
+        } catch (IOException e) {
+            throw new SQLDataException("Cannot parse json value: " + describe(json, e),
+                PSQLState.DATA_ERROR.getState(), e);
         }
     }
 
     static String write(Object value) throws SQLException {
         try {
             return MAPPER.writeValueAsString(value);
-        } catch (Exception e) {
-            throw new SQLException("Cannot serialize value to json: " + value, e);
+        } catch (IOException e) {
+            throw new SQLDataException("Cannot serialize value to json: " + describe(value, e),
+                PSQLState.INVALID_PARAMETER_VALUE.getState(), e);
         }
+    }
+
+    /** How much of a value a message quotes back. */
+    private static final int DESCRIPTION_LIMIT = 200;
+
+    /**
+     * A value as a message can afford to show it. What failed to convert can be
+     * the whole of a row, which is the wrong thing to build a second copy of
+     * while reporting that it was too much to handle — and the wrong thing to
+     * write to a log, where an OBJECT column's contents do not belong.
+     *
+     * <p>Rendering it is not safe either: a collection that holds itself
+     * recurses until the stack is gone, which would replace the failure being
+     * reported with a {@code StackOverflowError}.</p>
+     */
+    private static String describe(Object value, Exception failure) {
+        String limit = failure instanceof StreamConstraintsException
+            ? " (" + failure.getMessage() + ")"
+            : "";
+        String text;
+        try {
+            text = String.valueOf(value);
+        } catch (Throwable unprintable) {
+            return "a " + value.getClass().getName() + " that cannot be printed" + limit;
+        }
+        return (text.length() <= DESCRIPTION_LIMIT
+            ? text
+            : text.substring(0, DESCRIPTION_LIMIT) + "… (" + text.length() + " characters)") + limit;
     }
 
     static PGobject toJsonObject(Object value) throws SQLException {

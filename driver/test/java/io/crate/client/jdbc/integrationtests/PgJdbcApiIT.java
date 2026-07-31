@@ -1,0 +1,191 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
+package io.crate.client.jdbc.integrationtests;
+
+import io.crate.client.jdbc.CrateConnection;
+import io.crate.client.jdbc.CrateDataSource;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.postgresql.PGConnection;
+import org.postgresql.PGStatement;
+import org.postgresql.jdbc.PgConnection;
+
+import java.net.URI;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.Map;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.Is.is;
+
+/**
+ * The CrateDB adaptation layer stays transparent to pgJDBC's own API:
+ * connections and statements can still be cast or unwrapped to the pgJDBC
+ * interfaces, navigation between JDBC objects stays inside the driver, and
+ * connections obtained from a {@link CrateDataSource} carry the same
+ * CrateDB behavior as those from a {@code crate://} URL.
+ */
+public class PgJdbcApiIT extends BaseIntegrationTest {
+
+    @BeforeEach
+    void setUpTables() throws Exception {
+        dropAllUserTables();
+        setUpTestTable();
+        insertIntoTestTable();
+    }
+
+    @AfterEach
+    void tearDownTables() {
+        dropAllUserTables();
+    }
+
+    @Test
+    public void connectionCastsToThePgJdbcInterface() throws Exception {
+        try (Connection conn = connect()) {
+            PGConnection pgConnection = (PGConnection) conn;
+            assertThat(pgConnection.getBackendPID() > 0, is(true));
+        }
+    }
+
+    @Test
+    public void statementsCastToThePgJdbcInterface() throws Exception {
+        try (Connection conn = connect();
+             PreparedStatement stmt = conn.prepareStatement("select id from test")) {
+            PGStatement pgStatement = (PGStatement) stmt;
+            pgStatement.setPrepareThreshold(3);
+            assertThat(pgStatement.getPrepareThreshold(), is(3));
+        }
+    }
+
+    @Test
+    public void connectionUnwrapsToBothItsOwnAndThePgJdbcType() throws Exception {
+        try (Connection conn = connect()) {
+            assertThat(conn.isWrapperFor(CrateConnection.class), is(true));
+            assertThat(conn.unwrap(CrateConnection.class), is(sameInstance(conn)));
+            assertThat(conn.unwrap(PgConnection.class), is(instanceOf(PgConnection.class)));
+        }
+    }
+
+    @Test
+    public void resultSetsNavigateBackToTheWrappedConnection() throws Exception {
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("select id from test");
+
+            assertThat(rs.getStatement(), is(sameInstance(stmt)));
+            assertThat(rs.getStatement().getConnection(), is(sameInstance(conn)));
+        }
+    }
+
+    @Test
+    public void metadataRowsNavigateBackToTheWrappedConnection() throws Exception {
+        try (Connection conn = connect()) {
+            ResultSet tables = conn.getMetaData().getTables(null, "sys", "summits", null);
+
+            assertThat(tables.getStatement().getConnection(), is(instanceOf(CrateConnection.class)));
+        }
+    }
+
+    @Test
+    public void arrayRowsNavigateInsideTheDriver() throws Exception {
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("select ['a', 'b'] as letters");
+            assertThat(rs.next(), is(true));
+
+            ResultSet elements = rs.getArray("letters").getResultSet();
+            assertThat(elements.getStatement(), is(nullValue()));
+            assertThat(elements.next(), is(true));
+            assertThat(elements.getString(2), is("a"));
+        }
+    }
+
+    @Test
+    public void callableStatementsCarryTheCrateBehavior() throws Exception {
+        try (Connection conn = connect();
+             CallableStatement call = conn.prepareCall("select object_field from test")) {
+            assertThat(call.getConnection(), is(sameInstance(conn)));
+
+            ResultSet rs = call.executeQuery();
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getObject(1), is(instanceOf(Map.class)));
+        }
+    }
+
+    /**
+     * A wrapper is made once for what it wraps, so asking twice gives back the
+     * same object rather than a second view of the same thing — which is what
+     * callers that compare result sets or metadata expect, and what pgJDBC
+     * does underneath.
+     */
+    @Test
+    public void askingTwiceForTheSameThingGivesTheSameWrapper() throws Exception {
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("select id from test");
+
+            assertThat(stmt.getResultSet(), is(sameInstance(stmt.getResultSet())));
+            assertThat(conn.getMetaData(), is(sameInstance(conn.getMetaData())));
+        }
+    }
+
+    @Test
+    public void metadataReportsTheUrlTheCallerConnectedWith() throws Exception {
+        try (Connection conn = connect()) {
+            assertThat(conn.getMetaData().getURL(), startsWith("jdbc:crate://"));
+        }
+    }
+
+    @Test
+    public void dataSourceConnectionsAdaptCrateBehavior() throws Exception {
+        URI address = serverAddress();
+        CrateDataSource dataSource = new CrateDataSource();
+        dataSource.setServerNames(new String[]{address.getHost()});
+        dataSource.setPortNumbers(new int[]{address.getPort()});
+        dataSource.setDatabaseName("doc");
+        dataSource.setUser("crate");
+
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+            conn.rollback();
+
+            ResultSet rs = conn.createStatement().executeQuery("select object_field from test");
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getObject(1), is(instanceOf(Map.class)));
+        }
+    }
+
+    @Test
+    public void dataSourceConfiguredWithACrateUrlConnects() throws Exception {
+        CrateDataSource dataSource = new CrateDataSource();
+        dataSource.setUrl(connectionUrl());
+
+        try (Connection conn = dataSource.getConnection()) {
+            assertThat(conn, is(instanceOf(CrateConnection.class)));
+            assertThat(conn.isValid(2), is(true));
+        }
+    }
+}

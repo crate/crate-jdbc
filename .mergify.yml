@@ -4,10 +4,12 @@ queue_rules:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
       - status-success~=^Test Java
+      - status-success=Verify sources and artifacts
       - status-success=docs/readthedocs.org:crate-jdbc
       - status-success=verification/cla-signed
     merge_conditions:
       - check-success~=^Test Java
+      - check-success=Verify sources and artifacts
       - check-success=docs/readthedocs.org:crate-jdbc
       - check-success=verification/cla-signed
     merge_method: rebase

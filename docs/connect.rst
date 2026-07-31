@@ -9,20 +9,10 @@ Connect to CrateDB
 Introduction
 ============
 
-The CrateDB JDBC driver provides the ``io.crate.client.jdbc.CrateDriver``
-class. JDBC 4.0 will initialise this class automatically if it is found on your
-`class path`_.
-
-.. NOTE::
-
-    For CrateDB versions 2.1.x and later, you must configure a database user
-    when connecting. Consult the `Connection Properties`_ section for more
-    information.
-
-.. SEEALSO::
-
-    Please also consult the JDBC documentation for general information about
-    how to `establish a connection using the DriverManager`_.
+The driver registers ``io.crate.client.jdbc.CrateDriver`` with the
+``DriverManager`` as soon as it is on the class path — the jar names it in a
+``META-INF/services/java.sql.Driver`` entry, which the ``DriverManager``
+reads.
 
 .. _basics:
 
@@ -31,126 +21,98 @@ The basics
 
 Connect to CrateDB using the ``DriverManager`` class, like so::
 
-    Connection conn = DriverManager.getConnection("crate://localhost:5432/");
+    Connection conn = DriverManager.getConnection(
+        "jdbc:crate://localhost:5432/doc?user=crate");
+
+Connections are authenticated; :ref:`connection_properties` covers supplying
+a user and a password.
 
 .. _database-urls:
 
 Database connection URLs
 ========================
 
-A JDBC database is represented by special type of *Uniform Resource Locator*
-(URL)  called a `database connection URL`_.
+A CrateDB connection URL names one or more nodes and the schema unqualified
+statements resolve against::
 
-The simplest database connection URL for CrateDB looks like this::
+    jdbc:crate://<HOST>/<SCHEMA>
 
-    crate://<HOST>/
+``<HOST>`` is a host string — ``<HOST_ADDR>:<PORT>``, where ``<PORT>`` is a
+:ref:`psql.port <crate-reference:conf_ports>` such as ``localhost:5432`` or
+``198.51.100.1:5432``. The ``jdbc:`` prefix may be left off, but tools and
+connection pools that validate JDBC URLs expect it.
 
-Here, ``<HOST>`` is the node *host string*.
+Leave the schema out and CrateDB's default schema, ``doc``, is used::
 
-A host string looks like this::
+    jdbc:crate://<HOST>/
 
-    <HOST_ADDR>:<PORT>
+Name as many nodes as the cluster has, separated by ``,``. The last host
+string is followed by the ``/``::
 
-Here, ``<HOST_ADDR>`` is the hostname or IP address of the CrateDB node and
-``<PORT>`` is a valid :ref:`psql.port <crate-reference:conf_ports>` number.
+    jdbc:crate://<HOST_ADDR_1>,<HOST_ADDR_2>/
 
-Example host strings:
-
-- ``localhost:5432``
-- ``crate-1.vm.example.com:5432``
-- ``198.51.100.1:5432``
-
-You can specify a second CrateDB node, like so::
-
-    crate://<HOST_ADDR_1>,<HOST_ADDR_2>/
-
-Here, ``<HOST_ADDR_1>`` and ``<HOST_ADDR_2>`` are the host strings for the
-first and second CrateDB nodes, respectively.
-
-In fact, you can specify as many nodes as you like. Each corresponding host
-string must be separated from the previous one using a ``,`` character.
-
-The driver will attempt to connect to each node in the order they appear. The
-first successul connection will be used, and all other nodes will be ignored
-for the duration of that connection.
-
-.. NOTE::
-
-   The last host string must be followed by a ``/`` character.
+The driver connects to one node and uses it for the duration of that
+connection. Which one it tries first depends on ``loadBalanceHosts``, which
+this driver turns on by default: the host strings are shuffled, so that
+connections spread across the cluster. Set it to ``false`` to try the nodes
+in the order they appear.
 
 .. _schema-selection:
 
 Schema selection
 ================
 
-To specify a different schema, use the ``setSchema`` method, like so:
+The schema unqualified statements resolve against is the last segment of the
+connection URL::
+
+    jdbc:crate://localhost:5432/my_schema?user=crate
+
+It can be changed on an open connection with ``setSchema``:
 
 .. code-block:: java
 
-    Connection conn = DriverManager.getConnection("crate://localhost:5432/");
+    Connection conn = DriverManager.getConnection(
+        "jdbc:crate://localhost:5432/doc?user=crate");
     conn.setSchema("my_schema");
 
-.. TIP::
+Either way it only decides how unqualified names are resolved — a statement
+can name any schema it likes, whatever the connection is set to.
 
-   The default CrateDB schema is ``doc``, and if you do not specify a schema,
-   this is what will be used.
+.. NOTE::
 
-   However, you can query any schema you like by specifying it in the query.
+   The pgJDBC ``currentSchema`` property has no effect: pgJDBC sends it as a
+   PostgreSQL startup parameter that CrateDB does not read. Use the URL
+   segment, ``setSchema``, or the ``options`` property
+   (``options=-c%20search_path%3Dmy_schema``).
 
 .. _connection_properties:
 
 Connection properties
 =====================
 
-Database connections have number of configurable properties.
-
-Here's a simple example:
+A connection is configured with properties, passed either as `URL
+parameters`_ or as a ``Properties`` object:
 
 .. code-block:: java
 
     Properties properties = new Properties();
     properties.put("user", "crate");
     Connection conn = DriverManager.getConnection(
-        "crate://localhost:5432/", properties
+        "jdbc:crate://localhost:5432/doc", properties
     );
 
-Here, we set the ``user`` property to ``crate`` so that the driver will attempt
-to connect to the CrateDB node as the ``crate`` user.
-
-.. NOTE::
-
-   For simplicity, we only document use of the ``Properties`` class for setting
-   properties. However, you can also set properties using `URL parameters`_ if
-   you wish.
-
-The CrateDB JDBC driver supports following properties:
-
-The driver accepts every `pgJDBC connection property`_. Properties with
-CrateDB-specific defaults or meaning are listed below.
-
-.. NOTE::
-
-   CrateDB has no transactions. ``BEGIN`` and ``COMMIT`` are accepted by
-   the server as no-ops, ``rollback()`` is a client-side no-op, and
-   savepoints are not supported. Auto-commit can be disabled freely —
-   which is also a prerequisite for cursor-based fetching with
-   ``setFetchSize()``.
+The driver accepts every `pgJDBC connection property`_. A property set in the
+URL wins over the same property passed in the ``Properties`` object. Those
+with a CrateDB-specific default or meaning are listed below.
 
 :``user``:
 
   Specifies the CrateDB user.
 
-  Defaults to the same string as the OS system user.
+  Defaults to the name of the OS user running the JVM, which is rarely a
+  CrateDB user — set it explicitly.
 
   .. NOTE::
-
-     Authentication was introduced in CrateDB versions 2.1.x.
-
-     If you are using CrateDB 2.1.x or later, you must supply a username. If
-     you are using earlier versions of CrateDB, this argument is not supported.
-
-     See the :ref:`compatibility notes <cratedb-versions>` for more
-     information.
 
      If you have not configured a custom
      :ref:`database user <crate-reference:administration_user_management>`,
@@ -158,21 +120,26 @@ CrateDB-specific defaults or meaning are listed below.
      ``crate``. The superuser does not have a password, so you can omit the
      ``password`` property.
 
-     If you are authenticating as a custom user, that user will need to have
-     :ref:`DQL privileges <crate-reference:privileges-intro>` on the
-     ``sys.nodes`` table, because this table is used for version negotiation.
-
 :``password``:
 
   Sets the password for authentication.
 
+:``sslmode``:
+
+  How far the driver goes to secure the connection, from ``disable`` through
+  ``prefer``, ``require`` and ``verify-ca`` to ``verify-full``. See the
+  `pgJDBC SSL documentation`_ for what each mode checks.
+
+  Defaults to ``prefer``: the driver asks for TLS and falls back to an
+  unencrypted connection if the server does not offer it. Set it to
+  ``require`` or higher to make encryption a condition of connecting.
+
 :``ssl``:
 
-  If set to ``true``, the driver will attempt to establish a secure connection
-  to CrateDB using SSL. If a secure connection is not possible, no connection
-  will be made.
-
-  Defaults to ``false``.
+  Setting this to ``true`` is shorthand for ``sslmode=verify-full``, which
+  requires the server's certificate to be verifiable against a trusted CA
+  *and* to match the hostname. A self-signed server certificate needs
+  ``sslmode=require`` or a truststore instead.
 
 :``loadBalanceHosts``:
 
@@ -182,7 +149,157 @@ CrateDB-specific defaults or meaning are listed below.
   balancing`_.
   If ``false``, the driver will try the hosts in the order they are defined.
 
-  Defaults to ``true``.
+  Defaults to ``true`` for this driver; stock pgJDBC defaults to ``false``.
+
+:``assumeMinServerVersion``:
+
+  The server version the driver assumes before it has asked, which saves a
+  round trip on connect.
+
+  Defaults to ``9.5`` for this driver.
+
+:``connectTimeout``, ``socketTimeout``:
+
+  Seconds to wait for a connection to be established (``10`` by default),
+  and for a reply on an established one (``0``, meaning no limit — a
+  network that fails silently blocks the calling thread indefinitely).
+
+  ``socketTimeout`` bounds a query too, but by closing the connection. Use
+  ``Statement.setQueryTimeout()`` to bound a statement and keep the
+  connection.
+
+.. _fetching:
+
+Reading large results
+=====================
+
+By default a query's whole result set is read into the client before
+``next()`` returns a row. ``setFetchSize()`` makes the rows arrive in
+batches, held on the server in between — but only on a connection with
+auto-commit disabled, which for CrateDB costs nothing since it has no
+transactions:
+
+.. code-block:: java
+
+    conn.setAutoCommit(false);
+    Statement statement = conn.createStatement();
+    statement.setFetchSize(1000);
+    ResultSet rs = statement.executeQuery("SELECT * FROM large_table");
+
+``defaultRowFetchSize`` sets the same thing as a connection property, for
+applications that do not reach the statement.
+
+.. _batching:
+
+Writing many rows
+=================
+
+``addBatch()``/``executeBatch()`` on a ``PreparedStatement`` sends the rows
+in one round trip, and is how bulk loads should be written:
+
+.. code-block:: java
+
+    PreparedStatement insert = conn.prepareStatement(
+        "INSERT INTO t (id, name) VALUES (?, ?)");
+    for (Record record : records) {
+        insert.setInt(1, record.id());
+        insert.setString(2, record.name());
+        insert.addBatch();
+    }
+    int[] written = insert.executeBatch();
+
+A batch is all or nothing: anything in it the server rejects leaves the
+whole batch unwritten, and ``executeBatch()`` raises
+``BatchUpdateException`` whose update counts are ``EXECUTE_FAILED``
+throughout. Entries have to be statements that write; a query among them
+fails the batch.
+
+Values a write produced are read back through ``getGeneratedKeys()``. Name
+the columns when preparing the statement and they are appended to it as a
+``RETURNING`` clause:
+
+.. code-block:: java
+
+    PreparedStatement insert = conn.prepareStatement(
+        "INSERT INTO t (id, name) VALUES (?, ?)", new String[]{"id"});
+    insert.setInt(1, 1);
+    insert.setString(2, "one");
+    insert.execute();
+
+    ResultSet keys = insert.getGeneratedKeys();
+
+.. _pooling:
+
+Data sources and connection pools
+=================================
+
+The driver works with the usual JDBC connection pools. A pool needs a
+``DataSource``, and ``io.crate.client.jdbc.CrateDataSource`` is the one that
+carries the CrateDB behavior — a plain ``PGSimpleDataSource`` hands out
+connections without it:
+
+.. code-block:: java
+
+    CrateDataSource dataSource = new CrateDataSource();
+    dataSource.setUrl("jdbc:crate://localhost:5432/doc");
+    dataSource.setUser("crate");
+
+    HikariConfig config = new HikariConfig();
+    config.setDataSource(dataSource);
+    config.setMaximumPoolSize(10);
+
+    HikariDataSource pool = new HikariDataSource(config);
+
+In Spring Boot, point ``spring.datasource.url`` at a ``jdbc:crate://`` URL
+and set ``spring.datasource.driver-class-name`` to
+``io.crate.client.jdbc.CrateDriver``.
+
+A connection is not safe to share between threads; a pool is how an
+application gives each thread one of its own.
+
+.. _jndi:
+
+In an application server, the data source is bound into JNDI and looked up
+by name. Tomcat's ``context.xml``, for example:
+
+.. code-block:: xml
+
+    <Resource name="jdbc/cratedb"
+              auth="Container"
+              type="io.crate.client.jdbc.CrateDataSource"
+              factory="io.crate.client.jdbc.CrateDataSourceFactory"
+              url="jdbc:crate://localhost:5432/doc"
+              user="crate"/>
+
+The ``factory`` attribute is what matters: pgJDBC's own factory does not
+answer for a CrateDB data source, so without it the lookup fails.
+
+.. _server-version:
+
+The CrateDB version
+===================
+
+``DatabaseMetaData`` reports the PostgreSQL release CrateDB emulates, which
+is what PostgreSQL tooling reasons about. An application that needs the
+CrateDB version itself asks the connection:
+
+.. code-block:: java
+
+    CrateVersion version = conn.unwrap(CrateConnection.class).getCrateVersion();
+    if (version.atLeast(6, 2)) {
+        // ...
+    }
+
+.. _logging:
+
+Logging
+=======
+
+The driver logs through ``java.util.logging``, as pgJDBC does. Set the
+``loggerLevel`` connection property to ``DEBUG`` or ``TRACE`` to see the
+statements it sends, and ``loggerFile`` to write them to a file. Bridging
+``java.util.logging`` to SLF4J (with ``jul-to-slf4j``) routes them into an
+application's own logging setup.
 
 Next steps
 ==========
@@ -191,13 +308,8 @@ Use the standard `JDBC API`_ documentation for the rest of your setup process.
 Also have a look at corresponding code :ref:`examples`.
 
 
-.. _class path: https://docs.oracle.com/javase/tutorial/essential/environment/paths.html
 .. _client-side random load balancing: https://en.wikipedia.org/wiki/Load_balancing_(computing)#Client-side_random_load_balancing
-.. _database connection URL: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
-.. _documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
-.. _establish a connection using the DriverManager: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html
-.. _failover: https://en.wikipedia.org/wiki/Failover
-.. _JDBC API: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
+.. _JDBC API: https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/java/sql/package-summary.html
 .. _pgJDBC connection property: https://jdbc.postgresql.org/documentation/use/#connection-parameters
+.. _pgJDBC SSL documentation: https://jdbc.postgresql.org/documentation/ssl/
 .. _URL parameters: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
-.. _User Management: https://crate.io/docs/crate/reference/en/latest/sql/administration/user_management.html

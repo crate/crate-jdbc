@@ -1,0 +1,10 @@
+blank_issues_enabled: true
+contact_links:
+
+  - name: Community forum
+    url: https://community.cratedb.com/
+    about: Questions about using the driver, and help with a specific setup.
+
+  - name: Security issue
+    url: https://github.com/crate/crate-jdbc/security/advisories/new
+    about: Report a vulnerability privately, not as a public issue.

@@ -1,1 +1,9 @@
+// The driver is built for Java 11 while Gradle itself needs 17 or later, so a
+// test task asked for the baseline (`-PtestJavaVersion=11`) needs a JDK the
+// machine running the build may not have. This resolver fetches one instead of
+// failing; a JDK already installed is used as it is.
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 rootProject.name = 'crate-jdbc'

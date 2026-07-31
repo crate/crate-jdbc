@@ -9,42 +9,20 @@ Prerequisites
 =============
 
 The CrateDB JDBC driver requires Java 11 or later and CrateDB 6.0 or
-later. For older CrateDB versions, use crate-jdbc 2.7.0, the last release
-of the former fork-based driver.
+later. For older CrateDB versions, use crate-jdbc 2.7.0.
 
 Install
 =======
 
-The driver comes in two variants, available on Maven Central at the
-`repository root folder`_.
+The driver comes in two variants, both published to Maven Central: use
+`crate-jdbc`_ where a build tool resolves dependencies, and
+`crate-jdbc-standalone`_ where a single JAR is required. :ref:`internals`
+describes what each contains.
 
-- `crate-jdbc`_
+As a dependency
+---------------
 
-  The driver JAR, suitable to be used as a dependency in your Maven or
-  Gradle project.
-
-- `crate-jdbc-standalone`_
-
-  A single, standalone JAR file, that bundles all the
-  driver dependencies, suitable to be used as a plugin for tools such as
-  `DataGrip`_, `DBeaver`_, `SQuirreL`_, etc.. This variant should not be
-  used as a dependency in a Maven or Gradle project.
-
-.. SEEALSO::
-
-   To build the CrateDB JDBC driver from the source code, follow the
-   `developer guide`_.
-
-Set up as a dependency
-======================
-
-This section shows you how to set up the CrateDB JDBC driver as a
-dependency using Maven or Gradle, two popular build tools for Java projects.
-
-Maven
------
-
-Add ``crate-jdbc`` as a dependency, like so:
+With Maven:
 
 .. code-block:: xml
 
@@ -56,11 +34,7 @@ Add ``crate-jdbc`` as a dependency, like so:
         </dependency>
     </dependencies>
 
-Gradle
-------
-
-If you're using `Gradle`_, you will need to add the Maven Central repository to your
-``build.gradle`` file:
+With `Gradle`_, from the Maven Central repository:
 
 .. code-block:: groovy
 
@@ -68,27 +42,44 @@ If you're using `Gradle`_, you will need to add the Maven Central repository to 
         mavenCentral()
     }
 
-Then, add ``crate-jdbc`` as a dependency:
-
-.. code-block:: groovy
-
     dependencies {
         implementation 'io.crate:crate-jdbc:3.0.0'
     }
 
+.. _standalone-jar:
+
+In a database tool
+------------------
+
+Tools such as `Apache Hop`_, Pentaho, `DBeaver`_ and `SQuirreL`_ load a
+driver from a directory of JARs rather than resolving it. Download
+`crate-jdbc-standalone`_ from Maven Central, drop the JAR in, and register
+the driver with:
+
+:Driver class: ``io.crate.client.jdbc.CrateDriver``
+:URL template: ``jdbc:crate://<host>:5432/<schema>``
+:Default port: ``5432``
+
+The standalone JAR bundles pgJDBC under a namespace of its own, so it can sit
+next to a PostgreSQL driver in the same directory without either shadowing
+the other. It is not meant for use as a build dependency.
+
+.. SEEALSO::
+
+   To build the CrateDB JDBC driver from the source code, follow the
+   `developer guide`_.
+
 Next steps
 ==========
 
-Once the JDBC driver is set up, you probably want to :ref:`connect to CrateDB
+With the driver set up, the next step is to :ref:`connect to CrateDB
 <connect>`.
 
 
-.. _crate-jdbc: https://repo1.maven.org/maven2/io/crate/crate-jdbc/
-.. _crate-jdbc-standalone: https://repo1.maven.org/maven2/io/crate/crate-jdbc-standalone/
+.. _crate-jdbc: https://central.sonatype.com/artifact/io.crate/crate-jdbc
+.. _crate-jdbc-standalone: https://central.sonatype.com/artifact/io.crate/crate-jdbc-standalone
 .. _developer guide: https://github.com/crate/crate-jdbc/blob/master/DEVELOP.rst
-.. _DataGrip: https://www.jetbrains.com/datagrip/
+.. _Apache Hop: https://hop.apache.org/
 .. _DBeaver: https://dbeaver.io/about/
 .. _Gradle: https://gradle.org/
-.. _instructions on GitHub: https://github.com/crate/crate-jdbc
-.. _repository root folder: https://repo1.maven.org/maven2/io/crate/
 .. _SQuirreL: http://www.squirrelsql.org

@@ -1,83 +1,64 @@
 #!/bin/bash
 
-
-# Licensed to Crate.IO GmbH ("Crate") under one or more contributor
-# license agreements.  See the NOTICE file distributed with this work for
-# additional information regarding copyright ownership.  Crate licenses
-# this file to you under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.  You may
+# Licensed to Crate under one or more contributor license agreements.
+# See the NOTICE file distributed with this work for additional
+# information regarding copyright ownership.  Crate licenses this file
+# to you under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License.  You may
 # obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.  See the License for the specific language governing
+# permissions and limitations under the License.
+
+# Tags the version the project is at and pushes the tag, which is what starts
+# the release workflow. Run it from the repository root, or through `make tag`.
 #
-# However, if you have executed another commercial license agreement
-# with Crate these terms will supersede the license and you may use the
-# software solely pursuant to the terms of the relevant commercial agreement.
+# A pushed tag cannot be taken back, so everything the release workflow would
+# then refuse the tag for is checked here first.
 
-# Info: Be aware from where you are invoking this script due to relative paths.
-#       For example, 'gradlew' has to be in the same directory as where you are
-#       invoking this script from.
-#       E.g.: ../crate>./devtools/create_tag.sh
+set -euo pipefail
 
-# check if everything is committed
-CLEAN=`git status -s`
-if [ ! -z "$CLEAN" ]
-then
-   echo "Working directory not clean. Please commit all changes before tagging"
-   echo "Aborting."
-   exit -1
-fi
+fail() {
+    echo "$1" >&2
+    echo "Aborting." >&2
+    exit 1
+}
+
+[ -z "$(git status --porcelain)" ] || fail "Working directory not clean. Commit before tagging."
 
 echo "Fetching origin..."
-git fetch origin > /dev/null
+git fetch --quiet origin
 
-# get current branc
-BRANCH=`git branch | grep "^*" | cut -d " " -f 2`
+BRANCH="$(git branch --show-current)"
+[ -n "$BRANCH" ] || fail "HEAD is detached; check out the branch to release from."
 echo "Current branch is $BRANCH."
 
-# check if BRANCH == origin/BRANCH
-LOCAL_COMMIT=`git show --format="%H" $BRANCH`
-ORIGIN_COMMIT=`git show --format="%H" origin/$BRANCH`
-
-if [ "$LOCAL_COMMIT" != "$ORIGIN_COMMIT" ]
-then
-   echo "Local $BRANCH is not up to date. "
-   echo "Aborting."
-   exit -1
+if [ "$(git rev-parse "$BRANCH")" != "$(git rev-parse "origin/$BRANCH")" ]; then
+    fail "Local $BRANCH is not up to date with origin/$BRANCH."
 fi
 
-# get the version
-echo "Getting version ..."
-VERSION=`./gradlew getVersion | grep version | cut -d ":" -f 2 | tr -d ' '`
-echo "$VERSION"
+VERSION="$(./gradlew -q getVersion | tr -d '[:space:]')"
+[ -n "$VERSION" ] || fail "Could not read the project version."
+echo "Version is $VERSION."
 
-# check if tag to create has already been created
-EXISTS=`git tag | grep $VERSION`
+case "$VERSION" in
+    *SNAPSHOT*) fail "Refusing to release the snapshot version $VERSION." ;;
+esac
 
-if [ "$VERSION" == "$EXISTS" ]
-then
-   echo "Revision $VERSION already tagged."
-   echo "Aborting."
-   exit -1
+if git rev-parse -q --verify "refs/tags/$VERSION" > /dev/null; then
+    fail "Revision $VERSION is already tagged."
 fi
 
-# check if VERSION is in head of CHANGES.txt
-VERSION_NUMBER=`echo $VERSION | cut -d '-' -f 1`
-REV_NOTE=`grep "[0-9/]\{10\} $VERSION_NUMBER" CHANGES.txt`
-if [ -z "$REV_NOTE" ]
-then
-    echo "No notes for revision $VERSION found in CHANGES.txt"
-    echo "Aborting."
-    exit -1
-fi
+# The release workflow writes its GitHub release from these notes, and refuses
+# a version that has none.
+./devtools/release_notes.sh "$VERSION" > /dev/null || fail "CHANGES.txt does not document $VERSION."
 
-echo "Creating tag $VERSION_NUMBER ..."
-git tag -a "$VERSION_NUMBER" -m "Tag release for revision $VERSION"
-git push --tags
+echo "Creating tag $VERSION ..."
+git tag -a "$VERSION" -m "Release $VERSION"
+git push origin "refs/tags/$VERSION"
 echo "Done."

@@ -13,19 +13,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
- *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
  */
 
 package io.crate.client.jdbc;
 
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -39,21 +39,35 @@ import java.util.Properties;
  */
 public class CrateDriver extends org.postgresql.Driver {
 
-    private static final String CRATE_PREFIX = "crate://";
-    private static final String CRATE_PREFIX_LONG = "jdbc:" + CRATE_PREFIX;
-    private static final String PSQL_PREFIX_LONG = "jdbc:postgresql://";
+    static final String CRATE_PREFIX = "crate://";
+    static final String CRATE_PREFIX_LONG = "jdbc:" + CRATE_PREFIX;
+    static final String PSQL_PREFIX_LONG = "jdbc:postgresql://";
 
     /**
-     * Connection defaults suited to a multi-node CrateDB cluster; each
-     * applies only when the caller does not set the property in the URL or
-     * the {@link Properties}.
+     * CrateDB defaults for connection properties pgJDBC gives a PostgreSQL
+     * meaning. pgJDBC resolves URL parameters ahead of the properties a
+     * connection is opened with, so a value the caller sets in either place
+     * wins over these.
+     *
+     * <ul>
+     * <li>{@code PGDBNAME} is what a URL's path segment sets, and CrateDB
+     *     reads it as the schema to resolve unqualified names in. Left out,
+     *     pgJDBC fills in the user name — a PostgreSQL convention, where a
+     *     database is commonly named after its owner. CrateDB has no such
+     *     convention and its default schema is {@code doc}.</li>
+     * <li>{@code loadBalanceHosts} spreads connections over the hosts of a
+     *     URL naming several, which for a CrateDB cluster is every node.</li>
+     * <li>{@code assumeMinServerVersion} lets pgJDBC send the application
+     *     name in the startup packet rather than in a round trip of its
+     *     own.</li>
+     * </ul>
      */
-    private static final String[][] DEFAULT_PROPERTIES = {
-        {"loadBalanceHosts", "true"},
-        {"assumeMinServerVersion", "9.5"},
-    };
+    private static final Map<String, String> DEFAULT_PROPERTIES = Map.of(
+        "PGDBNAME", "doc",
+        "loadBalanceHosts", "true",
+        "assumeMinServerVersion", "9.5");
 
-    private static CrateDriver registeredDriver;
+    private static volatile CrateDriver registeredDriver;
 
     static {
         try {
@@ -65,23 +79,29 @@ public class CrateDriver extends org.postgresql.Driver {
     }
 
     /**
-     * In the standalone (shaded) artifact, the bundled pgjdbc superclass
-     * self-registers with the DriverManager during class initialization and
-     * would answer {@code jdbc:postgresql://} URLs. Those URLs belong to a
-     * real PostgreSQL driver, so the bundled copy is taken out of the
-     * DriverManager again. In the unshaded artifact the superclass is
-     * vanilla pgjdbc itself, whose registration must be left untouched.
+     * In the standalone artifact, the bundled pgJDBC superclass self-registers
+     * with the DriverManager during class initialization and would answer
+     * {@code jdbc:postgresql://} URLs. Those belong to a PostgreSQL driver the
+     * application installed on purpose, so the bundled copy is taken out of
+     * the DriverManager again. Everywhere else the superclass is pgJDBC as
+     * published, whose registration must be left alone.
+     *
+     * <p>pgJDBC holds the instance it registered in a static of its own, which
+     * {@code deregister()} takes back out. Reaching it that way rather than by
+     * searching the DriverManager matters: the search would call
+     * {@code DriverManager.getDrivers()}, and this runs inside a class
+     * initializer that the DriverManager's own service scan may have started.</p>
+     *
+     * <p>The prefix is the one {@code build.gradle} relocates the bundled
+     * classes under; {@code devtools/VerifyArtifacts.java} holds the built
+     * jar to this behavior.</p>
      */
     private static void deregisterBundledPgjdbc() throws SQLException {
-        Class<?> superClass = CrateDriver.class.getSuperclass();
-        if (!superClass.getName().startsWith("io.crate.shade.")) {
+        if (!CrateDriver.class.getSuperclass().getName().startsWith("io.crate.shade.")
+                || !org.postgresql.Driver.isRegistered()) {
             return;
         }
-        for (java.sql.Driver driver : java.util.Collections.list(DriverManager.getDrivers())) {
-            if (driver.getClass() == superClass) {
-                DriverManager.deregisterDriver(driver);
-            }
-        }
+        org.postgresql.Driver.deregister();
     }
 
     @Override
@@ -90,18 +110,30 @@ public class CrateDriver extends org.postgresql.Driver {
         if (psqlUrl == null) {
             return null;
         }
+        // pgJDBC reports an unreadable URL as the jdbc:postgresql:// form
+        // this driver rewrote it to, which the caller never wrote. Its own
+        // URL is what it can act on.
+        if (!super.acceptsURL(psqlUrl)) {
+            throw new PSQLException(
+                "Cannot read the connection URL " + url + ". A CrateDB URL names one or more "
+                + "hosts, closes the host list with a '/', and may name a schema after it: "
+                + CRATE_PREFIX_LONG + "localhost:5432/doc",
+                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+        }
+        return new CrateConnection(super.connect(psqlUrl, withDefaults(info)));
+    }
+
+    /**
+     * The caller's connection properties, with the CrateDB defaults filled in
+     * for the ones the caller left out.
+     */
+    static Properties withDefaults(Properties info) {
         Properties properties = new Properties();
         if (info != null) {
             properties.putAll(info);
         }
-        for (String[] defaultProperty : DEFAULT_PROPERTIES) {
-            String name = defaultProperty[0];
-            if (!properties.containsKey(name) && !urlContainsParameter(psqlUrl, name)) {
-                properties.setProperty(name, defaultProperty[1]);
-            }
-        }
-        Connection connection = super.connect(psqlUrl, properties);
-        return connection == null ? null : new CrateConnection(connection);
+        DEFAULT_PROPERTIES.forEach(properties::putIfAbsent);
+        return properties;
     }
 
     /**
@@ -112,6 +144,9 @@ public class CrateDriver extends org.postgresql.Driver {
      * through untouched.
      */
     static String processURL(String url) {
+        if (url == null) {
+            return null;
+        }
         String lowerCased = url.toLowerCase(Locale.ENGLISH);
         if (lowerCased.startsWith(CRATE_PREFIX)) {
             return PSQL_PREFIX_LONG + url.substring(CRATE_PREFIX.length());
@@ -122,23 +157,21 @@ public class CrateDriver extends org.postgresql.Driver {
         return null;
     }
 
-    private static boolean urlContainsParameter(String url, String name) {
-        int queryStart = url.indexOf('?');
-        if (queryStart < 0) {
-            return false;
-        }
-        for (String parameter : url.substring(queryStart + 1).split("&")) {
-            if (parameter.startsWith(name + "=")) {
-                return true;
-            }
-        }
-        return false;
+    /**
+     * The properties a connection to the given URL can be opened with, or
+     * nothing for a URL this driver does not answer.
+     */
+    @Override
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
+        String psqlUrl = processURL(url);
+        return psqlUrl == null
+            ? new DriverPropertyInfo[0]
+            : super.getPropertyInfo(psqlUrl, withDefaults(info));
     }
 
     @Override
     public boolean acceptsURL(String url) {
-        String lowerCased = url.toLowerCase(Locale.ENGLISH);
-        return lowerCased.startsWith(CRATE_PREFIX) || lowerCased.startsWith(CRATE_PREFIX_LONG);
+        return processURL(url) != null;
     }
 
     @Override

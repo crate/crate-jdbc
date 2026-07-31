@@ -17,16 +17,23 @@
 
 package io.crate.client.jdbc.integrationtests;
 
+import io.crate.client.jdbc.CrateConnection;
+import io.crate.client.jdbc.CrateVersion;
 import org.testcontainers.cratedb.CrateDBContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,30 +42,51 @@ import java.util.Map;
  *
  * <p>The server version comes from the {@code CRATEDB_VERSION} environment
  * variable (a tag of the {@code crate} Docker image), defaulting to a
- * recent release. An externally managed server can be used instead by
- * setting {@code CRATE_URL} to a full JDBC URL, in which case no container
- * is started.</p>
+ * recent release. {@code CRATEDB_NODES} runs the suite against a cluster of
+ * that many nodes instead of one, which is where the driver's load balancing
+ * and its cancel routing stop being inert. An externally managed server can
+ * be used instead by setting {@code CRATE_URL} to a full JDBC URL, in which
+ * case no container is started.</p>
  */
 public abstract class BaseIntegrationTest {
 
     private static final String DEFAULT_CRATEDB_VERSION = "6.4.1";
+    private static final Duration SHARD_ALLOCATION_TIMEOUT = Duration.ofMinutes(2);
 
     private static CrateDBContainer container;
+    private static CrateDBCluster cluster;
     private static String connectionUrl;
+    private static CrateVersion serverVersion;
+
+    /** The image the suite boots, as the environment selects it. */
+    static DockerImageName serverImage() {
+        String imageName = System.getenv("CRATEDB_IMAGE");
+        if (imageName == null) {
+            imageName = "crate:" + System.getenv().getOrDefault("CRATEDB_VERSION", DEFAULT_CRATEDB_VERSION);
+        }
+        return DockerImageName.parse(imageName).asCompatibleSubstituteFor("crate");
+    }
+
+    /**
+     * How many nodes the suite runs against, one unless asked for more. A CI
+     * matrix leaves the variable set and empty for the cells that do not name
+     * it, which is the same as not naming it.
+     */
+    protected static int nodeCount() {
+        String nodes = System.getenv("CRATEDB_NODES");
+        return nodes == null || nodes.trim().isEmpty() ? 1 : Integer.parseInt(nodes.trim());
+    }
 
     static synchronized String connectionUrl() {
         if (connectionUrl == null) {
             String externalUrl = System.getenv("CRATE_URL");
             if (externalUrl != null) {
                 connectionUrl = externalUrl;
+            } else if (nodeCount() > 1) {
+                cluster = CrateDBCluster.start(serverImage(), nodeCount());
+                connectionUrl = cluster.url();
             } else {
-                String imageName = System.getenv("CRATEDB_IMAGE");
-                if (imageName == null) {
-                    imageName = "crate:" + System.getenv().getOrDefault("CRATEDB_VERSION", DEFAULT_CRATEDB_VERSION);
-                }
-                DockerImageName image = DockerImageName.parse(imageName)
-                    .asCompatibleSubstituteFor("crate");
-                container = new CrateDBContainer(image);
+                container = new CrateDBContainer(serverImage());
                 container.start();
                 connectionUrl = String.format(
                     "crate://%s:%d/doc?user=crate", container.getHost(), container.getMappedPort(5432));
@@ -71,16 +99,60 @@ public abstract class BaseIntegrationTest {
         return DriverManager.getConnection(connectionUrl());
     }
 
+    /**
+     * Address of one node of the server under test, for APIs that take host
+     * and port separately instead of a JDBC URL.
+     *
+     * <p>A CrateDB URL names as many hosts as the cluster has, which is not an
+     * authority {@link URI} can parse, so the first of them is read off the
+     * URL directly.</p>
+     */
+    protected static URI serverAddress() {
+        String url = connectionUrl();
+        String withoutScheme = url.substring(url.indexOf("://") + "://".length());
+        int schemaSeparator = withoutScheme.indexOf('/');
+        String hosts = withoutScheme.substring(0, schemaSeparator);
+        int nextHost = hosts.indexOf(',');
+        return URI.create("crate://" + (nextHost < 0 ? hosts : hosts.substring(0, nextHost))
+            + withoutScheme.substring(schemaSeparator));
+    }
+
+    /**
+     * Whether the server under test is at least the given CrateDB release.
+     * The driver serves a range of servers, so behavior a later release
+     * introduced is pinned only where it exists rather than making the
+     * suite describe the newest release alone.
+     */
+    protected static synchronized boolean serverAtLeast(int major, int minor) {
+        if (serverVersion == null) {
+            try (Connection conn = connect()) {
+                serverVersion = conn.unwrap(CrateConnection.class).getCrateVersion();
+            } catch (SQLException e) {
+                throw new IllegalStateException("Cannot read the CrateDB version under test", e);
+            }
+        }
+        return serverVersion.atLeast(major, minor);
+    }
+
     protected static void dropAllUserTables() {
         try (Connection conn = connect()) {
-            ResultSet rs = conn.createStatement().executeQuery(
+            List<String> tables = new ArrayList<>();
+            try (ResultSet rs = conn.createStatement().executeQuery(
                 "SELECT table_schema, table_name FROM information_schema.tables " +
-                "WHERE table_schema NOT IN ('pg_catalog', 'sys', 'information_schema', 'blob')");
-            while (rs.next()) {
-                conn.createStatement().execute(String.format(
-                    "DROP TABLE IF EXISTS \"%s\".\"%s\"", rs.getString(1), rs.getString(2)));
+                "WHERE table_schema NOT IN ('pg_catalog', 'sys', 'information_schema', 'blob')")) {
+                while (rs.next()) {
+                    tables.add(String.format("\"%s\".\"%s\"", rs.getString(1), rs.getString(2)));
+                }
             }
-        } catch (SQLException ignored) {
+            try (Statement statement = conn.createStatement()) {
+                for (String table : tables) {
+                    statement.execute("DROP TABLE IF EXISTS " + table);
+                }
+            }
+        } catch (SQLException e) {
+            // A test starting on leftover tables fails in ways that point
+            // anywhere but here, so say what actually went wrong.
+            throw new IllegalStateException("Cannot drop the tables left by a previous test", e);
         }
     }
 
@@ -139,16 +211,28 @@ public abstract class BaseIntegrationTest {
         }
     }
 
+    /**
+     * Waits until every shard has started, so that a query right after a
+     * {@code CREATE TABLE} sees the table rather than a partially allocated
+     * one.
+     */
     protected static void ensureYellow() throws SQLException, InterruptedException {
-        while (countUnassignedShards() > 0) {
-            Thread.sleep(100);
+        long deadline = System.nanoTime() + SHARD_ALLOCATION_TIMEOUT.toNanos();
+        try (Connection conn = connect();
+             Statement statement = conn.createStatement()) {
+            while (countUnassignedShards(statement) > 0) {
+                if (System.nanoTime() > deadline) {
+                    throw new IllegalStateException(
+                        "Shards were still unassigned after " + SHARD_ALLOCATION_TIMEOUT);
+                }
+                Thread.sleep(100);
+            }
         }
     }
 
-    private static long countUnassignedShards() throws SQLException {
-        try (Connection conn = connect()) {
-            ResultSet rs = conn.createStatement()
-                .executeQuery("SELECT count(*) FROM sys.shards WHERE state != 'STARTED'");
+    private static long countUnassignedShards(Statement statement) throws SQLException {
+        try (ResultSet rs = statement.executeQuery(
+            "SELECT count(*) FROM sys.shards WHERE state != 'STARTED'")) {
             rs.next();
             return rs.getLong(1);
         }

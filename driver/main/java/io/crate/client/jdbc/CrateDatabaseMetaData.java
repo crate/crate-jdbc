@@ -17,25 +17,34 @@
 
 package io.crate.client.jdbc;
 
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
 
 /**
- * CrateDB-aware metadata behavior on top of stock pgjdbc:
+ * A description of CrateDB, where pgJDBC's is a description of PostgreSQL:
+ * the product it names, the SQL CrateDB has no grammar for, the limits it
+ * does not put on identifiers, and the single catalog its objects live in.
  *
- * <ul>
- * <li>{@link #getDatabaseProductName()} reports {@code Crate} so IDEs and
- *     tools that sniff the product name pick a CrateDB dialect instead of a
- *     PostgreSQL one.</li>
- * <li>An empty-string catalog argument is treated like {@code null}
- *     ("ignore catalog"). CrateDB has a single catalog named {@code crate};
- *     since pgjdbc 42.7.5 an empty string filters every result out, which
- *     breaks callers that follow the pre-42.7.5 convention.</li>
- * </ul>
+ * <p>Metadata rows arrive as {@link CrateResultSet}s, so navigating from a row
+ * to its statement and connection stays inside this driver.</p>
  */
 public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
+
+    /**
+     * The oldest CrateDB whose {@code pg_catalog} carries what pgJDBC's
+     * metadata queries read — {@code current_catalog} among it, which arrived
+     * in the 6.x line.
+     */
+    private static final int MINIMUM_MAJOR = 6;
+    private static final int MINIMUM_MINOR = 0;
+    private static final String MINIMUM_SERVER = MINIMUM_MAJOR + "." + MINIMUM_MINOR;
 
     private final CrateConnection connection;
 
@@ -50,118 +59,398 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
     }
 
     @Override
-    public Connection getConnection() {
+    public String getDriverName() {
+        return "CrateDB JDBC Driver";
+    }
+
+    @Override
+    public String getDriverVersion() {
+        return CrateDriverVersion.CURRENT.toString();
+    }
+
+    @Override
+    public int getDriverMajorVersion() {
+        return CrateDriverVersion.CURRENT.major;
+    }
+
+    @Override
+    public int getDriverMinorVersion() {
+        return CrateDriverVersion.CURRENT.minor;
+    }
+
+    @Override
+    public boolean supportsSavepoints() {
+        return false;
+    }
+
+    /**
+     * CrateDB has no transactions: {@code BEGIN} and {@code COMMIT} are
+     * accepted and do nothing, and there is no {@code ROLLBACK}. Frameworks
+     * that ask before they rely on transactional bookkeeping are told so
+     * here rather than discovering it from a rollback that quietly kept
+     * every write.
+     */
+    @Override
+    public boolean supportsTransactions() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsMultipleTransactions() {
+        return false;
+    }
+
+    @Override
+    public int getDefaultTransactionIsolation() {
+        return Connection.TRANSACTION_NONE;
+    }
+
+    @Override
+    public boolean supportsTransactionIsolationLevel(int level) {
+        return level == Connection.TRANSACTION_NONE;
+    }
+
+    @Override
+    public boolean supportsDataDefinitionAndDataManipulationTransactions() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsDataManipulationTransactionsOnly() {
+        return false;
+    }
+
+    /** CrateDB has no foreign keys, and so no referential integrity to enforce. */
+    @Override
+    public boolean supportsIntegrityEnhancementFacility() {
+        return false;
+    }
+
+    /** {@code FOR UPDATE} is not part of CrateDB's SQL grammar. */
+    @Override
+    public boolean supportsSelectForUpdate() {
+        return false;
+    }
+
+    /** CrateDB has no {@code refcursor} type for a function to hand back. */
+    @Override
+    public boolean supportsRefCursors() {
+        return false;
+    }
+
+    /**
+     * {@code PROCEDURE} is not part of CrateDB's SQL grammar at all, which is
+     * why {@link #getProcedures} lists none. A tool that offers to browse or
+     * call them is told here rather than by an empty list it reads as "none
+     * defined yet".
+     *
+     * <p>{@code supportsStoredFunctionsUsingCallSyntax} stays as pgJDBC answers
+     * it: a {@code {call f(?)}} escape really is honored, because pgJDBC
+     * rewrites it into a {@code SELECT}.</p>
+     */
+    @Override
+    public boolean supportsStoredProcedures() {
+        return false;
+    }
+
+    @Override
+    public boolean allProceduresAreCallable() {
+        return false;
+    }
+
+    /**
+     * How many columns a table may hold, which for CrateDB is the mapping's
+     * field limit rather than the number of columns PostgreSQL fits in a page.
+     * The limit is a table setting, so this is its default — a tool sizing a
+     * generated table against it is the case worth answering.
+     */
+    @Override
+    public int getMaxColumnsInTable() {
+        return 1000;
+    }
+
+    /**
+     * CrateDB puts no length limit on the names of tables, columns, schemas
+     * or users, where PostgreSQL cuts them off at 63 characters. Zero is how
+     * JDBC spells "no limit", and keeps a tool from shortening a name the
+     * server would have taken.
+     */
+    @Override
+    public int getMaxCatalogNameLength() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxColumnNameLength() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxCursorNameLength() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxProcedureNameLength() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxSchemaNameLength() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxTableNameLength() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxUserNameLength() {
+        return 0;
+    }
+
+    @Override
+    public CrateConnection getConnection() throws SQLException {
+        if (connection.isClosed()) {
+            throw new PSQLException("This connection has been closed.",
+                PSQLState.CONNECTION_DOES_NOT_EXIST);
+        }
         return connection;
     }
 
-    private static String catalog(String catalog) {
+    /**
+     * The URL the connection was opened with, in this driver's scheme rather
+     * than the {@code jdbc:postgresql://} form it rewrites one to.
+     */
+    @Override
+    public String getURL() throws SQLException {
+        String url = delegate.getURL();
+        return url != null && url.startsWith(CrateDriver.PSQL_PREFIX_LONG)
+            ? CrateDriver.CRATE_PREFIX_LONG + url.substring(CrateDriver.PSQL_PREFIX_LONG.length())
+            : url;
+    }
+
+    /**
+     * A catalog argument as pgJDBC's queries want it. JDBC spells "ignore the
+     * catalog" as {@code null}; pgJDBC reads the empty string as "objects
+     * belonging to no catalog", which every CrateDB object fails, so callers
+     * that spell it the other way get no rows at all.
+     */
+    private static String catalogOrNull(String catalog) {
         return "".equals(catalog) ? null : catalog;
     }
 
-    @Override
-    public ResultSet getTables(String cat, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
-        return delegate.getTables(catalog(cat), schemaPattern, tableNamePattern, types);
+    @FunctionalInterface
+    private interface MetaDataQuery {
+        ResultSet run() throws SQLException;
+    }
+
+    private ResultSet metadata(MetaDataQuery query) throws SQLException {
+        try {
+            return wrap(query.run());
+        } catch (SQLException e) {
+            throw metadataFailure(e);
+        }
+    }
+
+    /**
+     * A failed metadata query, told in CrateDB's terms when the server is
+     * older than the one pgJDBC's catalog queries need. Such a server refuses
+     * them by naming a catalog column the caller never asked about, which
+     * says nothing a caller can act on; the version does.
+     */
+    private SQLException metadataFailure(SQLException cause) {
+        CrateVersion version;
+        try {
+            version = connection.getCrateVersion();
+        } catch (SQLException | RuntimeException unreadable) {
+            // Whatever went wrong reading the version, the failure being
+            // reported is the one the caller asked about.
+            cause.addSuppressed(unreadable);
+            return cause;
+        }
+        if (version.atLeast(MINIMUM_MAJOR, MINIMUM_MINOR)) {
+            return cause;
+        }
+        return new SQLFeatureNotSupportedException(
+            "This metadata call needs CrateDB " + MINIMUM_SERVER + " or later; the server is "
+            + version + ".", PSQLState.NOT_IMPLEMENTED.getState(), cause);
+    }
+
+    /**
+     * Metadata rows as this driver's result sets, so that navigating from a
+     * row back to its statement and connection stays inside the driver
+     * instead of reaching the pgJDBC connection underneath.
+     *
+     * <p>The rows are taken from the wrapping statement rather than built
+     * beside it, so that a caller who navigates from the rows to the statement
+     * and back arrives at the rows it started from.</p>
+     */
+    private ResultSet wrap(ResultSet resultSet) throws SQLException {
+        Statement statement = resultSet.getStatement();
+        if (statement == null) {
+            return new CrateResultSet(resultSet, null);
+        }
+        return new CrateStatement(statement, connection).resultSet(resultSet);
     }
 
     @Override
-    public ResultSet getColumns(String cat, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-        return delegate.getColumns(catalog(cat), schemaPattern, tableNamePattern, columnNamePattern);
+    public ResultSet getSchemas() throws SQLException {
+        return metadata(() -> delegate.getSchemas());
     }
 
     @Override
-    public ResultSet getSchemas(String cat, String schemaPattern) throws SQLException {
-        return delegate.getSchemas(catalog(cat), schemaPattern);
+    public ResultSet getCatalogs() throws SQLException {
+        return metadata(() -> delegate.getCatalogs());
     }
 
     @Override
-    public ResultSet getPrimaryKeys(String cat, String schema, String table) throws SQLException {
-        return delegate.getPrimaryKeys(catalog(cat), schema, table);
+    public ResultSet getTableTypes() throws SQLException {
+        return metadata(() -> delegate.getTableTypes());
     }
 
     @Override
-    public ResultSet getImportedKeys(String cat, String schema, String table) throws SQLException {
-        return delegate.getImportedKeys(catalog(cat), schema, table);
+    public ResultSet getTypeInfo() throws SQLException {
+        return metadata(() -> delegate.getTypeInfo());
     }
 
     @Override
-    public ResultSet getExportedKeys(String cat, String schema, String table) throws SQLException {
-        return delegate.getExportedKeys(catalog(cat), schema, table);
+    public ResultSet getClientInfoProperties() throws SQLException {
+        return metadata(() -> delegate.getClientInfoProperties());
+    }
+
+    @Override
+    public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
+        return metadata(() -> delegate.getTables(catalogOrNull(catalog), schemaPattern, tableNamePattern, types));
+    }
+
+    @Override
+    public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
+        return metadata(() -> delegate.getColumns(catalogOrNull(catalog), schemaPattern, tableNamePattern, columnNamePattern));
+    }
+
+    @Override
+    public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
+        return metadata(() -> delegate.getSchemas(catalogOrNull(catalog), schemaPattern));
+    }
+
+    @Override
+    public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
+        return metadata(() -> delegate.getPrimaryKeys(catalogOrNull(catalog), schema, table));
+    }
+
+    @Override
+    public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
+        return metadata(() -> delegate.getImportedKeys(catalogOrNull(catalog), schema, table));
+    }
+
+    @Override
+    public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
+        return metadata(() -> delegate.getExportedKeys(catalogOrNull(catalog), schema, table));
     }
 
     @Override
     public ResultSet getCrossReference(String parentCatalog, String parentSchema, String parentTable,
                                        String foreignCatalog, String foreignSchema, String foreignTable) throws SQLException {
-        return delegate.getCrossReference(catalog(parentCatalog), parentSchema, parentTable,
-                catalog(foreignCatalog), foreignSchema, foreignTable);
+        return metadata(() -> delegate.getCrossReference(catalogOrNull(parentCatalog), parentSchema, parentTable,
+                catalogOrNull(foreignCatalog), foreignSchema, foreignTable));
+    }
+
+    /**
+     * A catalog no CrateDB carries, which is how the empty answer below is
+     * obtained: pgJDBC builds the result set before it decides there is
+     * nothing to fill it with, so asking it about a catalog that cannot match
+     * yields the columns without the query.
+     */
+    private static final String NO_SUCH_CATALOG = " ";
+
+    /**
+     * No indexes are described. pgJDBC reads them through
+     * {@code pg_get_indexdef} and {@code information_schema._pg_expandarray},
+     * neither of which CrateDB's partial {@code pg_catalog} provides, so the
+     * query behind this cannot run at all. Supplying the two functions would
+     * not be enough to make it answer: {@code pg_am} and {@code pg_indexes}
+     * are present but hold no rows, which a query cannot tell from a schema
+     * that has no indexes, and {@code pg_index} describes a primary key's own
+     * index as {@code indisprimary} true, {@code indisunique} false and
+     * {@code indnatts} zero — a row no correct answer can be read from.
+     *
+     * <p>Nothing is the answer rather than a failure because every tool that
+     * introspects a schema asks this of every table, and a driver that raises
+     * here stops the introspection rather than the part of it that wanted
+     * indexes. It is what {@link #getImportedKeys} and {@link #getExportedKeys}
+     * already do for a feature CrateDB equally lacks. The columns a row is
+     * addressed by are readable through {@link #getPrimaryKeys}.</p>
+     */
+    @Override
+    public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate)
+            throws SQLException {
+        return metadata(() -> delegate.getIndexInfo(NO_SUCH_CATALOG, schema, table, unique, approximate));
     }
 
     @Override
-    public ResultSet getIndexInfo(String cat, String schema, String table, boolean unique, boolean approximate) throws SQLException {
-        return delegate.getIndexInfo(catalog(cat), schema, table, unique, approximate);
+    public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern) throws SQLException {
+        return metadata(() -> delegate.getProcedures(catalogOrNull(catalog), schemaPattern, procedureNamePattern));
     }
 
     @Override
-    public ResultSet getProcedures(String cat, String schemaPattern, String procedureNamePattern) throws SQLException {
-        return delegate.getProcedures(catalog(cat), schemaPattern, procedureNamePattern);
+    public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
+        return metadata(() -> delegate.getProcedureColumns(catalogOrNull(catalog), schemaPattern, procedureNamePattern, columnNamePattern));
     }
 
     @Override
-    public ResultSet getProcedureColumns(String cat, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
-        return delegate.getProcedureColumns(catalog(cat), schemaPattern, procedureNamePattern, columnNamePattern);
+    public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException {
+        return metadata(() -> delegate.getFunctions(catalogOrNull(catalog), schemaPattern, functionNamePattern));
     }
 
     @Override
-    public ResultSet getFunctions(String cat, String schemaPattern, String functionNamePattern) throws SQLException {
-        return delegate.getFunctions(catalog(cat), schemaPattern, functionNamePattern);
+    public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException {
+        return metadata(() -> delegate.getFunctionColumns(catalogOrNull(catalog), schemaPattern, functionNamePattern, columnNamePattern));
     }
 
     @Override
-    public ResultSet getFunctionColumns(String cat, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException {
-        return delegate.getFunctionColumns(catalog(cat), schemaPattern, functionNamePattern, columnNamePattern);
+    public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException {
+        return metadata(() -> delegate.getBestRowIdentifier(catalogOrNull(catalog), schema, table, scope, nullable));
     }
 
     @Override
-    public ResultSet getBestRowIdentifier(String cat, String schema, String table, int scope, boolean nullable) throws SQLException {
-        return delegate.getBestRowIdentifier(catalog(cat), schema, table, scope, nullable);
+    public ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException {
+        return metadata(() -> delegate.getVersionColumns(catalogOrNull(catalog), schema, table));
     }
 
     @Override
-    public ResultSet getVersionColumns(String cat, String schema, String table) throws SQLException {
-        return delegate.getVersionColumns(catalog(cat), schema, table);
+    public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
+        return metadata(() -> delegate.getTablePrivileges(catalogOrNull(catalog), schemaPattern, tableNamePattern));
     }
 
     @Override
-    public ResultSet getTablePrivileges(String cat, String schemaPattern, String tableNamePattern) throws SQLException {
-        return delegate.getTablePrivileges(catalog(cat), schemaPattern, tableNamePattern);
+    public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
+        return metadata(() -> delegate.getColumnPrivileges(catalogOrNull(catalog), schema, table, columnNamePattern));
     }
 
     @Override
-    public ResultSet getColumnPrivileges(String cat, String schema, String table, String columnNamePattern) throws SQLException {
-        return delegate.getColumnPrivileges(catalog(cat), schema, table, columnNamePattern);
+    public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern, int[] types) throws SQLException {
+        return metadata(() -> delegate.getUDTs(catalogOrNull(catalog), schemaPattern, typeNamePattern, types));
     }
 
     @Override
-    public ResultSet getUDTs(String cat, String schemaPattern, String typeNamePattern, int[] types) throws SQLException {
-        return delegate.getUDTs(catalog(cat), schemaPattern, typeNamePattern, types);
+    public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern) throws SQLException {
+        return metadata(() -> delegate.getSuperTypes(catalogOrNull(catalog), schemaPattern, typeNamePattern));
     }
 
     @Override
-    public ResultSet getSuperTypes(String cat, String schemaPattern, String typeNamePattern) throws SQLException {
-        return delegate.getSuperTypes(catalog(cat), schemaPattern, typeNamePattern);
+    public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
+        return metadata(() -> delegate.getSuperTables(catalogOrNull(catalog), schemaPattern, tableNamePattern));
     }
 
     @Override
-    public ResultSet getSuperTables(String cat, String schemaPattern, String tableNamePattern) throws SQLException {
-        return delegate.getSuperTables(catalog(cat), schemaPattern, tableNamePattern);
+    public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern, String attributeNamePattern) throws SQLException {
+        return metadata(() -> delegate.getAttributes(catalogOrNull(catalog), schemaPattern, typeNamePattern, attributeNamePattern));
     }
 
     @Override
-    public ResultSet getAttributes(String cat, String schemaPattern, String typeNamePattern, String attributeNamePattern) throws SQLException {
-        return delegate.getAttributes(catalog(cat), schemaPattern, typeNamePattern, attributeNamePattern);
-    }
-
-    @Override
-    public ResultSet getPseudoColumns(String cat, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-        return delegate.getPseudoColumns(catalog(cat), schemaPattern, tableNamePattern, columnNamePattern);
+    public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
+        return metadata(() -> delegate.getPseudoColumns(catalogOrNull(catalog), schemaPattern, tableNamePattern, columnNamePattern));
     }
 }

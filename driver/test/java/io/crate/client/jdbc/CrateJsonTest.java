@@ -21,6 +21,11 @@ import org.junit.jupiter.api.Test;
 import org.postgresql.util.PGobject;
 
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +34,7 @@ import java.util.Map;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -38,7 +44,7 @@ public class CrateJsonTest {
     public void mapRoundTripsThroughJson() throws SQLException {
         Map<String, Object> map = new HashMap<>();
         map.put("name", "Trillian");
-        map.put("age", 32);
+        map.put("age", 32L);
         map.put("registered", true);
 
         assertThat(CrateJson.parse(CrateJson.write(map)), is(map));
@@ -48,7 +54,7 @@ public class CrateJsonTest {
     public void nestedMapsRoundTripThroughJson() throws SQLException {
         Map<String, Object> inner = new HashMap<>();
         inner.put("street", "Guildford");
-        inner.put("number", 42);
+        inner.put("number", 42L);
         Map<String, Object> map = new HashMap<>();
         map.put("name", "Arthur");
         map.put("address", inner);
@@ -60,13 +66,44 @@ public class CrateJsonTest {
     public void listsRoundTripThroughJson() throws SQLException {
         Map<String, Object> map = new HashMap<>();
         map.put("tags", Arrays.asList("a", "b", "c"));
-        map.put("scores", Arrays.asList(1, 2, 3));
+        map.put("scores", Arrays.asList(1L, 2L, 3L));
 
         assertThat(CrateJson.parse(CrateJson.write(map)), is(map));
 
         Object parsed = CrateJson.parse("[1, 2, 3]");
         assertThat(parsed, instanceOf(List.class));
-        assertThat(parsed, is(Arrays.asList(1, 2, 3)));
+        assertThat(parsed, is(Arrays.asList(1L, 2L, 3L)));
+    }
+
+    /**
+     * A whole number in a CrateDB OBJECT is a {@code bigint} whatever its
+     * magnitude, so reading one back must not size the Java type to the value.
+     */
+    @Test
+    public void wholeNumbersReadBackAsLong() throws SQLException {
+        Map<String, Object> map = new HashMap<>();
+        map.put("small", 5);
+        map.put("large", 5_000_000_000L);
+
+        Map<?, ?> parsed = (Map<?, ?>) CrateJson.parse(CrateJson.write(map));
+        assertThat(parsed.get("small"), is(5L));
+        assertThat(parsed.get("large"), is(5_000_000_000L));
+    }
+
+    /** CrateDB reads a timestamp from ISO-8601 text. */
+    @Test
+    public void javaTimeValuesAreWrittenAsIsoText() throws SQLException {
+        Map<String, Object> map = new HashMap<>();
+        map.put("local", LocalDateTime.of(2026, 8, 5, 12, 0));
+        map.put("offset", OffsetDateTime.parse("2026-08-05T12:00+02:00"));
+        map.put("instant", Instant.parse("2026-08-05T10:00:00Z"));
+        map.put("date", LocalDate.of(2026, 8, 5));
+
+        Map<?, ?> written = (Map<?, ?>) CrateJson.parse(CrateJson.write(map));
+        assertThat(written.get("local"), is("2026-08-05T12:00:00"));
+        assertThat(written.get("offset"), is("2026-08-05T12:00:00+02:00"));
+        assertThat(written.get("instant"), is("2026-08-05T10:00:00Z"));
+        assertThat(written.get("date"), is("2026-08-05"));
     }
 
     @Test
@@ -82,6 +119,36 @@ public class CrateJsonTest {
     @Test
     public void invalidJsonRaisesSQLException() {
         assertThrows(SQLException.class, () -> CrateJson.parse("{not json"));
+    }
+
+    /**
+     * A value that cannot be rendered is still a value the failure has to be
+     * reported for, so building the message must not become the failure.
+     */
+    @Test
+    public void aSelfReferencingValueIsReportedAsASQLException() {
+        List<Object> outer = new ArrayList<>();
+        List<Object> inner = new ArrayList<>();
+        outer.add(inner);
+        inner.add(outer);
+
+        assertThrows(SQLException.class, () -> CrateJson.write(outer));
+    }
+
+    /** A message quotes back enough of a value to identify it, and no more. */
+    @Test
+    public void aLargeValueIsNotQuotedBackInFull() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("blob", "x".repeat(100_000));
+        map.put("unserializable", new Object() {
+            @Override
+            public String toString() {
+                return "x".repeat(100_000);
+            }
+        });
+
+        SQLException raised = assertThrows(SQLException.class, () -> CrateJson.write(map));
+        assertThat(raised.getMessage().length(), lessThan(1_000));
     }
 
     @Test

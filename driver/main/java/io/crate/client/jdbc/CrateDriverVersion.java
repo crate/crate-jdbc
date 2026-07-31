@@ -13,73 +13,65 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
- *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
  */
 
 package io.crate.client.jdbc;
 
-public class CrateDriverVersion {
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-    private static final boolean SNAPSHOT = true;
-    static final CrateDriverVersion CURRENT = new CrateDriverVersion(30000, SNAPSHOT);
+/**
+ * The version of this driver, as the build stamped it into
+ * {@code version.properties}. Reading it from the artifact rather than
+ * restating it in source keeps a release from shipping a driver that
+ * misreports itself through {@link java.sql.DatabaseMetaData} and
+ * {@link java.sql.Driver}.
+ */
+final class CrateDriverVersion {
 
-    private final int id;
-    final byte major;
-    final byte minor;
-    private final byte revision;
-    private final Boolean snapshot;
+    private static final String RESOURCE = "version.properties";
 
-    private CrateDriverVersion(int id, Boolean snapshot) {
-        this.id = id;
-        this.major = (byte) ((id / 10000) % 100);
-        this.minor = (byte) ((id / 100) % 100);
-        this.revision = (byte) ((id) % 100);
-        this.snapshot = snapshot;
+    /** A Maven version: {@code major.minor.patch} with an optional qualifier. */
+    private static final Pattern VERSION = Pattern.compile("(\\d+)\\.(\\d+)\\.\\d+.*");
+
+    static final CrateDriverVersion CURRENT = read();
+
+    private final String text;
+    final int major;
+    final int minor;
+
+    private CrateDriverVersion(String text) {
+        Matcher matcher = VERSION.matcher(text);
+        if (!matcher.matches()) {
+            throw new IllegalStateException("Not a driver version: " + text);
+        }
+        this.text = text;
+        this.major = Integer.parseInt(matcher.group(1));
+        this.minor = Integer.parseInt(matcher.group(2));
     }
 
-    private boolean snapshot() {
-        return snapshot != null && snapshot;
-    }
-
-    /**
-     * Just the version number (without -SNAPSHOT if snapshot).
-     */
-    private String number() {
-        return String.valueOf(major) + '.' + minor + '.' + revision;
-    }
-
-    public static void main(String[] args) {
-        System.out.println(
-                "Version: " + CrateDriverVersion.CURRENT +
-                ", JVM: " + System.getProperty("java.version"));
+    private static CrateDriverVersion read() {
+        Properties properties = new Properties();
+        try (InputStream resource = CrateDriverVersion.class.getResourceAsStream(RESOURCE)) {
+            if (resource == null) {
+                throw new IllegalStateException(RESOURCE + " is missing from the driver jar");
+            }
+            properties.load(resource);
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot read " + RESOURCE, e);
+        }
+        String version = properties.getProperty("version");
+        if (version == null) {
+            throw new IllegalStateException(RESOURCE + " does not name a version");
+        }
+        return new CrateDriverVersion(version);
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(number());
-        if (snapshot()) {
-            sb.append("-SNAPSHOT");
-        }
-        return sb.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        CrateDriverVersion version = (CrateDriverVersion) o;
-
-        return id == version.id;
-    }
-
-    @Override
-    public int hashCode() {
-        return id;
+        return text;
     }
 }

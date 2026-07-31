@@ -4,107 +4,115 @@
 Migrating to 3.0.x
 ##################
 
-Version 3.0.0 replaces the driver's foundation: instead of bundling a
-patched copy of pgJDBC 42.2.5, the driver builds on the current official
-`PostgreSQL JDBC Driver`_ and adapts CrateDB-specific behavior in a thin
-wrapper layer (see :ref:`internals`). For most applications the upgrade
-is a version bump — connection URLs, ``OBJECT`` values as
-``java.util.Map``, CrateDB type names in ``createArrayOf()``, and the
-no-op ``rollback()`` all keep working. The differences that can require
-attention are listed here.
+For most applications the upgrade from 2.7.0 is a version bump: connection
+URLs, ``OBJECT`` values as ``java.util.Map``, CrateDB type names in
+``createArrayOf()`` and the no-op ``rollback()`` all keep working. What
+follows is everything that does not.
 
 
-*******************
-Server requirements
-*******************
+************
+Requirements
+************
 
-3.0.x requires **CrateDB 6.0 or later**. For older servers, stay on
-crate-jdbc 2.7.0.
+3.0.x requires **Java 11 or later** (2.7.0 ran on Java 8) and **CrateDB 6.0
+or later**. For older servers or an older JRE, stay on crate-jdbc 2.7.0.
 
 
-****************
-Behavior changes
-****************
-
+**********
 Timestamps
-==========
+**********
 
 2.7.0 bound ``setTimestamp()`` values as epoch milliseconds and read
-``timestamp`` columns back epoch-faithfully regardless of the JVM time
-zone. 3.0.x follows the JDBC specification: values of ``TIMESTAMP``
-(without time zone) columns are interpreted as wall-clock time in the
-JVM's default time zone. If your application stores ``timestamp``
-(rather than ``timestamptz``) columns and runs in a non-UTC JVM, read
-values shift accordingly. Use ``timestamptz`` columns, pass an explicit
-``Calendar`` to ``getTimestamp()``/``setTimestamp()``, or run the JVM
-with ``-Duser.timezone=UTC`` for the previous behavior.
+``timestamp`` columns back epoch-faithfully regardless of the JVM time zone.
+3.0.x follows the JDBC specification: a ``TIMESTAMP`` column without a time
+zone holds wall-clock time in the JVM's default zone. An application that
+stores ``timestamp`` rather than ``timestamptz`` columns and runs in a
+non-UTC JVM reads shifted values. Use ``timestamptz`` columns, pass a
+``Calendar`` to ``getTimestamp()``/``setTimestamp()``, or run the JVM with
+``-Duser.timezone=UTC``.
 
+``createArrayOf("timestamp", ...)`` builds an array of ``timestamp without
+time zone``, which is what a CrateDB ``timestamp`` column is; 2.7.0 built an
+array of ``timestamp with time zone``. Scalar and array timestamps therefore
+agree on time-zone handling. Use ``createArrayOf("timestamptz", ...)`` for a
+``timestamptz`` column.
+
+
+*************
 Update counts
-=============
+*************
 
-CrateDB reports an unknown row count (for example for ``DELETE`` on
-partitions) as −1 on the wire. 2.7.0 surfaced this as −2
-(``Statement.SUCCESS_NO_INFO``); 3.0.x reports 0, like pgJDBC does.
-Code that verifies update counts after such statements needs to accept
-0.
+CrateDB reports an unknown row count — for example a ``DELETE`` over
+partitions — as −1 on the wire. 2.7.0 surfaced this as −2
+(``Statement.SUCCESS_NO_INFO``); 3.0.x reports 0. Code that checks update
+counts after such statements has to accept 0.
 
+
+***********************
 Reported SQL type codes
-=======================
+***********************
 
-Type codes now come from pgJDBC: boolean array elements report
-``Types.BIT`` instead of ``Types.BOOLEAN``, ``byte`` columns report
-``Types.CHAR`` instead of ``Types.TINYINT``, and ``OBJECT`` arrays
-report ``Types.OTHER`` instead of ``Types.JAVA_OBJECT``. The Java
-values themselves are unaffected.
+Type codes are read off the wire rather than from a table of the driver's
+own: boolean array elements report ``Types.BIT`` instead of
+``Types.BOOLEAN``, ``OBJECT`` arrays report ``Types.OTHER`` instead of
+``Types.JAVA_OBJECT``, and a ``byte`` column reports the type CrateDB sends
+it as — ``Types.CHAR``, and ``Types.SMALLINT`` from CrateDB 6.5 on — instead
+of ``Types.TINYINT``.
 
+The value a column's typed getter reads is unchanged, so ``getByte()`` on a
+``byte`` column keeps returning the byte, whatever the server. Untyped reads
+follow the wire type: ``getObject()`` on a ``byte`` column returns a
+``String`` before CrateDB 6.5 and an ``Integer`` from 6.5 on, where 2.7.0
+always returned an ``Integer``. Read such a column with ``getByte()``.
+
+
+*******************
 Strict mode removed
-===================
+*******************
 
 The ``strict`` connection property is gone, together with the
-``SQLFeatureNotSupportedException``\ s the driver used to raise for
-transactional API calls. ``setAutoCommit(false)`` and ``commit()`` are
-always allowed (the server treats transaction statements as no-ops),
-``rollback()`` is a client-side no-op, and ``prepareCall()`` works.
+``SQLFeatureNotSupportedException``\ s the driver raised for transactional
+API calls. ``setAutoCommit(false)``, ``commit()``, ``setReadOnly()`` and
+every transaction isolation level JDBC defines are accepted,
+``rollback()`` undoes nothing, and ``prepareCall()`` works.
 
-Metadata
-========
+``rollback()`` does still raise ``SQLException`` in the two states the JDBC
+specification forbids it in — on a closed connection, and while auto-commit
+is enabled — so a mis-sequenced call is not silently swallowed. Savepoints
+raise ``SQLFeatureNotSupportedException``: CrateDB has no savepoint
+statements, so the alternative is a syntax error from the server.
 
-- ``getTables()`` with a ``null`` types argument also returns index
-  rows; pass an explicit types array such as ``{"TABLE", "VIEW"}`` to
-  filter.
-- ``getColumns()`` lists nested object columns (for example
-  ``settings['udc']['enabled']``) alongside top-level columns, matching
-  CrateDB's own ``information_schema.columns``.
-- ``getPseudoColumns()`` raises pgJDBC's not-implemented exception
-  instead of returning an empty result.
+``DatabaseMetaData`` now describes that database rather than the PostgreSQL
+release it emulates, so a framework that asks before relying on
+transactional bookkeeping handles CrateDB as non-transactional. See
+:ref:`limitations` for what else it answers differently.
 
 
-*******************************
-Shaded class names (standalone)
-*******************************
+********************
+TLS is on by default
+********************
 
-The ``crate-jdbc`` Maven artifact no longer relocates pgJDBC: classes
-live under ``org.postgresql`` again, and code that imported
-``io.crate.shade.org.postgresql.*`` types must either import the plain
-``org.postgresql.*`` names or switch to the ``crate-jdbc-standalone``
-artifact, which keeps the ``io.crate.shade`` relocation. Configuration
-values naming shaded classes (for example
-``sslfactory=io.crate.shade.org.postgresql.ssl.DefaultJavaSSLFactory``)
-follow the same rule: plain names with ``crate-jdbc``, shaded names with
+Leaving ``ssl`` and ``sslmode`` unset no longer means "no TLS": the default
+is ``sslmode=prefer``, so the driver asks for an encrypted connection and
+falls back to an unencrypted one. See :ref:`connection_properties` for what
+each mode checks.
+
+
+************************
+Dependencies are visible
+************************
+
+The ``crate-jdbc`` artifact declares pgJDBC and jackson-databind as ordinary
+dependencies rather than bundling them, which is what makes them visible to
+dependency and vulnerability scanners — and means a build resolving from a
+mirror or an air-gapped repository needs both available. A project that also
+depends on pgJDBC directly resolves one version through its build tool's
+usual rules.
+
+With that, its classes live under ``org.postgresql``, so code importing
+``io.crate.shade.org.postgresql.*`` types must either import the plain names
+or switch to ``crate-jdbc-standalone``, which keeps the relocation.
+Configuration values naming shaded classes follow the same rule — for
+example ``sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory`` with
+``crate-jdbc``, and the ``io.crate.shade``-prefixed name with
 ``crate-jdbc-standalone``.
-
-
-****************************
-Coming from vanilla pgJDBC
-****************************
-
-Applications using plain pgJDBC against CrateDB can switch to this
-driver by changing the URL scheme from ``jdbc:postgresql://`` to
-``jdbc:crate://``. This adds: ``Map`` binding and reading for ``OBJECT``
-columns, CrateDB type names in ``createArrayOf()``, a ``rollback()``
-that does not raise a server error, tolerance for empty-string catalog
-arguments in metadata calls, and ``Crate`` as the reported product name
-for dialect-sniffing tools.
-
-
-.. _PostgreSQL JDBC Driver: https://jdbc.postgresql.org/

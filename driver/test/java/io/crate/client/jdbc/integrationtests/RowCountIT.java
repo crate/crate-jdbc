@@ -18,6 +18,7 @@
 package io.crate.client.jdbc.integrationtests;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -32,6 +33,11 @@ import static org.hamcrest.Matchers.is;
  * (such as deleting from a partitioned table by partition) report zero.
  */
 public class RowCountIT extends BaseIntegrationTest {
+
+    @BeforeEach
+    void setUpTables() {
+        dropAllUserTables();
+    }
 
     @AfterEach
     void tearDownTables() {
