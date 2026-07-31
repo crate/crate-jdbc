@@ -20,7 +20,7 @@ what method can be used to fetch them from a `ResultSet`_ instance:
 +===============+=================+==================+
 | `boolean`__   | `BOOLEAN`__     | ``getBoolean``   |
 +---------------+-----------------+------------------+
-| `byte`__      | `TINYINT`__     | ``getByte``      |
+| `byte`__      | `CHAR`__        | ``getByte``      |
 +---------------+-----------------+------------------+
 | `short`__     | `SMALLINT`__    | ``getShort``     |
 +---------------+-----------------+------------------+
@@ -40,11 +40,11 @@ what method can be used to fetch them from a `ResultSet`_ instance:
 |               |                 | ``getTime``, or  |
 |               |                 | ``getTimestamp`` |
 +---------------+-----------------+------------------+
-| `geo_point`__ | `ARRAY`__       | ``getArray``     |
+| `geo_point`__ | `OTHER`__       | ``getObject``    |
 +---------------+-----------------+------------------+
-| `geo_shape`__ | `JAVA_OBJECT`__ | ``getObject``    |
+| `geo_shape`__ | `OTHER`__       | ``getObject``    |
 +---------------+-----------------+------------------+
-| `object`__    | `JAVA_OBJECT`__ | ``getObject``    |
+| `object`__    | `OTHER`__       | ``getObject``    |
 +---------------+-----------------+------------------+
 | `array`__     | `ARRAY`__       | ``getArray``     |
 +---------------+-----------------+------------------+
@@ -52,7 +52,7 @@ what method can be used to fetch them from a `ResultSet`_ instance:
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#boolean
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#BOOLEAN
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#numeric-data
-__ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#TINYINT
+__ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#CHAR
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#numeric-data
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#SMALLINT
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#numeric-data
@@ -70,11 +70,11 @@ __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#VARCHAR
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#dates-and-times
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#TIMESTAMP
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#geo-point
-__ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#ARRAY
+__ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#OTHER
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#geo-shape
-__ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#JAVA_OBJECT
+__ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#OTHER
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#object
-__ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#JAVA_OBJECT
+__ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#OTHER
 __ https://crate.io/docs/crate/reference/en/latest/general/ddl/data-types.html#array
 __ https://docs.oracle.com/javase/8/docs/api/java/sql/JDBCType.html#ARRAY
 

@@ -12,7 +12,7 @@ Acquire source
 
 Clone the repository::
 
-    $ git clone --recursive https://github.com/crate/crate-jdbc
+    $ git clone https://github.com/crate/crate-jdbc
 
 Change directory into the repository::
 
@@ -69,25 +69,21 @@ Run the unit tests like so::
 
     $ ./gradlew test
 
-Integration tests use a randomized CrateDB version. If you want to run the
-tests against a specific version you can either use the ``CRATE_VERSION`` or
-``CRATE_URL`` environment variable, e.g.::
+Integration tests boot a CrateDB server in Docker via Testcontainers_, so
+a running Docker daemon is required. Select the server with the
+``CRATEDB_VERSION`` (a tag of the ``crate`` image) or ``CRATEDB_IMAGE``
+(a full image reference) environment variable, e.g.::
 
-    $ CRATE_VERSION=2.3.4 ./gradlew test
+    $ CRATEDB_VERSION=6.2.2 ./gradlew test
 
 or::
 
-    $ CRATE_URL=https://cdn.crate.io/downloads/releases/nightly/crate-0.58.0-201611210301-7d469f8.tar.gz ./gradlew test
+    $ CRATEDB_IMAGE=crate/crate:nightly ./gradlew test
 
-If you are using MacOS, you have to specify the URL to download the server, e.g.::
+To run against an externally managed server instead, point ``CRATE_URL``
+at a full JDBC URL; no container is started then::
 
-    $ CRATE_URL=https://cdn2.crate.io/downloads/releases/cratedb/x64_mac/crate-5.9.0.tar.gz ./gradlew test
-
-For debugging purposes, integration tests can be run against any CrateDB build.
-Build tar.gz file by running ./gradlew distTar from crate repository and set
-path to the generated file to the ``CRATE_PATH`` environment variable, e.g.::
-
-    $ CRATE_PATH=../crate/app/build/distributions/crate-4.7.0-SNAPSHOT-3edf1b4f2f2.tar.gz ./gradlew test
+    $ CRATE_URL=crate://localhost:5432/doc?user=crate ./gradlew test
 
 Preparing a Release
 ===================
@@ -108,12 +104,9 @@ To create a new release, you must:
 
 - Archive docs for old releases (see section below)
 
-At this point, Jenkins will take care of building and uploading the release to
-the Maven repository.
+Publish the release to Maven Central::
 
-However, if you'd like to do this manually, you can run::
-
-    $ ./gradlew clean ublishToSonatype closeAndReleaseSonatypeStagingRepository
+    $ ./gradlew clean publishToSonatype closeAndReleaseSonatypeStagingRepository
 
 This requires you to have the required (ascii) key and password configured,
 see `Build, sign and publish the JAR files locally`_.
@@ -159,6 +152,7 @@ nothing special you need to do to get the live docs to update.
 
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
 .. _Gradle: https://gradle.org/
+.. _Testcontainers: https://java.testcontainers.org/
 .. _installation documentation: https://crate.io/docs/jdbc/en/latest/getting-started.html
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Sphinx: http://sphinx-doc.org/

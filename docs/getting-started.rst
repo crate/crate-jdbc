@@ -8,8 +8,9 @@ Learn how to install and get started with the :ref:`CrateDB JDBC driver
 Prerequisites
 =============
 
-The CrateDB JDBC driver requires Java 8, preferably update 20 or later. We
-recommend using `Oracle’s Java`_ on macOS and `OpenJDK`_ on Linux Systems.
+The CrateDB JDBC driver requires Java 11 or later and CrateDB 6.0 or
+later. For older CrateDB versions, use crate-jdbc 2.7.0, the last release
+of the former fork-based driver.
 
 Install
 =======
@@ -51,7 +52,7 @@ Add ``crate-jdbc`` as a dependency, like so:
         <dependency>
             <groupId>io.crate</groupId>
             <artifactId>crate-jdbc</artifactId>
-            <version>2.7.0</version>
+            <version>3.0.0</version>
         </dependency>
     </dependencies>
 
@@ -72,7 +73,7 @@ Then, add ``crate-jdbc`` as a dependency:
 .. code-block:: groovy
 
     dependencies {
-        implementation 'io.crate:crate-jdbc:2.7.0'
+        implementation 'io.crate:crate-jdbc:3.0.0'
     }
 
 Next steps
@@ -89,7 +90,5 @@ Once the JDBC driver is set up, you probably want to :ref:`connect to CrateDB
 .. _DBeaver: https://dbeaver.io/about/
 .. _Gradle: https://gradle.org/
 .. _instructions on GitHub: https://github.com/crate/crate-jdbc
-.. _OpenJDK: https://openjdk.org/
-.. _Oracle’s Java: https://www.oracle.com/java/technologies/downloads/
 .. _repository root folder: https://repo1.maven.org/maven2/io/crate/
 .. _SQuirreL: http://www.squirrelsql.org

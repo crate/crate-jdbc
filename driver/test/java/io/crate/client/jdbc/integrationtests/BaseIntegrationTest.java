@@ -41,7 +41,7 @@ import java.util.Map;
  */
 public abstract class BaseIntegrationTest {
 
-    private static final String DEFAULT_CRATEDB_VERSION = "6.2.2";
+    private static final String DEFAULT_CRATEDB_VERSION = "6.4.1";
 
     private static CrateDBContainer container;
     private static String connectionUrl;

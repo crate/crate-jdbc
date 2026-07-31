@@ -6,7 +6,7 @@ CrateDB JDBC driver
 
 |
 
-A `JDBC`_ driver for `CrateDB`_, based on the `PostgreSQL JDBC Driver`_.
+A `JDBC`_ driver for `CrateDB`_, built on top of the official `PostgreSQL JDBC Driver`_.
 
 This is a `type 4 JDBC driver`_ written in pure Java. It communicates with the
 database using the `PostgreSQL Wire Protocol`_.

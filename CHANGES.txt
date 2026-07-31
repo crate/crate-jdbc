@@ -5,7 +5,41 @@ Changes for Crate Data JDBC Client
 Unreleased
 ==========
 
-- Bumped the required JRE version to 11
+3.0.0
+=====
+
+- Replaced the vendored fork of pgJDBC 42.2.5 with the official
+  PostgreSQL JDBC driver, consumed as a regular dependency from Maven
+  Central and declared in the published pom. CrateDB-specific behavior
+  (OBJECT values as ``java.util.Map``, CrateDB type names in
+  ``createArrayOf()``, ``rollback()`` as a client-side no-op, metadata
+  catalog tolerance, ``Crate`` as the reported product name) lives in a
+  wrapper layer around the stock driver.
+
+- Raised the minimum supported CrateDB version to 6.0. For older
+  servers, use crate-jdbc 2.7.0.
+
+- Bumped the required JRE version to 11.
+
+- The ``crate-jdbc`` artifact no longer relocates its dependencies:
+  pgJDBC classes live under ``org.postgresql`` again. The
+  ``crate-jdbc-standalone`` artifact keeps the ``io.crate.shade``
+  relocation and declares the bundled pgJDBC version in its manifest.
+
+- Removed the ``strict`` connection property together with the
+  ``SQLFeatureNotSupportedException`` raised for transactional API
+  calls; ``prepareCall()`` and ``DataSource`` implementations now work
+  through stock pgJDBC.
+
+- Timestamps, update counts for statements with unknown row counts, and
+  reported SQL type codes now follow stock pgJDBC semantics; see the
+  migration notes in the documentation for details.
+
+- Fixed ``CrateDriver.processURL`` to rewrite only the leading URL
+  scheme instead of every occurrence of ``jdbc:crate://`` in the URL.
+
+- Cursor-based fetching with ``setFetchSize()`` now also works for
+  ``PreparedStatement`` under manual commit mode.
 
 2023/04/18 2.7.0
 ================

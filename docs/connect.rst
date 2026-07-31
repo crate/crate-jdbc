@@ -125,38 +125,16 @@ to connect to the CrateDB node as the ``crate`` user.
 
 The CrateDB JDBC driver supports following properties:
 
-:``strict``:
+The driver accepts every `pgJDBC connection property`_. Properties with
+CrateDB-specific defaults or meaning are listed below.
 
-    If set to ``false``, the CrateDB JDBC driver silently ignores unsupported
-    JDBC features.
+.. NOTE::
 
-    This will, for example, allow the driver to be used by most third-party
-    applications that attempt to use transactional features.
-
-    .. WARNING::
-
-       Silently ignoring transactions may result in data corruption or data
-       loss.
-
-    If set to ``true``, the CrateDB JDBC driver behaves strictly according to
-    CrateDB's capabilities and the JDBC specification.
-
-    In strict mode, attempts to use unsupported features will result in an
-    exception being raised.
-
-    Unsupported features include:
-
-    - `Transactions`_, e.g.:
-
-      - Any `isolation level`_ that isn't ``TRANSACTION_NONE``
-
-      - `Disabling auto-commit mode`_
-
-      - `Setting and rolling back to savepoints`_
-
-    - `Read-only connections`_
-
-    Defaults to ``false``.
+   CrateDB has no transactions. ``BEGIN`` and ``COMMIT`` are accepted by
+   the server as no-ops, ``rollback()`` is a client-side no-op, and
+   savepoints are not supported. Auto-commit can be disabled freely —
+   which is also a prerequisite for cursor-based fetching with
+   ``setFetchSize()``.
 
 :``user``:
 
@@ -216,14 +194,10 @@ Also have a look at corresponding code :ref:`examples`.
 .. _class path: https://docs.oracle.com/javase/tutorial/essential/environment/paths.html
 .. _client-side random load balancing: https://en.wikipedia.org/wiki/Load_balancing_(computing)#Client-side_random_load_balancing
 .. _database connection URL: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
-.. _Disabling auto-commit mode: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#disable_auto_commit
 .. _documentation: https://github.com/crate/crate-sample-apps/blob/master/java/documentation.md
 .. _establish a connection using the DriverManager: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html
 .. _failover: https://en.wikipedia.org/wiki/Failover
-.. _isolation level: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#transactions_data_integrity
 .. _JDBC API: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
-.. _Read-only connections: https://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)
-.. _Setting and rolling back to savepoints: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#set_roll_back_savepoints
-.. _Transactions: https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html
+.. _pgJDBC connection property: https://jdbc.postgresql.org/documentation/use/#connection-parameters
 .. _URL parameters: https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html#db_connection_url
 .. _User Management: https://crate.io/docs/crate/reference/en/latest/sql/administration/user_management.html

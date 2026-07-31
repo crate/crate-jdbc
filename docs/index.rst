@@ -8,7 +8,7 @@ CrateDB JDBC Driver
 Introduction
 ************
 
-A `JDBC`_ driver for `CrateDB`_, based on the `PostgreSQL JDBC Driver`_ which is adhering to the `JDBC 4.1 specification`_. It is written in pure Java, and communicates with the database using the `PostgreSQL Wire Protocol`_.
+A `JDBC`_ driver for `CrateDB`_, built on top of the official `PostgreSQL JDBC Driver`_ (JDBC 4.2). It is written in pure Java, communicates with the database using the `PostgreSQL Wire Protocol`_, and adds a thin adaptation layer for the behaviors where CrateDB differs from PostgreSQL — see :ref:`internals`.
 
 .. _synopsis:
 
@@ -68,6 +68,7 @@ For general help about `JDBC`_, please consult the `JDBC tutorial`_ and the `JDB
     connect
     data-types
     internals
+    migration
 
 
 .. SEEALSO::
@@ -85,7 +86,6 @@ For general help about `JDBC`_, please consult the `JDBC tutorial`_ and the `JDB
 .. _Flink example jobs for CrateDB: https://github.com/crate/cratedb-flink-jobs
 .. _hosted on GitHub: https://github.com/crate/crate-jdbc/
 .. _JDBC: https://en.wikipedia.org/wiki/Java_Database_Connectivity
-.. _JDBC 4.1 specification: https://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf
 .. _JDBC API documentation: https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/
 .. _JDBC tutorial: https://docs.oracle.com/javase/tutorial/jdbc/basics/
 .. _PostgreSQL JDBC Driver: https://github.com/pgjdbc/pgjdbc
