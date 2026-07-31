@@ -21,39 +21,70 @@
 
 package io.crate.client.jdbc;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 public class CrateDriverTest {
 
     @Test
-    public void testProcessUrl() {
+    public void processUrlRewritesCrateSchemes() {
         assertThat(CrateDriver.processURL("crate://localhost:5432/"), is("jdbc:postgresql://localhost:5432/"));
         assertThat(CrateDriver.processURL("jdbc:crate://localhost:5432/"), is("jdbc:postgresql://localhost:5432/"));
-        assertThat(CrateDriver.processURL("postgres://localhost:5432/"), nullValue());
-        assertThat(CrateDriver.processURL("jdbc://postgres://localhost:5432/"), nullValue());
-        assertThat(CrateDriver.processURL("foo://localhost:5432/"), nullValue());
         assertThat(CrateDriver.processURL("crate://crate1.local:5432/"), is("jdbc:postgresql://crate1.local:5432/"));
         assertThat(CrateDriver.processURL("jdbc:crate://crate1.local:5432/"), is("jdbc:postgresql://crate1.local:5432/"));
+        assertThat(CrateDriver.processURL("crate://h:1"), is("jdbc:postgresql://h:1"));
+        assertThat(CrateDriver.processURL("jdbc:crate://h:1"), is("jdbc:postgresql://h:1"));
     }
 
     @Test
-    public void testAccepts() {
+    public void processUrlIsCaseInsensitiveOnTheScheme() {
+        assertThat(CrateDriver.processURL("CRATE://h:1"), is("jdbc:postgresql://h:1"));
+        assertThat(CrateDriver.processURL("JDBC:CRATE://h:1"), is("jdbc:postgresql://h:1"));
+        assertThat(CrateDriver.processURL("Crate://h:1"), is("jdbc:postgresql://h:1"));
+    }
+
+    @Test
+    public void processUrlRewritesOnlyTheLeadingScheme() {
+        assertThat(CrateDriver.processURL("crate://h:1/doc?fallback=jdbc:crate://other:2"),
+            is("jdbc:postgresql://h:1/doc?fallback=jdbc:crate://other:2"));
+        assertThat(CrateDriver.processURL("jdbc:crate://h:1/doc?fallback=jdbc:crate://other:2"),
+            is("jdbc:postgresql://h:1/doc?fallback=jdbc:crate://other:2"));
+    }
+
+    @Test
+    public void processUrlRejectsForeignSchemes() {
+        assertThat(CrateDriver.processURL("postgres://localhost:5432/"), nullValue());
+        assertThat(CrateDriver.processURL("jdbc:postgresql://localhost:5432/"), nullValue());
+        assertThat(CrateDriver.processURL("jdbc://postgres://localhost:5432/"), nullValue());
+        assertThat(CrateDriver.processURL("foo://localhost:5432/"), nullValue());
+        assertThat(CrateDriver.processURL("foo://h/?u=jdbc:crate://h:1"), nullValue());
+    }
+
+    @Test
+    public void processUrlAcceptsBareScheme() {
+        assertThat(CrateDriver.processURL("crate://"), is("jdbc:postgresql://"));
+        assertThat(CrateDriver.processURL("jdbc:crate://"), is("jdbc:postgresql://"));
+    }
+
+    @Test
+    public void acceptsUrlForBothPrefixes() {
         CrateDriver driver = new CrateDriver();
 
         assertThat(driver.acceptsURL("crate://"), is(true));
         assertThat(driver.acceptsURL("crate://localhost/foo"), is(true));
         assertThat(driver.acceptsURL("crate:///foo"), is(true));
         assertThat(driver.acceptsURL("jdbc:crate://"), is(true));
+        assertThat(driver.acceptsURL("CRATE://"), is(true));
+        assertThat(driver.acceptsURL("JDBC:CRATE://"), is(true));
 
         assertThat(driver.acceptsURL("cr8://"), is(false));
         assertThat(driver.acceptsURL("mysql://"), is(false));
         assertThat(driver.acceptsURL("jdbc:mysql://"), is(false));
         assertThat(driver.acceptsURL("postgres://"), is(false));
         assertThat(driver.acceptsURL("jdbc:postgres://"), is(false));
+        assertThat(driver.acceptsURL("jdbc:postgresql://"), is(false));
     }
-
 }

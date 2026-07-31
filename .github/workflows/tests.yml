@@ -6,6 +6,11 @@ on:
     branches:
       - master
 
+  # Regressions in CrateDB or dependency releases should surface without
+  # waiting for the next push.
+  schedule:
+    - cron: '0 5 * * 1'
+
   # Allow job to be triggered manually.
   workflow_dispatch:
 
@@ -18,38 +23,49 @@ jobs:
   test:
 
     name: "Test Java: ${{ matrix.java-version }}
-     CrateDB: ${{ matrix.cratedb-version }}
+     CrateDB: ${{ matrix.cratedb-image }}
      on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ['ubuntu-latest']
-        java-version: ['11']
-        cratedb-version: [
-          '5.10.16',
-          '6.2.2',
+        java-version: ['11', '17', '21']
+        cratedb-image: [
+          'crate:6.2.2',
+          'crate:latest',
         ]
+        include:
+          - os: 'ubuntu-latest'
+            java-version: '21'
+            cratedb-image: 'crate/crate:nightly'
 
     env:
-      JAVA_VERSION: ${{ matrix.java-version }}
-      CRATE_VERSION: ${{ matrix.cratedb-version }}
+      CRATEDB_IMAGE: ${{ matrix.cratedb-image }}
 
     steps:
 
       - name: Acquire sources
         uses: actions/checkout@v6
-        with:
-          submodules: 'recursive'
 
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '${{ matrix.java-version }}'
-          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Run gradle test
-        uses: eskatos/gradle-command-action@v3
-        with:
-          arguments: test
+        run: ./gradlew test
+
+      - name: Verify artifacts
+        run: |
+          ./gradlew jar standaloneJar
+          unzip -p build/libs/crate-jdbc-standalone-*.jar META-INF/services/java.sql.Driver \
+            | grep -qx 'io.crate.client.jdbc.CrateDriver'
+          if unzip -l build/libs/crate-jdbc-standalone-*.jar | grep -qE ' (org/postgresql|com/fasterxml)'; then
+            echo "standalone jar contains unrelocated dependency classes" >&2
+            exit 1
+          fi

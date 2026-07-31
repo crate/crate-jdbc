@@ -19,7 +19,9 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.3'
 
     testImplementation 'org.hamcrest:hamcrest:2.2'
-    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testImplementation 'org.testcontainers:cratedb:1.21.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 java {
@@ -176,6 +178,14 @@ signing {
 }
 
 test {
+    useJUnitPlatform()
+    // Timestamps without time zone read back as wall-clock time in the JVM
+    // zone; pin it so assertions are deterministic across machines and CI.
+    systemProperty 'user.timezone', 'UTC'
+    // The docker-java bundled with testcontainers speaks Docker API 1.32 by
+    // default, which Docker Engine 29+ rejects (its minimum is 1.44).
+    // Pin a version every current engine accepts; -Dapi.version overrides.
+    systemProperty 'api.version', System.getProperty('api.version', '1.44')
     testLogging.showStandardStreams = true
     outputs.upToDateWhen { false }
 }
