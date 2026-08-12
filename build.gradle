@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'jacoco'
     id 'com.gradleup.shadow' version '9.6.1'
     id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
     id 'org.cyclonedx.bom' version '2.4.1'
@@ -490,6 +491,78 @@ tasks.register('integrationTest', Test) {
     // The server they run against is not an input the build can see, so a
     // previous run against another CrateDB says nothing about this one.
     outputs.upToDateWhen { false }
+}
+
+/**
+ * The suites again with assertions off, which is how every JVM not started
+ * with `-ea` runs them.
+ *
+ * <p>pgJDBC asks the server to describe a statement under
+ * `preferQueryMode=simple`, where the protocol has no message to carry the
+ * answer. An assertion catches that; without one the request falls through
+ * into the simple-query path and the statement is executed — so a metadata
+ * call writes to the database. The two outcomes are mutually exclusive, and
+ * only this task reaches the one applications actually meet.</p>
+ *
+ * <p>Tests that apply to one setting and not the other say so with an
+ * assumption, so both this task and `integrationTest` report skips. That is
+ * the arrangement working, not a suite going missing.</p>
+ */
+tasks.register('integrationTestNoAssertions', Test) {
+    description = 'Runs the integration tests that only behave that way with assertions disabled.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    enableAssertions = false
+    filter {
+        includeTestsMatching '*SimpleQueryModeIT'
+    }
+    outputs.upToDateWhen { false }
+}
+
+jacoco {
+    toolVersion = '0.8.15'
+}
+
+/**
+ * Coverage is off unless `-Pcoverage` asks for it. The agent would otherwise
+ * attach to every test run, including the cells of the CI matrix on the
+ * newest JREs, where a coverage tool is the part of the toolchain most likely
+ * to lag behind the JDK. Measuring is a thing to ask for, on one JDK, rather
+ * than a tax on every run.
+ */
+def coverage = providers.gradleProperty('coverage')
+
+tasks.withType(Test).configureEach {
+    jacoco {
+        enabled = coverage.present
+    }
+}
+
+/**
+ * What the suites reach of the classes this project actually writes.
+ *
+ * <p>The generated Forwarding* classes are left out. They are delegation and
+ * nothing else, they outnumber the hand-written classes, and they are already
+ * held to a fresh generation by `verifyForwardingClasses` — counting them
+ * would answer a question nobody asked with a number large enough to bury the
+ * one they did.</p>
+ *
+ * <p>Execution data is taken from every suite that ran, because most of the
+ * driver is only reachable with a server behind it: a report over the unit
+ * tests alone would describe the project as barely tested.</p>
+ */
+tasks.named('jacocoTestReport', JacocoReport) {
+    dependsOn tasks.named('test'), tasks.named('integrationTest'),
+        tasks.named('integrationTestNoAssertions')
+    executionData.setFrom(fileTree(layout.buildDirectory.dir('jacoco')).include('*.exec'))
+    classDirectories.setFrom(sourceSets.main.output.asFileTree.matching {
+        exclude '**/Forwarding*.class'
+    })
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
 
 /**

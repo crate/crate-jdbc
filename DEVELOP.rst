@@ -80,6 +80,25 @@ at a full JDBC URL; no container is started then::
 
     $ CRATE_URL=crate://localhost:5432/doc?user=crate make itest
 
+Gradle enables assertions in its test JVMs, which is not how applications run.
+pgJDBC guards a request that ``preferQueryMode=simple`` cannot carry with an
+assertion of its own, so the outcome a plain JVM meets — the request falling
+through and executing the statement — is reachable only with them off::
+
+    $ make itest-noassert
+
+The tests that apply to one setting and not the other skip themselves under
+the other, so both runs report skips.
+
+Coverage is measured over the hand-written classes; the generated
+``Forwarding*`` classes are left out, being delegation the build already
+verifies against a fresh generation. It runs off by default, so no other run
+carries the agent::
+
+    $ make coverage
+
+The report lands in ``build/reports/jacoco/test``.
+
 ``make check`` runs the unit tests together with the code style and the
 checks on the artifacts: the contents of the standalone jar and its behavior
 on each classpath it lands on, and the generated forwarding classes against a

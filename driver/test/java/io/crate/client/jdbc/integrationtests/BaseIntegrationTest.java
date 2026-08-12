@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Boots one CrateDB per test JVM and connects to it through the crate://
@@ -97,6 +98,22 @@ public abstract class BaseIntegrationTest {
 
     protected static Connection connect() throws SQLException {
         return DriverManager.getConnection(connectionUrl());
+    }
+
+    /**
+     * A connection carrying extra pgJDBC connection properties, given as
+     * alternating names and values. They travel beside the URL rather than in
+     * it, which already carries a user and a schema of its own.
+     */
+    protected static Connection connectWith(String... properties) throws SQLException {
+        if (properties.length % 2 != 0) {
+            throw new IllegalArgumentException("Connection properties come in name and value pairs");
+        }
+        Properties props = new Properties();
+        for (int i = 0; i < properties.length; i += 2) {
+            props.setProperty(properties[i], properties[i + 1]);
+        }
+        return DriverManager.getConnection(connectionUrl(), props);
     }
 
     /**

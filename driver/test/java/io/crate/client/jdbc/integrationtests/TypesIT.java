@@ -63,7 +63,6 @@ import java.util.stream.Stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -333,11 +332,6 @@ public class TypesIT extends BaseIntegrationTest {
                 Matchers.<Object>arrayContaining("a", "b", "c", "d")),
             Arguments.of("bool_array", is(Types.BIT),
                 Matchers.<Object>arrayContaining(true, false)),
-            // Across the supported server range CrateDB puts `byte` on the wire
-            // as the PostgreSQL "char" type or as a small integer, so these
-            // elements are held to the number they spell rather than to a class.
-            Arguments.of("byte_array", Matchers.anyOf(is(Types.CHAR), is(Types.SMALLINT)),
-                Matchers.<Object>arrayContaining(hasToString("120"), hasToString("100"))),
             Arguments.of("short_array", is(Types.SMALLINT),
                 Matchers.<Object>arrayContaining((short) 1300, (short) 1200)),
             Arguments.of("integer_array", is(Types.INTEGER),
@@ -355,6 +349,58 @@ public class TypesIT extends BaseIntegrationTest {
             Arguments.of("obj_array", is(Types.OTHER),
                 Matchers.<Object>arrayContaining(firstObject, secondObject))
         );
+    }
+
+    /**
+     * A {@code byte} column is described by the width the server puts it on:
+     * the PostgreSQL {@code "char"} type up to CrateDB 6.4, a small integer
+     * from 6.5. An untyped read follows that width, so {@code getObject}
+     * answers a {@code String} on one and an {@code Integer} on the other.
+     *
+     * <p>{@code getByte()} reads the byte either way. That is the contract an
+     * application relies on, and the reason the wire type moving underneath it
+     * is a documented difference rather than a break.</p>
+     */
+    @Test
+    public void aByteColumnIsDescribedByTheWidthTheServerSendsIt() throws SQLException {
+        ResultSet resultSet = conn.createStatement().executeQuery("select byte_field from test");
+        assertThat(resultSet.next(), is(true));
+
+        assertThat(resultSet.getByte(1), is((byte) 120));
+        if (serverAtLeast(6, 5)) {
+            assertThat(resultSet.getMetaData().getColumnType(1), is(Types.SMALLINT));
+            assertThat(resultSet.getMetaData().getColumnTypeName(1), is("int2"));
+            assertThat(resultSet.getObject(1), is(120));
+        } else {
+            assertThat(resultSet.getMetaData().getColumnType(1), is(Types.CHAR));
+            assertThat(resultSet.getMetaData().getColumnTypeName(1), is("char"));
+            assertThat(resultSet.getObject(1), is("120"));
+        }
+    }
+
+    /**
+     * An array of {@code byte} follows the same move, and its elements arrive
+     * as the narrowest box for the width they are read at — {@code Short} from
+     * 6.5 on, where the scalar column reads as an {@code Integer}.
+     */
+    @Test
+    public void aByteArrayIsDescribedByTheWidthTheServerSendsIt() throws SQLException {
+        ResultSet resultSet = conn.createStatement()
+            .executeQuery("select byte_array from arrayTest");
+        assertThat(resultSet.next(), is(true));
+
+        Array array = resultSet.getArray("byte_array");
+        if (serverAtLeast(6, 5)) {
+            assertThat(array.getBaseType(), is(Types.SMALLINT));
+            assertThat(array.getBaseTypeName(), is("int2"));
+            assertThat((Object[]) array.getArray(),
+                Matchers.<Object>arrayContaining((short) 120, (short) 100));
+        } else {
+            assertThat(array.getBaseType(), is(Types.CHAR));
+            assertThat(array.getBaseTypeName(), is("char"));
+            assertThat((Object[]) array.getArray(),
+                Matchers.<Object>arrayContaining("120", "100"));
+        }
     }
 
     @Test
@@ -865,7 +911,9 @@ public class TypesIT extends BaseIntegrationTest {
                 .executeQuery("select values_ from test_byte_series");
             assertThat(resultSet.next(), is(true));
             assertThat((Object[]) resultSet.getArray(1).getArray(),
-                Matchers.<Object>arrayContaining(hasToString("120"), hasToString("100")));
+                serverAtLeast(6, 5)
+                    ? Matchers.<Object>arrayContaining((short) 120, (short) 100)
+                    : Matchers.<Object>arrayContaining("120", "100"));
         } finally {
             conn.createStatement().execute("drop table test_byte_series");
         }

@@ -125,6 +125,66 @@ jobs:
       - name: Run integration tests
         run: ./gradlew integrationTest -PtestTimeZone=${{ matrix.time-zone }}
 
+  # The suites that only behave the way applications meet them when assertions
+  # are off. pgJDBC guards its describe request with an assertion, so `-ea` —
+  # which every other job here runs with — hides the outcome a plain JVM gets.
+  # The setting is an axis of its own, and one run of it answers for all of
+  # them.
+  no-assertions:
+
+    name: Test with assertions disabled
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run integration tests
+        run: ./gradlew integrationTestNoAssertions
+
+  # What the suites reach of the hand-written classes. One JRE: the coverage
+  # agent supports a narrower range of JDKs than the driver does, and the
+  # answer does not depend on which one the suites ran on.
+  coverage:
+
+    name: Measure coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Measure coverage
+        run: ./gradlew jacocoTestReport -Pcoverage
+
+      - name: Publish the report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: build/reports/jacoco/test
+
   # Code style, the generated-code check and the artifact checks answer the
   # same whichever server and JRE the suites ran against, so they run once
   # rather than in every cell of the matrix above.

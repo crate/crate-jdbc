@@ -24,9 +24,14 @@ CLUSTER_NODES ?= 3
 # does not give the same answer.
 TEST_TIME_ZONE ?= Europe/Berlin
 
+# The JRE `make coverage` measures on. Pinned rather than left to the JVM
+# running the build, because the coverage agent supports a narrower range of
+# JDKs than the driver does, and a number from one JRE answers for all of them.
+COVERAGE_JAVA_VERSION ?= 21
+
 .DEFAULT_GOAL := help
-.PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned check verify format docs \
-        docs-check forwarding publish-local sbom version tag clean
+.PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned itest-noassert coverage \
+        check verify format docs docs-check forwarding publish-local sbom version tag clean
 
 help:  ## Show this help
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) \
@@ -61,12 +66,18 @@ itest-cluster:  ## Run the integration tests against a CrateDB cluster
 itest-zoned:  ## Run the integration tests in a JVM zone away from UTC
 	$(GRADLE) integrationTest -PtestTimeZone=$(TEST_TIME_ZONE)
 
+itest-noassert:  ## Run the integration tests that need assertions disabled
+	$(GRADLE) integrationTestNoAssertions
+
+coverage:  ## Measure what the suites reach of the hand-written classes
+	$(GRADLE) jacocoTestReport -Pcoverage -PtestJavaVersion=$(COVERAGE_JAVA_VERSION)
+
 check:  ## Unit tests, code style, generated-code and artifact checks
 	$(GRADLE) check
 
 # Not docs-check: its link checker reaches the open internet and fails on
 # rate limits rather than on anything in the tree.
-verify: check test-baseline itest itest-floor itest-cluster itest-zoned  ## Tests and checks, across the supported ranges
+verify: check test-baseline itest itest-floor itest-cluster itest-zoned itest-noassert  ## Tests and checks, across the supported ranges
 
 format:  ## Apply the code style
 	$(GRADLE) spotlessApply

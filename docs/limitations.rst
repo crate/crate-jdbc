@@ -20,9 +20,7 @@ raise ``SQLFeatureNotSupportedException``.
 
 ``DatabaseMetaData`` says so: ``supportsTransactions()`` and
 ``supportsSavepoints()`` report ``false``, and ``TRANSACTION_NONE`` is the
-only isolation level. Frameworks that need a working ``rollback()`` to undo
-writes — Spring's ``PROPAGATION_NESTED``, Hibernate's savepoint rollback —
-do not get one.
+only isolation level.
 
 
 ********
@@ -131,10 +129,15 @@ assertion. With assertions disabled — every JVM not started with ``-ea`` — t
 request falls through into the simple-query path and the statement is executed:
 ``getMetaData()`` on a prepared ``INSERT`` performs the insert and answers
 ``null``, and ``getParameterMetaData()`` on one performs it too. A metadata call
-writes to the database and reports nothing. Do not call either accessor on a
-statement that has not been executed under this mode. A statement that has
-already been executed has a result to describe, so no describe request is sent
-and neither accessor touches the database.
+writes to the database and reports nothing.
+
+Executing the statement first only helps one of the two. A query that has run
+carries its own result description, so ``getMetaData()`` answers from it and
+asks the server nothing. ``getParameterMetaData()`` describes the parameters
+through a request of its own, which it sends every time — on a statement that
+has already run, the fall-through runs it a second time. Under this mode, call
+``getMetaData()`` only on a statement that has been executed, and
+``getParameterMetaData()`` not at all.
 
 
 **********************
