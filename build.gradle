@@ -103,6 +103,19 @@ nexusPublishing {
     }
 }
 
+/**
+ * An archive is a function of its sources alone: no build timestamps, and an
+ * entry order of its own rather than the order the filesystem happens to walk
+ * a directory in. Without the second, the same sources build to different
+ * bytes on a machine whose filesystem enumerates differently, which is the
+ * difference between a published artifact anyone can rebuild and one they can
+ * only take on trust.
+ */
+tasks.withType(AbstractArchiveTask).configureEach {
+    reproducibleFileOrder = true
+    preserveFileTimestamps = false
+}
+
 jar {
     manifest {
         attributes(

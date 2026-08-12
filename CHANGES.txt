@@ -30,6 +30,9 @@ Artifacts
   bundled pgJDBC version in its manifest. Both artifacts declare an
   ``Automatic-Module-Name`` and publish a CycloneDX SBOM.
 
+- Every published archive is built reproducibly: the same sources produce
+  the same bytes, whichever machine builds them.
+
 Connections
 -----------
 
