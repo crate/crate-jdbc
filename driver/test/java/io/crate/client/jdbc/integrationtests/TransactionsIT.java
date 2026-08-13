@@ -148,6 +148,11 @@ public class TransactionsIT extends BaseIntegrationTest {
             assertThat(metaData.supportsMultipleTransactions(), is(false));
             assertThat(metaData.supportsSavepoints(), is(false));
             assertThat(metaData.getDefaultTransactionIsolation(), is(Connection.TRANSACTION_NONE));
+            // Nor either of the mixtures of schema changes and transactions
+            // that a database supporting transactions would have to choose
+            // between. Neither is on offer when neither half exists.
+            assertThat(metaData.supportsDataDefinitionAndDataManipulationTransactions(), is(false));
+            assertThat(metaData.supportsDataManipulationTransactionsOnly(), is(false));
         }
     }
 

@@ -137,8 +137,13 @@ public final class CrateJsonArray implements Array {
 
     /**
      * JDBC counts array elements from one, and reads a count of zero as the
-     * rest of the array rather than none of it — which is what an array of
-     * any other element type does here, since that one is pgJDBC's.
+     * rest of the array rather than none of it.
+     *
+     * <p>An array of any other element type is pgJDBC's, which reads a count of
+     * zero that way only from the first element: past it, the count is added to
+     * the index before being recognised as zero, and the read is refused as out
+     * of range. The two therefore agree on {@code (1, 0)} and part company
+     * after it.</p>
      */
     private List<?> slice(long index, int count) throws SQLException {
         long from = index - 1;

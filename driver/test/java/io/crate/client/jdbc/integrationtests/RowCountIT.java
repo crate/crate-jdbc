@@ -20,19 +20,44 @@ package io.crate.client.jdbc.integrationtests;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Pins {@code executeUpdate} row counts: DDL reports a single affected
- * row, and operations for which CrateDB cannot determine an exact count
- * (such as deleting from a partitioned table by partition) report zero.
+ * Pins the row count a statement reports: DDL reports a single affected row,
+ * and an operation whose exact count CrateDB cannot determine — deleting from
+ * a partitioned table by partition — reports zero, having arrived as −1 on the
+ * wire.
+ *
+ * <p>JDBC has two ways to ask, one answering an {@code int} and one a
+ * {@code long} for counts that would not fit in one. They run different code,
+ * and an application that switched between them over a count of zero would be
+ * reading a difference the database never reported, so every case here is
+ * asserted through both.</p>
  */
 public class RowCountIT extends BaseIntegrationTest {
+
+    @FunctionalInterface
+    interface UpdateCount {
+        long of(Statement statement, String sql) throws SQLException;
+    }
+
+    static Stream<Arguments> updateForms() {
+        return Stream.of(
+            Arguments.of("executeUpdate", (UpdateCount) Statement::executeUpdate),
+            Arguments.of("executeLargeUpdate", (UpdateCount) Statement::executeLargeUpdate)
+        );
+    }
 
     @BeforeEach
     void setUpTables() {
@@ -44,23 +69,54 @@ public class RowCountIT extends BaseIntegrationTest {
         dropAllUserTables();
     }
 
-    @Test
-    public void ddlReportsOneAffectedRow() throws Exception {
-        try (Connection conn = connect()) {
-            Statement statement = conn.createStatement();
-            assertThat(statement.executeUpdate("create table t (id int)"), is(1));
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("updateForms")
+    public void ddlReportsOneAffectedRow(String form, UpdateCount count) throws Exception {
+        try (Connection conn = connect(); Statement statement = conn.createStatement()) {
+            assertThat(count.of(statement, "create table t (id int)"), is(1L));
         }
     }
 
-    @Test
-    public void unknownRowCountReportsZero() throws Exception {
-        try (Connection conn = connect()) {
-            Statement statement = conn.createStatement();
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("updateForms")
+    public void unknownRowCountReportsZero(String form, UpdateCount count) throws Exception {
+        try (Connection conn = connect(); Statement statement = conn.createStatement()) {
             statement.execute("create table t (p string, x int) partitioned by (p)");
             statement.execute("insert into t (p, x) values ('a', 1)");
             statement.execute("refresh table t");
 
-            assertThat(statement.executeUpdate("delete from t where p = 'a'"), is(0));
+            assertThat(count.of(statement, "delete from t where p = 'a'"), is(0L));
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("updateForms")
+    public void aCountedDeleteReportsTheRowsItRemoved(String form, UpdateCount count) throws Exception {
+        try (Connection conn = connect(); Statement statement = conn.createStatement()) {
+            statement.execute("create table t (id int)");
+            statement.execute("insert into t (id) values (1), (2), (3)");
+            statement.execute("refresh table t");
+
+            assertThat(count.of(statement, "delete from t where id < 3"), is(2L));
+        }
+    }
+
+    /**
+     * A prepared statement answers the same, through the accessor of each
+     * width. Both bracket the execution with the query timeout, so they are
+     * separate paths rather than one calling the other.
+     */
+    @Test
+    public void aPreparedStatementReportsTheSameCountAtEitherWidth() throws Exception {
+        try (Connection conn = connect(); Statement statement = conn.createStatement()) {
+            statement.execute("create table t (id int)");
+
+            try (PreparedStatement insert = conn.prepareStatement("insert into t (id) values (?)")) {
+                insert.setInt(1, 1);
+                assertThat(insert.executeUpdate(), is(1));
+                insert.setInt(1, 2);
+                assertThat(insert.executeLargeUpdate(), is(1L));
+            }
         }
     }
 }

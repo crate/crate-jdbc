@@ -17,6 +17,8 @@
 
 package io.crate.client.jdbc.integrationtests;
 
+import io.crate.client.jdbc.CratePreparedStatement;
+import io.crate.client.jdbc.CrateStatement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -245,6 +248,132 @@ public class StatementIT extends BaseIntegrationTest {
             rs.close();
 
             assertThat(stmt.isClosed(), is(true));
+        }
+    }
+
+    /**
+     * A statement asked for with a scroll type, a concurrency or a holdability
+     * is still one of this driver's, so the CrateDB behavior does not depend on
+     * how a caller asked for it. A framework that configures its statements —
+     * most do — would otherwise be handed pgJDBC's.
+     */
+    @Test
+    public void statementsAskedForWithOptionsAreStillThisDriversOwn() throws Exception {
+        try (Connection conn = connect()) {
+            assertThat(conn.createStatement(
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE),
+                is(instanceOf(CrateStatement.class)));
+            assertThat(conn.createStatement(
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.HOLD_CURSORS_OVER_COMMIT),
+                is(instanceOf(CrateStatement.class)));
+            assertThat(conn.prepareStatement("select 1",
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY),
+                is(instanceOf(CratePreparedStatement.class)));
+            assertThat(conn.prepareStatement("select 1",
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.CLOSE_CURSORS_AT_COMMIT),
+                is(instanceOf(CratePreparedStatement.class)));
+            assertThat(conn.prepareStatement("select 1", Statement.RETURN_GENERATED_KEYS),
+                is(instanceOf(CratePreparedStatement.class)));
+            assertThat(conn.prepareStatement("select 1", new String[]{"x"}),
+                is(instanceOf(CratePreparedStatement.class)));
+        }
+    }
+
+    /**
+     * A scroll type is not only accepted but honoured: the rows are held so
+     * that a caller can move about in them, which is what a report generator
+     * asking for one is after.
+     */
+    @Test
+    public void aScrollableResultSetScrolls() throws Exception {
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement(
+                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+            ResultSet rs = stmt.executeQuery("select 1 union all select 2");
+
+            assertThat(rs.getType(), is(ResultSet.TYPE_SCROLL_INSENSITIVE));
+            assertThat(rs.last(), is(true));
+            assertThat(rs.getInt(1), is(2));
+            assertThat(rs.first(), is(true));
+            assertThat(rs.getInt(1), is(1));
+        }
+    }
+
+    /**
+     * CrateDB generates no keys — no sequences, no identity columns — but the
+     * request still answers, because pgJDBC serves it by asking the server to
+     * return the row it just wrote. So what comes back is the inserted row
+     * rather than anything the server made up, and naming columns narrows it.
+     */
+    @Test
+    public void askingForGeneratedKeysReturnsTheRowThatWasWritten() throws Exception {
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            stmt.execute("create table keyed (id integer primary key, name text)"
+                + " clustered into 1 shards with (number_of_replicas=0)");
+            try {
+                stmt.execute("insert into keyed (id, name) values (1, 'a')",
+                    Statement.RETURN_GENERATED_KEYS);
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertThat(keys.getMetaData().getColumnCount(), is(2));
+                    assertThat(keys.next(), is(true));
+                    assertThat(keys.getInt("id"), is(1));
+                    assertThat(keys.getString("name"), is("a"));
+                }
+
+                assertThat(stmt.executeUpdate("insert into keyed (id, name) values (2, 'b')",
+                    new String[]{"id"}), is(1));
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertThat(keys.getMetaData().getColumnCount(), is(1));
+                    assertThat(keys.next(), is(true));
+                    assertThat(keys.getInt("id"), is(2));
+                }
+
+                assertThat(stmt.executeLargeUpdate("insert into keyed (id) values (3)",
+                    Statement.RETURN_GENERATED_KEYS), is(1L));
+                assertThat(stmt.executeLargeUpdate("insert into keyed (id) values (4)",
+                    new String[]{"id"}), is(1L));
+                assertThat(stmt.executeUpdate("insert into keyed (id) values (5)",
+                    Statement.NO_GENERATED_KEYS), is(1));
+            } finally {
+                stmt.execute("drop table keyed");
+            }
+        }
+    }
+
+    /**
+     * Naming the keys by column position is refused instead: pgJDBC has to
+     * name them in the SQL it rewrites, and a position is not a name. The
+     * refusal arrives when the statement is prepared as well as when one is
+     * run directly.
+     */
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"prepare", "execute", "executeUpdate", "executeLargeUpdate"})
+    public void askingForGeneratedKeysByColumnPositionIsRefused(String call) throws Exception {
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            stmt.execute("create table keyed (id integer) with (number_of_replicas=0)");
+            try {
+                String insert = "insert into keyed (id) values (1)";
+                SQLException refused = assertThrows(SQLException.class, () -> {
+                    switch (call) {
+                        case "prepare":
+                            conn.prepareStatement(insert, new int[]{1});
+                            break;
+                        case "execute":
+                            stmt.execute(insert, new int[]{1});
+                            break;
+                        case "executeUpdate":
+                            stmt.executeUpdate(insert, new int[]{1});
+                            break;
+                        default:
+                            stmt.executeLargeUpdate(insert, new int[]{1});
+                    }
+                });
+                assertThat(call, refused.getSQLState(), is("0A000"));
+            } finally {
+                stmt.execute("drop table keyed");
+            }
         }
     }
 }

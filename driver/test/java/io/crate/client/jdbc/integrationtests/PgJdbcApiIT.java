@@ -109,6 +109,17 @@ public class PgJdbcApiIT extends BaseIntegrationTest {
         }
     }
 
+    /**
+     * The metadata itself navigates back too, and to the connection it was
+     * asked of rather than to another wrapper around the same session.
+     */
+    @Test
+    public void metadataNavigatesBackToTheConnectionItDescribes() throws Exception {
+        try (Connection conn = connect()) {
+            assertThat(conn.getMetaData().getConnection(), is(sameInstance(conn)));
+        }
+    }
+
     @Test
     public void arrayRowsNavigateInsideTheDriver() throws Exception {
         try (Connection conn = connect();

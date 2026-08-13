@@ -39,6 +39,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.JDBCType;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -401,6 +402,68 @@ public class TypesIT extends BaseIntegrationTest {
             assertThat((Object[]) array.getArray(),
                 Matchers.<Object>arrayContaining("120", "100"));
         }
+    }
+
+    /**
+     * The conversion a value goes through on the way in does not depend on
+     * which {@code setObject} a caller reached for. JDBC defines five, and a
+     * framework binding through the ones that name a target type — which is
+     * most of them — would otherwise be handing the server a value this driver
+     * never converted.
+     *
+     * <p>The target type named is deliberately the one for a value pgJDBC has
+     * no mapping of its own for, since that is what a caller with a {@code Map}
+     * in hand would name.</p>
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("setObjectForms")
+    public void everySetObjectFormConvertsTheValueAlike(String form, ParameterBinder binder)
+            throws Exception {
+        Map<String, Long> object = Collections.singletonMap("n", 1L);
+        List<List<Long>> nested = List.of(List.of(1L, 2L), List.of(3L));
+
+        conn.createStatement().executeUpdate(
+            "create table test_set_object (id integer, obj object as (n integer), nested array(array(bigint)))");
+        try (PreparedStatement statement = conn.prepareStatement(
+                "insert into test_set_object (id, obj, nested) values (?, ?, ?)")) {
+            statement.setInt(1, 1);
+            binder.bind(statement, 2, object);
+            binder.bind(statement, 3, nested);
+            statement.execute();
+            conn.createStatement().execute("refresh table test_set_object");
+
+            ResultSet resultSet = conn.createStatement()
+                .executeQuery("select obj, nested from test_set_object");
+            assertThat(resultSet.next(), is(true));
+            assertThat(form, resultSet.getObject(1), is(object));
+            assertThat(form, resultSet.getObject(2), is(nested));
+        } finally {
+            conn.createStatement().execute("drop table test_set_object");
+        }
+    }
+
+    static Stream<Arguments> setObjectForms() {
+        return Stream.of(
+            Arguments.of("setObject(index, value)",
+                binder(PreparedStatement::setObject)),
+            Arguments.of("setObject(index, value, int)",
+                binder((s, i, v) -> s.setObject(i, v, Types.OTHER))),
+            Arguments.of("setObject(index, value, int, scale)",
+                binder((s, i, v) -> s.setObject(i, v, Types.OTHER, 0))),
+            Arguments.of("setObject(index, value, SQLType)",
+                binder((s, i, v) -> s.setObject(i, v, JDBCType.OTHER))),
+            Arguments.of("setObject(index, value, SQLType, scale)",
+                binder((s, i, v) -> s.setObject(i, v, JDBCType.OTHER, 0)))
+        );
+    }
+
+    @FunctionalInterface
+    interface ParameterBinder {
+        void bind(PreparedStatement statement, int index, Object value) throws SQLException;
+    }
+
+    private static ParameterBinder binder(ParameterBinder binder) {
+        return binder;
     }
 
     @Test
