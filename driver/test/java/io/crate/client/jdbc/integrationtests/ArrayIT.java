@@ -129,6 +129,10 @@ public class ArrayIT extends BaseIntegrationTest {
 
         assertThrows(SQLException.class, () -> objects.getArray(2, 0));
         assertThat((Object[]) arrays.getArray(2, 0), is(arrayWithSize(2)));
+
+        // The rest of an array starting just past its last element is none of
+        // it, which is a slice the array has rather than one it does not.
+        assertThat((Object[]) arrays.getArray(4, 0), is(arrayWithSize(0)));
     }
 
     /**

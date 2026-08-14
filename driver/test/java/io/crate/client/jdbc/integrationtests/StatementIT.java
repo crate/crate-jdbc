@@ -313,8 +313,10 @@ public class StatementIT extends BaseIntegrationTest {
             stmt.execute("create table keyed (id integer primary key, name text)"
                 + " clustered into 1 shards with (number_of_replicas=0)");
             try {
-                stmt.execute("insert into keyed (id, name) values (1, 'a')",
-                    Statement.RETURN_GENERATED_KEYS);
+                // An insert has no result set of its own, whatever it was
+                // asked to hand back afterwards.
+                assertThat(stmt.execute("insert into keyed (id, name) values (1, 'a')",
+                    Statement.RETURN_GENERATED_KEYS), is(false));
                 try (ResultSet keys = stmt.getGeneratedKeys()) {
                     assertThat(keys.getMetaData().getColumnCount(), is(2));
                     assertThat(keys.next(), is(true));
@@ -329,6 +331,22 @@ public class StatementIT extends BaseIntegrationTest {
                     assertThat(keys.next(), is(true));
                     assertThat(keys.getInt("id"), is(2));
                 }
+
+                assertThat(stmt.execute("insert into keyed (id) values (6)",
+                    new String[]{"id"}), is(false));
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertThat(keys.getMetaData().getColumnCount(), is(1));
+                    assertThat(keys.next(), is(true));
+                    assertThat(keys.getInt("id"), is(6));
+                }
+
+                // A query run through the same calls still says it has rows,
+                // so what they report is the statement's own answer rather
+                // than a constant standing in for it.
+                stmt.execute("refresh table keyed");
+                assertThat(stmt.execute("select id from keyed", Statement.NO_GENERATED_KEYS),
+                    is(true));
+                assertThat(stmt.execute("select id from keyed", new String[0]), is(true));
 
                 assertThat(stmt.executeLargeUpdate("insert into keyed (id) values (3)",
                     Statement.RETURN_GENERATED_KEYS), is(1L));

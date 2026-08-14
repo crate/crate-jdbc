@@ -93,6 +93,21 @@ a ``SELECT``; the ``{?= call f(?)}`` form, which asks for the return value as
 an out parameter, is not supported.
 
 
+*************************
+Binding by ``SQLType``
+*************************
+
+JDBC defines five ways to hand a value to ``setObject``, three naming the
+target type as an ``int`` and two as a ``java.sql.SQLType``. This driver binds
+what it converts itself — an ``OBJECT``, a nested array — through any of the
+five. Anything else it passes to pgJDBC, which has not implemented the two
+``SQLType`` forms and raises ``SQLFeatureNotSupportedException`` from them.
+
+So ``setObject(1, value, JDBCType.VARCHAR)`` fails where
+``setObject(1, value, Types.VARCHAR)`` succeeds. Name the target type as an
+``int``, or leave it out.
+
+
 ************************
 ``COPY`` from the client
 ************************

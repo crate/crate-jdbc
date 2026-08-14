@@ -99,6 +99,31 @@ carries the agent::
 
 The report lands in ``build/reports/jacoco/test``.
 
+Coverage counts the lines a run reached, which says nothing about whether a
+test would object to one of them being wrong. That is a separate run: it
+changes a line — an operator, a constant, a returned value — and reruns the
+tests that covered it, reporting the changes nothing failed on::
+
+    $ CRATE_URL=crate://localhost:5432/doc?user=crate make mutation
+
+The server has to come from outside. Each batch of changes is tried in a JVM
+of its own, and a run that booted a container per JVM would spend its time on
+containers instead. Narrow it to one class with ``-PmutationClasses`` and
+``-PmutationTests``, which is how a class is asked again once a gap the report
+found is closed. The report lands in ``build/reports/pitest``.
+
+The published artifacts come in two shapes, and the suites run against the
+plain one. The standalone artifact carries pgJDBC and Jackson relocated under
+``io.crate.shade``, and a name that failed to relocate only fails once it is
+used — so the suites run against that jar too, with the ordinary pgJDBC kept
+off the classpath::
+
+    $ make itest-standalone
+
+A suite that names a pgJDBC type by its plain package cannot run there, since
+under that artifact the type has another name. Such a suite carries the
+``pgjdbc-types`` tag and is left out of this run.
+
 ``make check`` runs the unit tests together with the code style and the
 checks on the artifacts: the contents of the standalone jar and its behavior
 on each classpath it lands on, and the generated forwarding classes against a

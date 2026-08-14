@@ -124,6 +124,14 @@ with a CrateDB-specific default or meaning are listed below.
 
   Sets the password for authentication.
 
+  A login the server turns down — a wrong password, or a user it does not
+  have — raises a ``SQLException`` whose SQLState is ``28000``. Leaving the
+  property out where the server asks for a password raises ``08004``
+  instead: the driver has nothing to send and gives up before answering, so
+  it reports a connection it never established. Code that branches on the
+  state to tell a bad credential from an unreachable server has to accept
+  both.
+
 :``sslmode``:
 
   How far the driver goes to secure the connection, from ``disable`` through

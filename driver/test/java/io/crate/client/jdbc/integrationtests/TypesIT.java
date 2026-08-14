@@ -21,6 +21,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -57,6 +58,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -77,6 +79,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * array elements read back as {@code Map}, and
  * {@link Connection#createArrayOf} accepts CrateDB type names.
  */
+@Tag("pgjdbc-types")
 public class TypesIT extends BaseIntegrationTest {
 
     private static Connection conn;
@@ -414,6 +417,7 @@ public class TypesIT extends BaseIntegrationTest {
      * <p>The target type named is deliberately the one for a value pgJDBC has
      * no mapping of its own for, since that is what a caller with a {@code Map}
      * in hand would name.</p>
+     *
      */
     @ParameterizedTest(name = "{0}")
     @MethodSource("setObjectForms")
@@ -442,6 +446,43 @@ public class TypesIT extends BaseIntegrationTest {
         }
     }
 
+    /**
+     * Each of those forms is two paths — this driver converts the value, or
+     * hands it to pgJDBC — and only the first is the driver's own. Handed a
+     * value it does not convert, the two forms that name the target type as a
+     * {@link java.sql.SQLType} raise {@link SQLFeatureNotSupportedException}:
+     * pgJDBC has not implemented them, and reaches them only for a value this
+     * driver passes on.
+     *
+     * <p>So the {@code SQLType} forms serve a caller binding an OBJECT or a
+     * nested array and nothing else, which is the reverse of what a caller
+     * would expect from the form that names the plainest types.</p>
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("setObjectFormsAndWhatTheyForwardTo")
+    public void aValueTheDriverPassesOnNeedsAFormPgJdbcImplements(
+            String form, ParameterBinder binder, boolean implemented) throws Exception {
+        String text = "bound by pgJDBC";
+        conn.createStatement().executeUpdate("create table test_forwarded (txt text)");
+        try (PreparedStatement statement = conn.prepareStatement(
+                "insert into test_forwarded (txt) values (?)")) {
+            if (!implemented) {
+                assertThrows(SQLFeatureNotSupportedException.class,
+                    () -> binder.bind(statement, 1, text));
+                return;
+            }
+            binder.bind(statement, 1, text);
+            statement.execute();
+            conn.createStatement().execute("refresh table test_forwarded");
+
+            ResultSet resultSet = conn.createStatement().executeQuery("select txt from test_forwarded");
+            assertThat(resultSet.next(), is(true));
+            assertThat(form, resultSet.getString(1), is(text));
+        } finally {
+            conn.createStatement().execute("drop table test_forwarded");
+        }
+    }
+
     static Stream<Arguments> setObjectForms() {
         return Stream.of(
             Arguments.of("setObject(index, value)",
@@ -455,6 +496,18 @@ public class TypesIT extends BaseIntegrationTest {
             Arguments.of("setObject(index, value, SQLType, scale)",
                 binder((s, i, v) -> s.setObject(i, v, JDBCType.OTHER, 0)))
         );
+    }
+
+    /**
+     * The same forms, each with whether pgJDBC implements the call this driver
+     * forwards a value to. Derived rather than listed again, so that a form
+     * added above is asked about here too.
+     */
+    static Stream<Arguments> setObjectFormsAndWhatTheyForwardTo() {
+        Set<String> notImplemented = Set.of(
+            "setObject(index, value, SQLType)", "setObject(index, value, SQLType, scale)");
+        return setObjectForms().map(form -> Arguments.of(
+            form.get()[0], form.get()[1], !notImplemented.contains(form.get()[0])));
     }
 
     @FunctionalInterface

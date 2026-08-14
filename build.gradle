@@ -17,6 +17,10 @@ repositories {
 
 ext.pgjdbcVersion = '42.7.13'
 
+configurations {
+    mutation
+}
+
 dependencies {
     api "org.postgresql:postgresql:${pgjdbcVersion}"
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.22.1'
@@ -28,10 +32,16 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest:3.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
     testImplementation 'org.testcontainers:cratedb:1.21.4'
+
     // Most applications reach the driver through a connection pool, which
     // exercises the corners the JDBC API leaves to the driver.
     testImplementation 'com.zaxxer:HikariCP:7.0.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Runs `mutationTest`. Held apart from the test classpath: it is a tool
+    // the build launches, not something the suites compile against.
+    mutation 'org.pitest:pitest-command-line:1.25.9'
+    mutation 'org.pitest:pitest-junit5-plugin:1.2.3'
 }
 
 java {
@@ -520,6 +530,43 @@ tasks.register('integrationTestNoAssertions', Test) {
     outputs.upToDateWhen { false }
 }
 
+/**
+ * The suites against the standalone artifact, with a real server behind them.
+ *
+ * <p>`verifyArtifacts` reads what the jars contain and settles which driver
+ * answers which URL scheme, in a process that connects to nothing. What it
+ * cannot see is a relocated class that only fails once it is used: a class
+ * named in a string, a service looked up by name, a resource read by path.
+ * Those need the driver to actually carry a value to a server and back, which
+ * is what the suites do.
+ *
+ * <p>The unrelocated pgJDBC is kept off the classpath, and so are this
+ * project's own class files — the driver has to come out of the jar being
+ * tested, and a name it failed to relocate has to find nothing rather than
+ * find the copy an ordinary run would have supplied.</p>
+ *
+ * <p>A suite naming a pgJDBC type by its plain package cannot run here: under
+ * this artifact those types live under the shade prefix, so the name resolves
+ * to nothing. Such a suite says so with a tag. This is the same thing
+ * `docs/migration.rst` tells an application that imported the shaded names.</p>
+ */
+tasks.register('standaloneTest', Test) {
+    description = 'Runs the integration tests against the standalone artifact.'
+    group = 'verification'
+    dependsOn tasks.named('standaloneJar')
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = files(standaloneJarFile) + sourceSets.test.output +
+        configurations.testRuntimeClasspath.filter { !it.name.startsWith('postgresql-') }
+    useJUnitPlatform {
+        excludeTags 'pgjdbc-types'
+    }
+    // A pattern rather than a filter: a filter is applied after the candidates
+    // have been loaded, and the unit tests among them name pgJDBC types that
+    // this classpath has under another name.
+    include '**/*IT.class'
+    outputs.upToDateWhen { false }
+}
+
 jacoco {
     toolVersion = '0.8.15'
 }
@@ -562,6 +609,92 @@ tasks.named('jacocoTestReport', JacocoReport) {
     reports {
         xml.required = true
         html.required = true
+    }
+}
+
+/**
+ * Whether the suites would notice if the driver were wrong.
+ *
+ * <p>Coverage counts the lines a run reached, which a suite that asserts
+ * nothing scores just as well on. This changes a line — an operator, a
+ * constant, a returned value — and reruns the tests that covered it: a change
+ * no test objects to is a line nothing is holding. The report at
+ * {@code build/reports/pitest} lists those, and they are the point of running
+ * it; the percentage is a summary of them.</p>
+ *
+ * <p>The generated Forwarding* classes are left out for the reason the
+ * coverage report leaves them out. They pass their arguments on and return
+ * what came back; a change to one of them is a change to which method is
+ * called, which the generation check already holds.</p>
+ *
+ * <p>The server comes from outside. The suites boot a CrateDB of their own per
+ * JVM, and this starts a JVM per batch of changes, so a run that started its
+ * own would spend its time on containers; {@code CRATE_URL} is the arrangement
+ * the suites already have for a server someone else is running. One change is
+ * tried at a time for the same reason the suites run one class at a time: they
+ * share that server, and a run that dropped the tables another was reading
+ * would report a failure that is the arrangement rather than the change.</p>
+ */
+tasks.register('mutationTest', JavaExec) {
+    description = 'Changes the hand-written classes and reports what no test objects to.'
+    group = 'verification'
+    dependsOn tasks.named('testClasses')
+
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(
+            providers.gradleProperty('testJavaVersion').getOrElse('21') as Integer)
+    }
+    mainClass = 'org.pitest.mutationtest.commandline.MutationCoverageReport'
+    classpath = configurations.mutation
+
+    def report = layout.buildDirectory.dir('reports/pitest')
+    def underTest = sourceSets.test.runtimeClasspath
+    def mainClasses = sourceSets.main.output.classesDirs
+    def server = providers.environmentVariable('CRATE_URL')
+
+    doFirst {
+        if (!server.present) {
+            throw new GradleException(
+                'Set CRATE_URL to a CrateDB this run may use, e.g.\n'
+                + '  CRATE_URL=crate://localhost:5432/doc?user=crate make mutation\n'
+                + 'Every JVM this starts would otherwise boot a container of its own.')
+        }
+        environment 'CRATE_URL', server.get()
+        args '--classPath', underTest.files.join(','),
+            '--sourceDirs', 'driver/main/java',
+            // The driver, and nothing else on that classpath. Package globs
+            // would take the suites in too — they sit under the same root, and
+            // changing a test to see whether anything notices is a question
+            // about the suite that asks it, not about the driver.
+            '--mutableCodePaths', mainClasses.files.join(','),
+            // Narrowed with -PmutationClasses / -PmutationTests, which is how
+            // one class is asked again after a gap the report found is closed.
+            '--targetClasses', providers.gradleProperty('mutationClasses')
+                .getOrElse('io.crate.client.jdbc.*'),
+            '--excludedClasses', 'io.crate.client.jdbc.Forwarding*',
+            '--targetTests', providers.gradleProperty('mutationTests')
+                .getOrElse('io.crate.client.jdbc.*'),
+            // The suites that bring up a server whatever CRATE_URL says,
+            // because the server is what they are about — a cluster, and one
+            // that asks who is connecting. Either would be started again for
+            // every change tried against a line it covers.
+            '--excludedTestClasses', 'io.crate.client.jdbc.integrationtests.ClusterIT,' +
+                'io.crate.client.jdbc.integrationtests.AuthenticationIT',
+            '--testPlugin', 'junit5',
+            '--reportDir', report.get().asFile.absolutePath,
+            '--outputFormats', 'HTML,XML',
+            '--timestampedReports', 'false',
+            '--threads', '1',
+            // A statement under test may be waiting out a query timeout of its
+            // own, which is seconds rather than the milliseconds a local
+            // server answers in.
+            '--timeoutConst', '30000',
+            '--jvmArgs', [
+                "-Dproject.version=${project.version}",
+                '-Duser.timezone=UTC',
+                "-Dapi.version=${System.getProperty('api.version', '1.44')}",
+                '-Djunit.jupiter.execution.parallel.enabled=false',
+            ].join(',')
     }
 }
 
