@@ -33,10 +33,9 @@ import java.sql.SQLDataException;
 import java.sql.SQLException;
 
 /**
- * JSON bridge between CrateDB's OBJECT type and java.util collections:
- * OBJECT columns travel over the PostgreSQL wire protocol as json, which
- * this driver surfaces as {@code Map<String, Object>} on reads and accepts
- * as {@code Map} on writes.
+ * JSON bridge between CrateDB's OBJECT type and java.util collections. OBJECT
+ * columns travel as json, which this driver reads as {@code Map<String,
+ * Object>} and accepts as {@code Map}.
  */
 final class CrateJson {
 
@@ -47,22 +46,23 @@ final class CrateJson {
      *
      * <ul>
      * <li>{@code java.time} values travel as the ISO-8601 text CrateDB reads a
-     *     timestamp from. Written as epoch numbers instead — Jackson's other
-     *     option — a value without a zone has no epoch to write and comes out
-     *     as an array of its fields.</li>
+     *     timestamp from. Under Jackson's other option, epoch numbers, a value
+     *     without a zone has no epoch to write and comes out as an array of its
+     *     fields.</li>
      * <li>A whole number is read back as a {@code Long}, because a whole number
      *     in a CrateDB OBJECT is a {@code bigint} whatever its magnitude.
      *     Sizing the Java type to the value instead would make the type of what
      *     a column reads as depend on the row.</li>
-     * <li>No ceiling on how long a single value may be. Jackson's own guards
-     *     against a hostile document — 20 million characters to a string, 1000
-     *     digits to a number — describe a document arriving from somewhere
-     *     untrusted. What is read here is a column value the server accepted
-     *     and this driver has already buffered, so refusing to parse it would
-     *     only make data other clients can read unreadable through this one.</li>
-     * <li>The nesting ceiling stays, because that one is not about trust:
-     *     reading and writing json recurse, and a structure deep enough would
-     *     exhaust the stack rather than raise anything a caller can act on.</li>
+     * <li>No ceiling on how long a single value may be. Jackson's guards
+     *     against a hostile document (20 million characters to a string, 1000
+     *     digits to a number) describe input arriving from somewhere untrusted.
+     *     What is read here is a column value the server accepted and this
+     *     driver has already buffered, so refusing to parse it would only make
+     *     data other clients can read unreadable through this one.</li>
+     * <li>The nesting ceiling stays, being about the stack instead of trust.
+     *     Reading and writing json recurse, and a deep enough structure would
+     *     exhaust the stack instead of raising something a caller can act
+     *     on.</li>
      * </ul>
      */
     private static ObjectMapper mapper() {
@@ -108,14 +108,14 @@ final class CrateJson {
     private static final int DESCRIPTION_LIMIT = 200;
 
     /**
-     * A value as a message can afford to show it. What failed to convert can be
-     * the whole of a row, which is the wrong thing to build a second copy of
-     * while reporting that it was too much to handle — and the wrong thing to
-     * write to a log, where an OBJECT column's contents do not belong.
+     * A value as a message can afford to show it. What failed to convert can
+     * be a whole row, and building a second copy of one while reporting that it
+     * was too much to handle is the wrong move twice over: an OBJECT column's
+     * contents do not belong in a log either.
      *
-     * <p>Rendering it is not safe either: a collection that holds itself
-     * recurses until the stack is gone, which would replace the failure being
-     * reported with a {@code StackOverflowError}.</p>
+     * <p>Rendering it whole is unsafe as well. A collection that holds itself
+     * recurses until the stack is gone, replacing the failure being reported
+     * with a {@code StackOverflowError}.</p>
      */
     private static String describe(Object value, Exception failure) {
         String limit = failure instanceof StreamConstraintsException

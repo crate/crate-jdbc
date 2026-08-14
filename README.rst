@@ -11,10 +11,10 @@ Driver`_ (pgJDBC).
 
 This is a `type 4 JDBC driver`_ written in pure Java. It communicates with the
 database using the `PostgreSQL Wire Protocol`_ and adds a thin adaptation layer
-for the handful of behaviors where CrateDB differs from PostgreSQL: ``OBJECT``
-columns as ``java.util.Map``, CrateDB type names in ``createArrayOf()``, a
-``rollback()`` that stays on the client — CrateDB has no ``ROLLBACK``
-statement — and ``Crate`` as the reported database product name.
+for the four behaviors where CrateDB differs from PostgreSQL: ``OBJECT`` columns
+as ``java.util.Map``, CrateDB type names in ``createArrayOf()``, a
+``rollback()`` that stays on the client, CrateDB having no ``ROLLBACK``
+statement, and ``Crate`` as the reported database product name.
 
 Requirements
 ============
@@ -68,7 +68,7 @@ Which artifact
 |                          | come along as ordinary dependencies, visible   |
 |                          | to vulnerability scanners.                     |
 +--------------------------+------------------------------------------------+
-| `crate-jdbc-standalone`_ | A single jar is required — the driver          |
+| `crate-jdbc-standalone`_ | A single jar is required: the driver           |
 |                          | directory of a tool such as Apache Hop,        |
 |                          | Pentaho, DBeaver or SQuirreL. Everything it    |
 |                          | bundles is relocated under ``io.crate.shade``  |

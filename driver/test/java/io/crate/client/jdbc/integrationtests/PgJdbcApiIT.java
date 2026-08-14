@@ -150,7 +150,7 @@ public class PgJdbcApiIT extends BaseIntegrationTest {
 
     /**
      * A wrapper is made once for what it wraps, so asking twice gives back the
-     * same object rather than a second view of the same thing — which is what
+     * same object rather than a second view of the same thing, as
      * callers that compare result sets or metadata expect, and what pgJDBC
      * does underneath.
      */

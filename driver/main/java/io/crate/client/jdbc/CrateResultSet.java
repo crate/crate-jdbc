@@ -43,7 +43,7 @@ public class CrateResultSet extends ForwardingResultSet {
     }
 
     /**
-     * What the columns hold, in the terms this result set reads them in — one
+     * What the columns hold, in the terms this result set reads them in. One
      * object per result set, as pgJDBC hands it out.
      */
     @Override
@@ -55,12 +55,12 @@ public class CrateResultSet extends ForwardingResultSet {
     }
 
     /**
-     * The statement that produced this result set, as a wrapper: navigating
-     * from a result set back to its connection stays inside this driver.
+     * The statement that produced this result set, as a wrapper, so that
+     * navigating back to the connection stays inside this driver.
      *
-     * <p>The wrapper is held rather than read from the delegate, so the
-     * delegate is asked whether the result set is still open — a closed one
-     * has nothing to navigate from, and answering would hand out a way around
+     * <p>The wrapper is held here instead of read from the delegate, so the
+     * delegate is asked whether the result set is still open. A closed one has
+     * nothing to navigate from, and answering would hand out a way around
      * that.</p>
      */
     @Override
@@ -92,13 +92,13 @@ public class CrateResultSet extends ForwardingResultSet {
     /**
      * The type a caller asks for is pgJDBC's to answer for every column but a
      * json one, whose value it would hand over as text. Which column is which
-     * is decided before the value is read, so that a column pgJDBC can only
-     * decode into the requested type is never read untyped first.
+     * is settled before the value is read, so a column pgJDBC can only decode
+     * into the requested type is never read untyped first.
      *
-     * <p>An array is this driver's to answer whatever the column: asking for
-     * one by type reads the same array as {@link #getArray(int)}, down to the
-     * conversion of its elements and to the json columns pgJDBC has no array
-     * decoder for.</p>
+     * <p>An array is this driver's to answer whatever the column. Asking for
+     * one by type reads the same array as {@link #getArray(int)} does, down to
+     * the conversion of its elements and to the json columns pgJDBC has no
+     * array decoder for.</p>
      */
     @Override
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
@@ -121,8 +121,8 @@ public class CrateResultSet extends ForwardingResultSet {
 
     /**
      * A column of nested arrays arrives as json, which pgJDBC has no array
-     * decoder for; it is read here instead. Every other array column is
-     * pgJDBC's, wrapped so its elements convert like the rest.
+     * decoder for, so it is read here. Every other array column is pgJDBC's,
+     * wrapped so its elements convert like the rest.
      */
     @Override
     public java.sql.Array getArray(int columnIndex) throws SQLException {
@@ -145,9 +145,9 @@ public class CrateResultSet extends ForwardingResultSet {
     }
 
     /**
-     * A value as this driver surfaces it: an OBJECT as a {@code Map}, an
-     * array as a {@link CrateArray} so its elements are converted in turn.
-     * Everything else is what pgJDBC read.
+     * A value as this driver surfaces it: an OBJECT as a {@code Map}, an array
+     * as a {@link CrateArray} converting its elements in turn, everything else
+     * as pgJDBC read it.
      */
     static Object fromPg(Object value) throws SQLException {
         if (value instanceof PGobject) {
@@ -164,9 +164,9 @@ public class CrateResultSet extends ForwardingResultSet {
     }
 
     /**
-     * A json value as the requested Java type, or null when the value is not
-     * one this driver converts — pgJDBC answers those itself. An OBJECT reads
-     * into any {@code Map} type and a column of nested arrays into any
+     * A json value as the requested Java type, or null for a value this driver
+     * does not convert and pgJDBC answers itself. An OBJECT reads into any
+     * {@code Map} type, and a column of nested arrays into any
      * {@code Collection} type.
      */
     @SuppressWarnings("unchecked")

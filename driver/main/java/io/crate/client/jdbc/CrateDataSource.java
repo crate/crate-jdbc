@@ -26,21 +26,16 @@ import java.util.Properties;
 
 /**
  * A {@code DataSource} handing out CrateDB-aware connections, for frameworks
- * configured with a data source instead of a JDBC URL. Host, port, database
- * and every other pgJDBC property are set as on
- * {@link PGSimpleDataSource}, and {@link #setUrl} accepts {@code crate://}
- * URLs next to the {@code jdbc:postgresql://} form; the connections carry the
- * same behavior as those obtained through {@link CrateDriver}.
+ * configured with a data source instead of a JDBC URL. Host, port, database and
+ * every other pgJDBC property are set as on {@link PGSimpleDataSource},
+ * {@link #setUrl} accepts {@code crate://} URLs next to the
+ * {@code jdbc:postgresql://} form, and the connections behave as those from
+ * {@link CrateDriver} do.
  *
- * <p>Connections are opened through pgJDBC's driver directly rather than
- * through the {@code DriverManager}: the standalone artifact keeps its
- * bundled pgJDBC out of the {@code DriverManager} altogether, and a
- * {@code jdbc:postgresql://} URL there either finds no driver at all or
- * finds a co-installed one that this driver cannot adapt.</p>
- *
- * <p>A data source bound into JNDI comes back through
- * {@link CrateDataSourceFactory}, so it carries the CrateDB behavior on the
- * way out of the directory as well as into it.</p>
+ * <p>Connections are opened through pgJDBC's driver directly, never through the
+ * {@code DriverManager}. The standalone artifact keeps its bundled pgJDBC out
+ * of the {@code DriverManager}, where a {@code jdbc:postgresql://} URL would
+ * then find either no driver or a co-installed one this driver cannot adapt.</p>
  */
 public class CrateDataSource extends PGSimpleDataSource {
 
@@ -50,16 +45,11 @@ public class CrateDataSource extends PGSimpleDataSource {
      * Building the pgJDBC driver below registers it with the
      * {@code DriverManager}, and in the standalone artifact only
      * {@link CrateDriver}'s class initializer takes the bundled copy back out.
-     * An application that reaches this class first — a data source is all many
-     * frameworks are configured with — would otherwise leave it there to answer
-     * {@code jdbc:postgresql://} URLs. Class initializers run in the order they
-     * are written, so this has to precede the field.
-     *
-     * <p>Loading {@link CrateDriver} through the {@code META-INF/services} entry
-     * is not enough on its own: the {@code DriverManager} scans for it with the
-     * thread context class loader, which never reaches a driver jar loaded in a
-     * class loader of its own — the plugin directories the standalone artifact
-     * is built for.</p>
+     * Many frameworks are configured with nothing but a data source, so this
+     * class is often the first one reached, and class initializers run in the
+     * order written. The {@code META-INF/services} entry does not cover it: the
+     * {@code DriverManager} scans with the thread context class loader, which
+     * never reaches the plugin loaders the standalone artifact is built for.
      */
     static {
         CrateDriver.isRegistered();
@@ -86,10 +76,9 @@ public class CrateDataSource extends PGSimpleDataSource {
     }
 
     /**
-     * Takes a URL in either driver's scheme. A URL in neither goes to pgJDBC
-     * as written, which rejects what it cannot read — the data source is
-     * configured long before it is asked for a connection, and that is where
-     * an unreadable URL should be reported.
+     * Takes a URL in either driver's scheme. A URL in neither goes to pgJDBC as
+     * written, for pgJDBC to reject at configuration time instead of at the
+     * first request for a connection.
      */
     @Override
     public void setUrl(String url) {
@@ -107,11 +96,7 @@ public class CrateDataSource extends PGSimpleDataSource {
         return "CrateDB JDBC DataSource";
     }
 
-    /**
-     * Names {@link CrateDataSourceFactory} as what rebuilds this data source
-     * from the directory, in place of the pgJDBC factory that would answer
-     * for a pgJDBC data source alone.
-     */
+    /** {@link CrateDataSourceFactory} rebuilds this from the directory. */
     @Override
     protected Reference createReference() {
         return new Reference(getClass().getName(), CrateDataSourceFactory.class.getName(), null);

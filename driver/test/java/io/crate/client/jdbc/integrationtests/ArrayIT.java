@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * array whose elements are themselves arrays is the driver's own, because the
  * PostgreSQL array format cannot hold sub-arrays of differing length and such a
  * column travels as json instead. They agree on most of this API and part
- * company in two places, which is what most of the pinning here is for.</p>
+ * company in two places, and most of the pinning here covers those.</p>
  */
 public class ArrayIT extends BaseIntegrationTest {
 
@@ -131,13 +131,13 @@ public class ArrayIT extends BaseIntegrationTest {
         assertThat((Object[]) arrays.getArray(2, 0), is(arrayWithSize(2)));
 
         // The rest of an array starting just past its last element is none of
-        // it, which is a slice the array has rather than one it does not.
+        // it, a slice the array has rather than one it does not.
         assertThat((Object[]) arrays.getArray(4, 0), is(arrayWithSize(0)));
     }
 
     /**
      * A slice naming elements the array does not have is refused rather than
-     * shortened. The driver's own array says how many it holds, which is what a
+     * shortened. The driver's own array says how many it holds, and a
      * caller needs to correct the call.
      */
     @Test
@@ -233,8 +233,8 @@ public class ArrayIT extends BaseIntegrationTest {
     /**
      * Giving up an array ends it, but only where there was something to give
      * up. pgJDBC's array drops what it read the elements from, so every read
-     * raises afterwards; the driver's own holds nothing open — the value came
-     * in with the row — so freeing it changes nothing.
+     * raises afterwards. The driver's own holds nothing open, the value
+     * having come in with the row, so freeing it changes nothing.
      *
      * <p>Read last, because it leaves the arrays the other tests share
      * unusable.</p>

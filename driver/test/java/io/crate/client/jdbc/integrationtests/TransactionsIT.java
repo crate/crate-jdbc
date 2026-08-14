@@ -159,8 +159,8 @@ public class TransactionsIT extends BaseIntegrationTest {
     /**
      * The level {@code DatabaseMetaData} announces as the only supported one
      * is the level the connection is in and stays in. A framework that asks
-     * for one of PostgreSQL's levels is not refused — there is nothing for the
-     * server to do differently — but a level JDBC does not define is.
+     * for one of PostgreSQL's levels is obliged, the server having nothing to
+     * do differently, while a level JDBC does not define is refused.
      *
      * <p>{@code TRANSACTION_NONE} is taken as well, which JDBC reserves for a
      * connection to report rather than for a caller to name: it is the level
@@ -196,7 +196,7 @@ public class TransactionsIT extends BaseIntegrationTest {
      * is ended the connection refuses to change its read-only flag or its
      * isolation level. A rollback has to end it, the way a commit does —
      * whether the block holds a write or a statement the server refused,
-     * which is the state a caller reaches for a rollback in the first place.
+     * the state a caller reaches for a rollback in the first place.
      */
     @ParameterizedTest(name = "after {0}")
     @MethodSource("blockContents")
@@ -207,7 +207,7 @@ public class TransactionsIT extends BaseIntegrationTest {
             try {
                 stmt.execute(sql);
             } catch (SQLException refused) {
-                // The block is now failed, which is the case being covered.
+                // The block has failed, the case being covered.
             }
             conn.rollback();
 

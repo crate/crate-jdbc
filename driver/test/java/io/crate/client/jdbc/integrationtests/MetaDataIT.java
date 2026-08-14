@@ -254,11 +254,11 @@ public class MetaDataIT extends BaseIntegrationTest {
     }
 
     /**
-     * What a result set says about its own columns, which is what a mapper
-     * reads before a single row arrives. CrateDB describes a column by its
-     * type alone: it sends neither the table the column came from — so a
-     * column is named by the label the query gave it — nor whether the column
-     * takes null, nor the precision and scale a {@code numeric(p, s)} was
+     * What a result set says about its own columns, and so what a mapper reads
+     * before a single row arrives. CrateDB describes a column by its
+     * type alone. It sends none of three things: the table the column came
+     * from, so a column is named by the label the query gave it; whether the
+     * column takes null; and the precision and scale a {@code numeric(p, s)} was
      * declared with.
      */
     @Test
@@ -400,7 +400,7 @@ public class MetaDataIT extends BaseIntegrationTest {
     /**
      * The driver identifies itself rather than the pgJDBC release it builds
      * on, and reports the PostgreSQL release CrateDB emulates as the product
-     * version — which is what PostgreSQL tooling reasons about.
+     * version, that being what PostgreSQL tooling reasons about.
      */
     @Test
     public void metaDataReportsThisDriverAndTheEmulatedServer() throws Exception {

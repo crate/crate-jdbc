@@ -39,8 +39,9 @@ an application will resolve::
 
     $ make publish-local
 
-The bare ``./gradlew publish`` task is not that: the Sonatype plugin registers
-Maven Central as a publishing repository, so ``publish`` targets it.
+The bare ``./gradlew publish`` task does something else. The Sonatype plugin
+registers Maven Central as a publishing repository, so ``publish`` targets
+it.
 
 Signing is skipped unless a key is configured, through the environment
 variables the release workflow passes:
@@ -57,9 +58,9 @@ The unit tests need no server and no Docker::
     $ make test
 
 Gradle runs on JDK 17 or later while the driver is built for Java 11, so the
-baseline is exercised by launching a suite on a Java 11 toolchain rather than
-on the JVM running the build. Gradle resolves that toolchain, downloading one
-if the machine has none::
+baseline is exercised by launching a suite on a Java 11 toolchain instead of on
+the JVM running the build. Gradle resolves that toolchain, downloading one if
+the machine has none::
 
     $ make test-baseline
 
@@ -80,17 +81,25 @@ at a full JDBC URL; no container is started then::
 
     $ CRATE_URL=crate://localhost:5432/doc?user=crate make itest
 
-Gradle enables assertions in its test JVMs, which is not how applications run.
-pgJDBC guards a request that ``preferQueryMode=simple`` cannot carry with an
-assertion of its own, so the outcome a plain JVM meets — the request falling
-through and executing the statement — is reachable only with them off::
+Two axes of the substrate change what the suites can see, and both have a
+target of their own. A cluster is where the driver's load balancing and its
+cancel routing stop being inert, and a JVM away from UTC is the only place a
+conversion through the default calendar and one without it disagree::
+
+    $ make itest-cluster   # three nodes instead of one
+    $ make itest-zoned     # the suites in Europe/Berlin
+
+Gradle enables assertions in its test JVMs, where applications run without
+them. pgJDBC guards a request that ``preferQueryMode=simple`` cannot carry with
+an assertion of its own, so the outcome a plain JVM meets, the request falling
+through and executing the statement, is reachable only with assertions off::
 
     $ make itest-noassert
 
 The tests that apply to one setting and not the other skip themselves under
 the other, so both runs report skips.
 
-Coverage is measured over the hand-written classes; the generated
+Coverage is measured over the hand-written classes. The generated
 ``Forwarding*`` classes are left out, being delegation the build already
 verifies against a fresh generation. It runs off by default, so no other run
 carries the agent::
@@ -99,24 +108,24 @@ carries the agent::
 
 The report lands in ``build/reports/jacoco/test``.
 
-Coverage counts the lines a run reached, which says nothing about whether a
-test would object to one of them being wrong. That is a separate run: it
-changes a line — an operator, a constant, a returned value — and reruns the
-tests that covered it, reporting the changes nothing failed on::
+Coverage counts the lines a run reached and says nothing about whether a test
+would object to one of them being wrong. That is a separate run. It changes a
+line (an operator, a constant, a returned value) and reruns the tests that
+covered it, reporting the changes nothing failed on::
 
     $ CRATE_URL=crate://localhost:5432/doc?user=crate make mutation
 
-The server has to come from outside. Each batch of changes is tried in a JVM
-of its own, and a run that booted a container per JVM would spend its time on
-containers instead. Narrow it to one class with ``-PmutationClasses`` and
-``-PmutationTests``, which is how a class is asked again once a gap the report
-found is closed. The report lands in ``build/reports/pitest``.
+The server has to come from outside. Each batch of changes is tried in a JVM of
+its own, and a run booting a container per JVM would spend its time on
+containers. Narrow it to one class with ``-PmutationClasses`` and
+``-PmutationTests``, to ask that class again once a gap the report found is
+closed. The report lands in ``build/reports/pitest``.
 
 The published artifacts come in two shapes, and the suites run against the
 plain one. The standalone artifact carries pgJDBC and Jackson relocated under
-``io.crate.shade``, and a name that failed to relocate only fails once it is
-used — so the suites run against that jar too, with the ordinary pgJDBC kept
-off the classpath::
+``io.crate.shade``, where a name that failed to relocate fails only once used,
+so the suites run against that jar too, with the ordinary pgJDBC kept off the
+classpath::
 
     $ make itest-standalone
 
@@ -140,7 +149,7 @@ Regenerate them, against the pgJDBC version the build pins, with::
     $ make forwarding
 
 ``make check`` fails when the checked-in classes differ from a fresh
-generation — which is what a newer JDBC release adding methods looks like.
+generation, which is what a newer JDBC release adding methods looks like.
 
 Upgrading pgJDBC
 ================
@@ -149,10 +158,10 @@ Change ``ext.pgjdbcVersion`` in ``build.gradle``, regenerate the forwarding
 classes as above, and run the tests. The version is also written into the
 standalone jar's manifest as ``Bundled-PgJdbc-Version``.
 
-Preparing a Release
+Preparing a release
 ===================
 
-To create a new release, you must:
+To cut a release:
 
 - Set the release version in ``gradle.properties``; it is the one place the
   version lives, and the driver reports it through ``DatabaseMetaData``
@@ -187,19 +196,19 @@ That needs the signing key and password from Building_, plus the Sonatype
 token as ``-PsonatypeTokenUsername`` and ``-PsonatypeTokenPassword`` (or the
 matching ``ORG_GRADLE_PROJECT_`` environment variables).
 
-Archiving Docs Versions
+Archiving docs versions
 -----------------------
 
 Check the `versions hosted on ReadTheDocs`_.
 
-We should only be hosting the docs for `latest`, the minor release branches
-of the current major release, and the last minor release branch of the
-previous one — for example ``latest``, ``3.0`` and ``2.7``.
+Only three kinds of version stay hosted: ``latest``, the minor release branches
+of the current major release, and the last minor release branch of the previous
+one. Today that is ``latest``, ``3.0`` and ``2.7``.
 
-To make changes to the RTD configuration (e.g., to activate or deactivate a
-release version), please contact the `@crate/docs`_ team.
+Activating or deactivating a version is an RTD configuration change: ask the
+`@crate/docs`_ team.
 
-Writing Documentation
+Writing documentation
 =====================
 
 The docs live under the ``docs`` directory, written in ReStructuredText_ and
@@ -212,8 +221,7 @@ processed with Sphinx_. Build them with::
 ``make check`` there runs the same build the CI does, together with the link
 and prose checks.
 
-The docs are automatically built from Git by `Read the Docs`_ and there is
-nothing special you need to do to get the live docs to update.
+`Read the Docs`_ builds the published docs from Git on every push.
 
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
 .. _Gradle: https://gradle.org/

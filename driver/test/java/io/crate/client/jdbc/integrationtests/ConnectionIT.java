@@ -155,7 +155,7 @@ public class ConnectionIT extends BaseIntegrationTest {
     }
 
     /**
-     * Server errors carry the SQLState of their condition, which is what
+     * Server errors carry the SQLState of their condition, and that is what
      * frameworks classify errors by — a missing table has to be
      * distinguishable from a syntax error without reading the message.
      */
@@ -245,8 +245,8 @@ public class ConnectionIT extends BaseIntegrationTest {
     }
 
     /**
-     * A URL may name every node of a cluster, which is what
-     * {@code loadBalanceHosts} — on by default for this driver — spreads
+     * A URL may name every node of a cluster, and {@code loadBalanceHosts},
+     * on by default for this driver, spreads
      * connections over. A host that cannot be reached is passed over for the
      * next one.
      */

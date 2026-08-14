@@ -31,34 +31,16 @@ import java.util.Map;
  * A statement's query timeout, held as CrateDB's {@code statement_timeout} for
  * the length of one execution and given back afterwards.
  *
- * <p>A JDBC query timeout otherwise travels only as a PostgreSQL cancel
- * request, which the driver sends on a second connection to the host the
- * session is on. That reaches the right node when the URL names the nodes
- * themselves, and any node of the cluster when the one name it resolves is a
- * load balancer in front of them — the cancel carries no routing of its own,
- * so a request that lands elsewhere finds no session to cancel.
- * {@code statement_timeout} travels with the statement instead, on the
- * connection already holding the session, and the server schedules the abort
- * itself.</p>
+ * <p>pgJDBC delivers a timeout as a cancel request on a second connection,
+ * which reaches the session only when the URL names the nodes themselves.
+ * {@code statement_timeout} travels on the connection already holding the
+ * session, so it survives a load balancer in front of the cluster. Both stay
+ * in play; {@code docs/internals.rst} covers what each one reaches.</p>
  *
- * <p>Both are left in place, because each covers a case the other does not.
- * Neither covers a query CrateDB answers inline, without handing it to its
- * execution pool — over {@code sys} tables and table functions. The server
- * never reaches the point where it arms {@code statement_timeout}, and the
- * thread that would read a cancel request is the one running the query. Such
- * a query has to be bounded in its own text, with a {@code LIMIT} or a
- * narrower filter.</p>
- *
- * <p>What is bounded is the execution, not the reading of its rows. A
- * statement with a fetch size leaves a cursor open under manual commit mode,
- * and the fetches that bring the remaining batches run after the setting has
- * been given back — so they carry no timeout, and the same {@code LIMIT} is
- * what bounds them.</p>
- *
- * <p>Holding the setting costs three round trips around every execution — the
- * session's value is read, replaced, and put back — because the setting
- * belongs to the session while the timeout belongs to one statement. A
- * statement that sets no timeout pays none of it.</p>
+ * <p>The setting belongs to the session while the timeout belongs to one
+ * statement, so holding it costs three round trips around an execution: the
+ * session's value is read, replaced, and put back. A statement that sets no
+ * timeout pays none of it.</p>
  */
 @FunctionalInterface
 interface CrateQueryTimeout extends AutoCloseable {
@@ -83,9 +65,9 @@ interface CrateQueryTimeout extends AutoCloseable {
 
     /**
      * Milliseconds per unit of the interval {@code pg_settings} reports the
-     * setting in. Every unit ending in another is tried before the one it ends
-     * with — {@code micros}, {@code nanos} and {@code ms} all end in {@code s}
-     * — so that a suffix is read whole rather than as its own tail.
+     * setting in. Order matters: {@code micros}, {@code nanos} and {@code ms}
+     * all end in {@code s}, so each unit is tried before any unit it ends with
+     * and a suffix is read whole instead of as its own tail.
      */
     Map<String, Double> UNIT_MILLIS = unitMillis();
 
@@ -102,22 +84,17 @@ interface CrateQueryTimeout extends AutoCloseable {
     }
 
     /**
-     * Milliseconds of an interval as CrateDB prints one — a number and a unit,
-     * where the number may carry a fraction ({@code 1.5m}).
+     * Milliseconds of an interval as CrateDB prints one: a number, possibly
+     * carrying a fraction, and a unit ({@code 1.5m}).
      *
-     * <p>The printed form is not always one CrateDB accepts back: it prints 90
-     * seconds as {@code 1.5m} and rejects {@code 1.5m} as an invalid interval.
-     * Milliseconds are the form it always takes, so a value read from the
-     * server is converted before it is given back to it.</p>
+     * <p>CrateDB does not read back everything it prints. It renders 90 seconds
+     * as {@code 1.5m} and then rejects {@code 1.5m} as an invalid interval, so
+     * a value read from the server is converted to milliseconds, the form it
+     * always accepts, before being given back.</p>
      *
-     * <p>Anything shorter than a millisecond rounds up rather than down: zero
-     * is not a shorter timeout but no timeout at all.</p>
-     *
-     * <p>A form the units do not cover is refused rather than left to the
-     * number parser, whose complaint names neither the setting nor what was
-     * being done with it. The server prints this text in a vocabulary of its
-     * own — one it does not read back — so a spelling this does not know is a
-     * thing to report, not a thing to crash on.</p>
+     * <p>Anything shorter than a millisecond rounds up, since zero would mean
+     * no timeout at all. A spelling the units do not cover is reported against
+     * the setting, which the number parser's own complaint would not name.</p>
      */
     static long millisOf(String setting) throws SQLException {
         if (setting == null) {

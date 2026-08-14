@@ -23,11 +23,11 @@ affected deployment upgrades rather than waiting for a patch.
 ## Bundled dependencies
 
 The driver builds on the [PostgreSQL JDBC driver][pgjdbc], and the
-`crate-jdbc-standalone` artifact bundles it — relocated under
-`io.crate.shade`, where dependency scanners that read a POM cannot see it.
-For that reason both artifacts publish a CycloneDX SBOM under the
-`cyclonedx` classifier, and the standalone jar names the pgJDBC release it
-bundles in its manifest as `Bundled-PgJdbc-Version`.
+`crate-jdbc-standalone` artifact bundles it, relocated under `io.crate.shade`
+where dependency scanners that read a POM cannot see it. Both artifacts
+therefore publish a CycloneDX SBOM under the `cyclonedx` classifier, and the
+standalone jar names the pgJDBC release it bundles in its manifest as
+`Bundled-PgJdbc-Version`.
 
 A vulnerability in pgJDBC itself is best reported to [that project][pgjdbc];
 please also let us know, so that the bundled version can be updated.

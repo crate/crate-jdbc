@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * An array whose elements are arrays. CrateDB sends a column of
- * {@code array(array(...))} as json rather than as a PostgreSQL array — the
- * PostgreSQL array format cannot hold sub-arrays of differing length — so
- * pgJDBC has no decoder for it, and this reads the json instead.
+ * An array whose elements are arrays. The PostgreSQL array format cannot hold
+ * sub-arrays of differing length, so CrateDB sends a column of
+ * {@code array(array(...))} as json, which pgJDBC has no decoder for. This
+ * reads the json instead.
  *
  * <p>The value travels as its json text in both directions: read from a
  * column, and bound back as a parameter through {@link CrateParameters}.</p>
@@ -50,10 +50,7 @@ public final class CrateJsonArray implements Array {
         this.elements = elements;
     }
 
-    /**
-     * The array a json value holds. A json value that is not an array — an
-     * OBJECT column — has no array to give.
-     */
+    /** The array a json value holds, or nothing for an OBJECT. */
     static CrateJsonArray of(String json) throws SQLException {
         Object value = CrateJson.parse(json);
         if (!(value instanceof List)) {
@@ -63,10 +60,7 @@ public final class CrateJsonArray implements Array {
         return new CrateJsonArray(json, (List<?>) value);
     }
 
-    /**
-     * A Java value as the array CrateDB reads it back as, or null when it is
-     * not a series of arrays and so belongs in a column of another type.
-     */
+    /** A Java value as the array CrateDB reads back, or null for anything else. */
     static CrateJsonArray ofNested(Object value) throws SQLException {
         List<?> elements = asList(value);
         if (elements == null || !containsArrays(elements)) {
@@ -76,8 +70,8 @@ public final class CrateJsonArray implements Array {
     }
 
     /**
-     * A series of values as a list, however it was written — a collection or
-     * an array of objects — or null for a value that is not a series at all.
+     * A series of values as a list, written either as a collection or as an
+     * array of objects, or null for a value that is not a series at all.
      */
     static List<?> asList(Object value) {
         if (value instanceof List) {
@@ -107,19 +101,13 @@ public final class CrateJsonArray implements Array {
         return new CrateParameters.Untyped(json);
     }
 
-    /**
-     * The elements as Java values: sub-arrays as {@code Object[]}, OBJECT
-     * values as {@code Map}, the same shapes the rest of the driver hands out.
-     */
+    /** Sub-arrays as {@code Object[]} and OBJECT values as {@code Map}, as elsewhere. */
     @Override
     public Object getArray() {
         return toArray(elements);
     }
 
-    /**
-     * The type map is ignored: it names the Java classes to read SQL user
-     * types into, and json carries no type for one to name.
-     */
+    /** The type map names Java classes for SQL user types, and json carries none. */
     @Override
     public Object getArray(Map<String, Class<?>> map) {
         return getArray();
@@ -139,10 +127,10 @@ public final class CrateJsonArray implements Array {
      * JDBC counts array elements from one, and reads a count of zero as the
      * rest of the array rather than none of it.
      *
-     * <p>An array of any other element type is pgJDBC's, which reads a count of
-     * zero that way only from the first element: past it, the count is added to
-     * the index before being recognised as zero, and the read is refused as out
-     * of range. The two therefore agree on {@code (1, 0)} and part company
+     * <p>An array of any other element type is pgJDBC's, which reads a count
+     * of zero that way from the first element alone. Past it, the count is
+     * added to the index before being recognised as zero, and the read is
+     * refused as out of range. The two agree on {@code (1, 0)} and part company
      * after it.</p>
      */
     private List<?> slice(long index, int count) throws SQLException {
@@ -174,8 +162,8 @@ public final class CrateJsonArray implements Array {
     }
 
     /**
-     * The elements are arrays, and json is how they reach the driver — there
-     * is no PostgreSQL element type behind them to name.
+     * The elements are arrays and reach the driver as json, with no PostgreSQL
+     * element type behind them to name.
      */
     @Override
     public String getBaseTypeName() {
@@ -188,9 +176,9 @@ public final class CrateJsonArray implements Array {
     }
 
     /**
-     * A result set over these elements would have to describe a column whose
-     * type is "array", which the PostgreSQL protocol has no descriptor for.
-     * {@link #getArray()} reads the same elements as Java values.
+     * The rows would need a column descriptor for an array of arrays, which the
+     * PostgreSQL protocol has none of. {@link #getArray()} reads the same
+     * elements.
      */
     @Override
     public ResultSet getResultSet() throws SQLException {

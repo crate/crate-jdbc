@@ -47,8 +47,8 @@ import static org.hamcrest.Matchers.is;
 /**
  * A JDBC object handed to an application has to be one of this driver's
  * wrappers: a raw pgJDBC object reached through a getter would answer without
- * the CrateDB behavior the wrappers add, and everything navigated from it —
- * statement, connection, rows — would leave the driver as well.
+ * the CrateDB behavior the wrappers add, and so would everything navigated
+ * from it: statement, connection, rows.
  *
  * <p>The rule is mechanical, so it is checked mechanically: every method that
  * hands out another JDBC object must be answered by a wrapper rather than left
@@ -61,7 +61,7 @@ public class WrapperCompletenessTest {
      * JDBC types whose instances carry driver behavior. The two metadata types
      * are among them because this driver reads some columns and binds some
      * parameters itself, so what a value is read as and what it may be given as
-     * are its answers to give. The types left out — the large-object ones —
+     * are its answers to give. The types left out, the large-object ones,
      * hold values without converting any, so pgJDBC's own are what an
      * application should get.
      */
@@ -130,7 +130,7 @@ public class WrapperCompletenessTest {
     /**
      * Whether a method hands back whatever type the caller names, as
      * {@code getObject(int, Class<T>)} does. Its return type erases to
-     * {@code Object}, so the types it can produce — every one of them — are
+     * {@code Object}, so every type it can produce is
      * invisible to a check that reads the erased signature.
      */
     private static boolean isTypeTokenGetter(Method method) {

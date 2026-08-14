@@ -173,7 +173,7 @@ public class SimpleQueryModeIT extends BaseIntegrationTest {
     }
 
     /**
-     * Without assertions — which is every JVM not started with {@code -ea} —
+     * Without assertions, so in every JVM not started with {@code -ea},
      * the describe request falls through into the simple-query path and the
      * statement runs. Asking a statement to describe itself writes to the
      * database, and {@code getMetaData()} reports nothing for the trouble.

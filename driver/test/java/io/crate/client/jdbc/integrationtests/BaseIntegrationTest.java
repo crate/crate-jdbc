@@ -44,7 +44,7 @@ import java.util.Properties;
  * <p>The server version comes from the {@code CRATEDB_VERSION} environment
  * variable (a tag of the {@code crate} Docker image), defaulting to a
  * recent release. {@code CRATEDB_NODES} runs the suite against a cluster of
- * that many nodes instead of one, which is where the driver's load balancing
+ * that many nodes instead of one, where the driver's load balancing
  * and its cancel routing stop being inert. An externally managed server can
  * be used instead by setting {@code CRATE_URL} to a full JDBC URL, in which
  * case no container is started.</p>
@@ -71,7 +71,7 @@ public abstract class BaseIntegrationTest {
     /**
      * How many nodes the suite runs against, one unless asked for more. A CI
      * matrix leaves the variable set and empty for the cells that do not name
-     * it, which is the same as not naming it.
+     * it, meaning the same as not naming it.
      */
     protected static int nodeCount() {
         String nodes = System.getenv("CRATEDB_NODES");
@@ -120,7 +120,7 @@ public abstract class BaseIntegrationTest {
      * Address of one node of the server under test, for APIs that take host
      * and port separately instead of a JDBC URL.
      *
-     * <p>A CrateDB URL names as many hosts as the cluster has, which is not an
+     * <p>A CrateDB URL names as many hosts as the cluster has, and that is not an
      * authority {@link URI} can parse, so the first of them is read off the
      * URL directly.</p>
      */

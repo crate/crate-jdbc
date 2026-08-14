@@ -6,8 +6,8 @@ Migrating to 3.0.x
 
 For most applications the upgrade from 2.7.0 is a version bump: connection
 URLs, ``OBJECT`` values as ``java.util.Map``, CrateDB type names in
-``createArrayOf()`` and the no-op ``rollback()`` all keep working. What
-follows is everything that does not.
+``createArrayOf()`` and the no-op ``rollback()`` all keep working. Everything
+below is what does not.
 
 
 ************
@@ -42,8 +42,8 @@ agree on time-zone handling. Use ``createArrayOf("timestamptz", ...)`` for a
 Update counts
 *************
 
-CrateDB reports an unknown row count — for example a ``DELETE`` over
-partitions — as −1 on the wire. 2.7.0 surfaced this as −2
+CrateDB reports an unknown row count as −1 on the wire, as it does for a
+``DELETE`` over partitions. 2.7.0 surfaced this as −2
 (``Statement.SUCCESS_NO_INFO``); 3.0.x reports 0. Code that checks update
 counts after such statements has to accept 0.
 
@@ -52,12 +52,12 @@ counts after such statements has to accept 0.
 Reported SQL type codes
 ***********************
 
-Type codes are read off the wire rather than from a table of the driver's
-own: boolean array elements report ``Types.BIT`` instead of
-``Types.BOOLEAN``, ``OBJECT`` arrays report ``Types.OTHER`` instead of
-``Types.JAVA_OBJECT``, and a ``byte`` column reports the type CrateDB sends
-it as — ``Types.CHAR``, and ``Types.SMALLINT`` from CrateDB 6.5 on — instead
-of ``Types.TINYINT``.
+Type codes are read off the wire instead of from a table of the driver's own.
+Boolean array elements report ``Types.BIT`` where 2.7.0 reported
+``Types.BOOLEAN``, ``OBJECT`` arrays report ``Types.OTHER`` where it reported
+``Types.JAVA_OBJECT``, and a ``byte`` column reports the type CrateDB sends it
+as (``Types.CHAR``, or ``Types.SMALLINT`` from CrateDB 6.5 on) where it
+reported ``Types.TINYINT``.
 
 The value a column's typed getter reads is unchanged, so ``getByte()`` on a
 ``byte`` column keeps returning the byte, whatever the server. Untyped reads
@@ -71,14 +71,14 @@ Strict mode removed
 *******************
 
 The ``strict`` connection property is gone, together with the
-``SQLFeatureNotSupportedException``\ s the driver raised for transactional
-API calls. ``setAutoCommit(false)``, ``commit()``, ``setReadOnly()`` and
-every transaction isolation level JDBC defines are accepted,
-``rollback()`` undoes nothing, and ``prepareCall()`` works.
+``SQLFeatureNotSupportedException``\ s the driver raised for transactional API
+calls. ``setAutoCommit(false)``, ``commit()``, ``setReadOnly()`` and every
+transaction isolation level JDBC defines are accepted, ``rollback()`` undoes
+nothing, and ``prepareCall()`` works.
 
 ``rollback()`` does still raise ``SQLException`` in the two states the JDBC
-specification forbids it in — on a closed connection, and while auto-commit
-is enabled — so a mis-sequenced call is not silently swallowed. Savepoints
+specification forbids it in, on a closed connection and while auto-commit is
+enabled, so a mis-sequenced call is not silently swallowed. Savepoints
 raise ``SQLFeatureNotSupportedException``: CrateDB has no savepoint
 statements, so the alternative is a syntax error from the server.
 
@@ -103,11 +103,10 @@ Dependencies are visible
 ************************
 
 The ``crate-jdbc`` artifact declares pgJDBC and jackson-databind as ordinary
-dependencies rather than bundling them, which is what makes them visible to
-dependency and vulnerability scanners — and means a build resolving from a
-mirror or an air-gapped repository needs both available. A project that also
-depends on pgJDBC directly resolves one version through its build tool's
-usual rules.
+dependencies instead of bundling them, which puts both in reach of dependency
+and vulnerability scanners. A build resolving from a mirror or an air-gapped
+repository therefore needs both available, and a project that also depends on
+pgJDBC directly resolves one version through its build tool's usual rules.
 
 With that, its classes live under ``org.postgresql``, so code importing
 ``io.crate.shade.org.postgresql.*`` types must either import the plain names

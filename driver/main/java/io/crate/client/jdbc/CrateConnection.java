@@ -36,9 +36,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A connection to CrateDB: pgJDBC's, plus the handful of behaviors CrateDB
- * needs of its own — no transactions to roll back or set an isolation level
- * on, and its own names for the types {@link #createArrayOf} builds.
+ * A connection to CrateDB: pgJDBC's, plus the behaviors CrateDB needs of its
+ * own. It has no transactions to roll back or set an isolation level on, and
+ * its own names for the types {@link #createArrayOf} builds.
  *
  * <p>Statements, calls and metadata are handed out as their Crate* wrappers,
  * so OBJECT&harr;{@code Map} conversion and the CrateDB metadata answers hold
@@ -49,10 +49,10 @@ public class CrateConnection extends ForwardingConnection {
     /**
      * CrateDB type names that differ from the {@code pg_catalog.pg_type} name
      * pgJDBC resolves an array element type by. A name absent here is looked
-     * up lower-cased, which is what carries the types the two spell alike.
+     * up lower-cased, which carries every type the two spell alike.
      *
-     * <p>{@code float} is deliberately the odd one out: PostgreSQL reads it as
-     * {@code float8} — pgJDBC's own alias table says so — while a CrateDB
+     * <p>{@code float} is deliberately the odd one out. pgJDBC's own alias
+     * table reads a PostgreSQL {@code float} as {@code float8}, while a CrateDB
      * {@code float} is the four-byte one.</p>
      */
     private static final Map<String, String> ARRAY_TYPE_ALIASES = Map.ofEntries(
@@ -77,9 +77,9 @@ public class CrateConnection extends ForwardingConnection {
     /**
      * The levels {@link #setTransactionIsolation} takes. JDBC reserves
      * {@link Connection#TRANSACTION_NONE} for {@link #getTransactionIsolation}
-     * to report and does not have a caller name it; it is taken here because
-     * that is the level this connection reports, and a framework that reads a
-     * level in order to put it back would be refused its own answer.
+     * to report and has no caller name it. It is taken here because a framework
+     * that reads the level in order to put it back would otherwise be refused
+     * the answer this connection just gave it.
      */
     private static final Set<Integer> ISOLATION_LEVELS = Set.of(
         Connection.TRANSACTION_NONE,
@@ -89,15 +89,15 @@ public class CrateConnection extends ForwardingConnection {
         Connection.TRANSACTION_SERIALIZABLE);
 
     /**
-     * Whether a column of this type holds moments rather than wall clocks.
+     * Whether a column of this type holds moments instead of wall clocks,
+     * which decides what a {@link java.sql.Timestamp} in an array means.
      *
-     * <p>It decides what a {@link java.sql.Timestamp} in an array means. A
-     * timestamp with a zone holds an instant, so the elements are written with
-     * their offset — pgJDBC would otherwise write each as a wall clock in the
-     * JVM's own zone, and the server, reading it as UTC, would store a moment
-     * the caller never named. A timestamp without a zone holds no instant, so
-     * the wall clock is the value, and rendering it in the JVM's zone is both
-     * what JDBC means by it and what the single-value path does.</p>
+     * <p>A timestamp with a zone holds an instant, so its elements are written
+     * carrying their offset. Left to pgJDBC each would go out as a wall clock
+     * in the JVM's zone, and the server would read it as UTC and store a moment
+     * the caller never named. A timestamp without a zone holds the wall clock
+     * itself, which JDBC reads in the JVM's zone, as the single-value path
+     * does.</p>
      */
     private static boolean holdsMoments(String pgTypeName) {
         return pgTypeName.equals("timestamptz")
@@ -106,7 +106,7 @@ public class CrateConnection extends ForwardingConnection {
 
     /**
      * A type name as {@code pg_type} spells it. Names are matched the way SQL
-     * matches them — every PostgreSQL type name is lower case, so a name that
+     * matches them. Every PostgreSQL type name is lower case, so a name that
      * resolves at all resolves lower-cased, whatever the caller wrote.
      */
     private static String pgTypeName(String typeName) throws SQLException {
@@ -122,10 +122,10 @@ public class CrateConnection extends ForwardingConnection {
     private CrateVersion crateVersion;
 
     /**
-     * Wraps a connection pgJDBC opened. Only this driver builds one: the
+     * Wraps a connection pgJDBC opened. Only this driver builds one. The
      * wrapper resolves pgJDBC's own interface from the delegate once and holds
-     * it, so a delegate that is itself a wrapper — a pool's handle, say — would
-     * leave the two reaching different objects.
+     * it, so a delegate that is itself a wrapper (a pool's handle) would leave
+     * the two reaching different objects.
      */
     CrateConnection(Connection delegate) throws SQLException {
         super(delegate);
@@ -133,10 +133,10 @@ public class CrateConnection extends ForwardingConnection {
 
     /**
      * Holds a statement's query timeout as the session's
-     * {@code statement_timeout} until the returned handle is closed, reading
-     * the session's own value as it is replaced and giving it back afterwards.
-     * A connection whose statements set no timeout never touches the setting.
-     * {@link CrateQueryTimeout} says why the setting is used at all.
+     * {@code statement_timeout} until the returned handle is closed, giving the
+     * session's own value back afterwards. A connection whose statements set no
+     * timeout never touches the setting. {@link CrateQueryTimeout} says why the
+     * setting is used at all.
      */
     CrateQueryTimeout appliedQueryTimeout(int seconds) throws SQLException {
         if (seconds == 0) {
@@ -155,13 +155,14 @@ public class CrateConnection extends ForwardingConnection {
     }
 
     /**
-     * There is nothing to undo: CrateDB has no {@code ROLLBACK} statement,
-     * and a statement is durable by the time it returns. What is left to do
-     * is end the transaction block pgJDBC opens under manual commit mode.
-     * Until it is ended pgJDBC refuses to change the read-only flag or the
-     * isolation level, and a server error marks it failed, so leaving it
-     * open strands the connection. {@code COMMIT}, which CrateDB parses and
-     * ignores, ends it; pgJDBC sends nothing when no block is open.
+     * There is nothing to undo: CrateDB has no {@code ROLLBACK} statement, and
+     * a statement is durable by the time it returns. This ends the transaction
+     * block pgJDBC opens under manual commit mode, and does nothing else.
+     *
+     * <p>Leaving that block open strands the connection. Until it ends, pgJDBC
+     * refuses to change the read-only flag or the isolation level, and a server
+     * error marks the block failed. {@code COMMIT} ends it and CrateDB parses
+     * and ignores it; pgJDBC sends nothing when no block is open.</p>
      */
     @Override
     public void rollback() throws SQLException {
@@ -175,11 +176,11 @@ public class CrateConnection extends ForwardingConnection {
 
     /**
      * CrateDB runs every statement on its own, so there is one isolation level
-     * to be in — {@link Connection#TRANSACTION_NONE}, the only one
+     * to be in: {@link Connection#TRANSACTION_NONE}, which
+     * {@link #getTransactionIsolation} reports and
      * {@link java.sql.DatabaseMetaData#supportsTransactionIsolationLevel}
-     * accepts and the one {@link #getTransactionIsolation} reports. A
-     * framework asking for one of PostgreSQL's levels is not refused, since
-     * there is nothing for the server to do differently either way.
+     * alone accepts. A framework asking for one of PostgreSQL's levels is
+     * still obliged, since the server does nothing differently either way.
      */
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
@@ -218,9 +219,9 @@ public class CrateConnection extends ForwardingConnection {
 
     /**
      * Savepoints are no more part of CrateDB's SQL grammar than
-     * {@code ROLLBACK} is, so they are refused as the unsupported feature
-     * {@link java.sql.DatabaseMetaData#supportsSavepoints} announces, rather
-     * than reaching the server and coming back as a syntax error.
+     * {@code ROLLBACK} is. Refusing them here makes them the unsupported
+     * feature {@link java.sql.DatabaseMetaData#supportsSavepoints} announces,
+     * instead of a syntax error from the server.
      */
     private static SQLFeatureNotSupportedException savepointsUnsupported() {
         return new SQLFeatureNotSupportedException("CrateDB does not support savepoints",
@@ -240,10 +241,10 @@ public class CrateConnection extends ForwardingConnection {
     }
 
     /**
-     * pgJDBC's overload, which also takes an array of primitives. Elements
-     * that are themselves arrays make a {@link CrateJsonArray}, whatever
-     * element type was named: CrateDB reads a column of nested arrays from
-     * json, having no PostgreSQL array form to send it in.
+     * pgJDBC's overload, which also takes an array of primitives. Elements that
+     * are themselves arrays make a {@link CrateJsonArray} whatever element type
+     * was named: CrateDB reads a column of nested arrays from json, having no
+     * PostgreSQL array form to send it in.
      */
     @Override
     public Array createArrayOf(String typeName, Object elements) throws SQLException {
@@ -263,10 +264,7 @@ public class CrateConnection extends ForwardingConnection {
         return new CrateArray(pgDelegate.createArrayOf(pgTypeName, pgElements));
     }
 
-    /**
-     * OBJECT elements as the json text pgJDBC sends them as, down through
-     * nested arrays.
-     */
+    /** OBJECT elements as json text, down through nested arrays. */
     private static Object[] toJson(Object[] elements) throws SQLException {
         Object[] json = new Object[elements.length];
         for (int i = 0; i < elements.length; i++) {
@@ -346,16 +344,7 @@ public class CrateConnection extends ForwardingConnection {
 
     /**
      * The version of the CrateDB server this connection is talking to, read
-     * from the server the first time it is asked for.
-     *
-     * <p>Synchronized because the read and the keeping of it are two steps:
-     * callers arriving together would otherwise each ask the server, and each
-     * come away holding a different object for one answer.</p>
-     *
-     * <p>A closed connection is asked before the kept version is given back,
-     * as it is for the metadata: holding an answer is what makes the second
-     * call free, and it is also what would let it answer where the first call
-     * could not.</p>
+     * once and kept, on the terms {@link #getMetaData} describes.
      */
     public synchronized CrateVersion getCrateVersion() throws SQLException {
         checkOpen();
@@ -373,15 +362,15 @@ public class CrateConnection extends ForwardingConnection {
     }
 
     /**
-     * The metadata of the database behind this connection — one object per
-     * connection, as pgJDBC hands it out, and one however many callers ask at
-     * once. The check and the assignment are two steps, so without the lock a
-     * pool validating a connection while an application reads from it would
-     * hand each of them its own.
+     * The metadata of the database behind this connection: one object per
+     * connection, as pgJDBC hands it out, however many callers ask at once.
+     * The check and the assignment are two steps, so without the lock a pool
+     * validating a connection while an application reads from it would hand
+     * each of them its own.
      *
-     * <p>A closed connection is asked before the kept object is given back.
-     * Holding one is what makes the second call free, and it is also what
-     * would let it answer where the first call could not.</p>
+     * <p>The connection is checked before the kept object is given back.
+     * Holding one makes the second call free, and would otherwise also let it
+     * answer where the first call could not.</p>
      */
     @Override
     public synchronized DatabaseMetaData getMetaData() throws SQLException {

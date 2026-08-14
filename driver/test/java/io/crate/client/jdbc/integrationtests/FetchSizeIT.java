@@ -201,7 +201,7 @@ public class FetchSizeIT extends BaseIntegrationTest {
 
     /**
      * How many rows the result set can still produce with the server out of
-     * reach, which is exactly how many it had read ahead.
+     * reach, exactly how many it had read ahead.
      */
     private static int rowsHeldByTheClient(Connection connection, ResultSet rs) throws SQLException {
         connection.abort(Runnable::run);

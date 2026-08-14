@@ -24,16 +24,15 @@ import java.util.Collection;
 import java.util.Map;
 
 /**
- * Adds reading a call's parameters to what {@link CratePreparedStatement}
- * already does with binding them: an OBJECT comes back as a {@code Map} and
- * an array as a {@link CrateArray}, as they do everywhere else in this
- * driver.
+ * Adds reading a call's parameters to the binding {@link CratePreparedStatement}
+ * already does. An OBJECT comes back as a {@code Map} and an array as a
+ * {@link CrateArray}, as everywhere else in this driver.
  *
- * <p>CrateDB has no stored procedures, so a call is an ordinary
- * parameterized statement, and its parameters are addressed by position.
- * pgJDBC implements none of the by-name forms — it answers every one of them
- * with {@code SQLFeatureNotSupportedException} — so the overrides for those
- * here settle what a parameter converts to for the day it does.</p>
+ * <p>CrateDB has no stored procedures, so a call is an ordinary parameterized
+ * statement whose parameters are addressed by position. pgJDBC answers every
+ * by-name form with {@code SQLFeatureNotSupportedException}, and the overrides
+ * for those here settle what a parameter converts to for the day it does
+ * implement them.</p>
  */
 public class CrateCallableStatement extends ForwardingCallableStatement {
 
@@ -62,11 +61,11 @@ public class CrateCallableStatement extends ForwardingCallableStatement {
     }
 
     /**
-     * The type a caller asks for is pgJDBC's to answer except where json is
-     * what came back, which it would hand over as text. The untyped read that
-     * decides which of the two it is happens only for the types json can be
-     * read into, so a parameter pgJDBC can only decode into the type asked for
-     * is never read untyped first.
+     * The type a caller asks for is pgJDBC's to answer unless json came back,
+     * which it would hand over as text. The untyped read that settles which of
+     * the two it is runs only for the types json can be read into, so a
+     * parameter pgJDBC can only decode into the type asked for is never read
+     * untyped first.
      */
     @Override
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
@@ -98,10 +97,10 @@ public class CrateCallableStatement extends ForwardingCallableStatement {
 
     /**
      * Whether a json value can be read as this type: an OBJECT into any
-     * {@code Map}, a series of arrays into any {@code Collection}, and either
-     * into {@code Object}. These are the types
-     * {@link CrateResultSet#asType} has an answer for, and asking it about any
-     * other only costs a read of the parameter.
+     * {@code Map}, a series of arrays into any {@code Collection}, either into
+     * {@code Object}. {@link CrateResultSet#asType} answers for exactly these,
+     * and asking it about another type would cost a read of the parameter for
+     * nothing.
      */
     private static boolean readableFromJson(Class<?> type) {
         return type != null

@@ -45,9 +45,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * <p>Every other suite runs against a cluster of one, where a whole set of the
  * driver's decisions cannot be wrong: {@code loadBalanceHosts} is on by
  * default and has nothing to balance over, and the reason a query timeout is
- * given to the server directly — that pgJDBC delivers one as a cancel request
- * on a second connection, which a load balancer may point at a node that knows
- * nothing of the session — needs a second node to exist at all.</p>
+ * given to the server directly, namely that pgJDBC delivers one as a cancel
+ * request on a second connection which a load balancer may point at a node
+ * knowing nothing of the session, needs a second node to exist at all.</p>
  *
  * <p>The cluster is this suite's own rather than the one
  * {@code BaseIntegrationTest} hands out, so that these run wherever the

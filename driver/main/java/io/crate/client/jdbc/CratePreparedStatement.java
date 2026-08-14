@@ -78,7 +78,7 @@ public class CratePreparedStatement extends ForwardingPreparedStatement {
 
     /**
      * What the rows this statement would produce hold, in the terms this
-     * driver reads them in — the same answer the rows themselves give.
+     * driver reads them in, matching what the rows themselves report.
      */
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
@@ -88,7 +88,7 @@ public class CratePreparedStatement extends ForwardingPreparedStatement {
 
     /**
      * What this statement's parameters take, in the terms this driver binds
-     * them in — the same forms {@link #setObject} accepts.
+     * them in, matching the forms {@link #setObject} accepts.
      */
     @Override
     public ParameterMetaData getParameterMetaData() throws SQLException {

@@ -41,16 +41,21 @@ import java.util.stream.Collectors;
  * a newer JDBC spec adds methods. Where java.sql nests one interface inside
  * another, the generated class picks up where the inner interface's wrapper
  * leaves off, so each level is generated plumbing over the behavior below it
- * and no behavior is written twice. pgJDBC has to be on the classpath,
- * because the connection and statement wrappers also carry its public
- * interfaces:
+ * and no behavior is written twice.
  *
+ * <p>Regenerate with {@code make forwarding}, which runs
+ *
+ * <pre>
  *   java -cp path/to/postgresql.jar devtools/GenerateForwarding.java [output dir]
+ * </pre>
  *
- * Run it from the repository root. The generated sources compile against
- * the Java version in {@code options.release}, which is older than the JDK
- * that runs the generator; methods java.sql has gained since then are
- * listed in {@link #NOT_IN_RELEASE_11}.
+ * from the repository root, against the pgJDBC and the JDK the build pins.
+ * pgJDBC has to be on the classpath because the connection and statement
+ * wrappers carry its public interfaces too. Launching it directly picks up
+ * whichever JDK is on PATH, and the generated sources compile against the older
+ * Java version in {@code options.release}: methods java.sql has gained since
+ * then are listed in {@link #NOT_IN_RELEASE_11}, and which of those apply is a
+ * property of the generating JDK.</p>
  */
 public class GenerateForwarding {
 
@@ -63,12 +68,11 @@ public class GenerateForwarding {
 
     /**
      * The JDBC interface a Forwarding* class wraps and the field holding the
-     * delegate at that type; where java.sql nests one interface inside
-     * another, the wrapper it extends and the interface that wrapper already
-     * answers; and the pgJDBC interfaces it additionally implements, which
-     * keep the pgJDBC-specific API reachable by a plain cast, the way it is
-     * written in the wild:
-     * {@code ((PGConnection) connection).getNotifications()}.
+     * delegate at that type. Where java.sql nests one interface inside another,
+     * it also carries the wrapper this one extends and the interface that
+     * wrapper already answers. The extra pgJDBC interfaces keep the
+     * pgJDBC-specific API reachable by a plain cast, as it is written in the
+     * wild: {@code ((PGConnection) connection).getNotifications()}.
      */
     private record Spec(Class<?> iface, String field, Class<?> covered, String base,
                         Class<?>... extraInterfaces) {
@@ -83,11 +87,11 @@ public class GenerateForwarding {
         Spec.of(java.sql.Connection.class, org.postgresql.PGConnection.class),
         Spec.of(java.sql.Statement.class, org.postgresql.PGStatement.class),
         // A prepared statement is a statement whose text is fixed and whose
-        // parameters are bound, and a call is a prepared statement whose
-        // parameters can also be addressed by name. Each wrapper starts from
-        // the one below it and forwards only what its interface adds, so that
-        // what a statement does with a query timeout and its result sets is
-        // written once and inherited all the way down.
+        // parameters are bound; a call is a prepared statement whose parameters
+        // can also be addressed by name. Each wrapper starts from the one below
+        // it and forwards only what its own interface adds, so a statement's
+        // handling of query timeouts and result sets is written once and
+        // inherited all the way down.
         new Spec(java.sql.PreparedStatement.class, "preparedDelegate",
             java.sql.Statement.class, "CrateStatement"),
         new Spec(java.sql.CallableStatement.class, "callableDelegate",
@@ -114,17 +118,15 @@ public class GenerateForwarding {
      * add entries here; the compiler names whatever is missing.
      *
      * <p>A method left out is not forwarded, so a wrapper answers it with
-     * whatever default {@code java.sql} gives the interface — which is the
-     * only thing a driver built for Java 11 can do about a method Java 11 does
-     * not have.</p>
+     * whatever default {@code java.sql} gives the interface. That is all a
+     * driver built for Java 11 can do about a method Java 11 does not have.</p>
      *
-     * <p>An entry naming a method the generating JDK does not declare either
-     * matches nothing and costs nothing — the four below are on
-     * {@code Statement} through Java 21 and on {@code Connection} as well from
-     * Java 25. Which is why the build pins the JDK it generates on: whether an
-     * entry applies is a property of that JDK, and the checked-in sources have
-     * to be the same wherever they are regenerated. A method a newer JDK adds
-     * without an entry here is not silently lost — it is emitted, and the
+     * <p>An entry naming a method the generating JDK does not declare matches
+     * nothing and costs nothing: the four below are on {@code Statement}
+     * through Java 21, and on {@code Connection} as well from Java 25. Whether
+     * an entry applies is therefore a property of the generating JDK, and the
+     * build pins it so that regenerating produces the same sources everywhere.
+     * A method a newer JDK adds without an entry here is emitted, and the
      * {@code --release 11} compile names it.</p>
      */
     private static final java.util.Set<String> NOT_IN_RELEASE_11 = java.util.Set.of(

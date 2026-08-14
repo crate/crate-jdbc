@@ -410,7 +410,7 @@ public class TypesIT extends BaseIntegrationTest {
     /**
      * The conversion a value goes through on the way in does not depend on
      * which {@code setObject} a caller reached for. JDBC defines five, and a
-     * framework binding through the ones that name a target type — which is
+     * framework binding through the ones that name a target type, as
      * most of them — would otherwise be handing the server a value this driver
      * never converted.
      *
@@ -447,15 +447,15 @@ public class TypesIT extends BaseIntegrationTest {
     }
 
     /**
-     * Each of those forms is two paths — this driver converts the value, or
-     * hands it to pgJDBC — and only the first is the driver's own. Handed a
+     * Each of those forms is two paths, this driver either converting the
+     * value or handing it to pgJDBC, and only the first is the driver's own. Handed a
      * value it does not convert, the two forms that name the target type as a
      * {@link java.sql.SQLType} raise {@link SQLFeatureNotSupportedException}:
      * pgJDBC has not implemented them, and reaches them only for a value this
      * driver passes on.
      *
      * <p>So the {@code SQLType} forms serve a caller binding an OBJECT or a
-     * nested array and nothing else, which is the reverse of what a caller
+     * nested array alone, the reverse of what a caller
      * would expect from the form that names the plainest types.</p>
      */
     @ParameterizedTest(name = "{0}")
@@ -698,9 +698,9 @@ public class TypesIT extends BaseIntegrationTest {
     }
 
     /**
-     * A column of {@code array(array(...))} travels as json — the PostgreSQL
-     * array format cannot hold sub-arrays of differing length — and reads
-     * back through every way of asking for an array or for the value itself.
+     * The PostgreSQL array format cannot hold sub-arrays of differing length,
+     * so a column of {@code array(array(...))} travels as json. It reads back
+     * through every way of asking for an array or for the value itself.
      */
     @Test
     public void nestedArraysReadAsArraysOfArrays() throws Exception {
@@ -775,7 +775,7 @@ public class TypesIT extends BaseIntegrationTest {
     }
 
     /**
-     * A nested column declared as a timestamp takes one, which is where the
+     * A nested column declared as a timestamp takes one, and that is where the
      * form a temporal value is written in has to be one CrateDB reads a
      * timestamp from.
      */
@@ -907,7 +907,7 @@ public class TypesIT extends BaseIntegrationTest {
      * where an offset would go astray if the driver added one.
      *
      * <p>A {@code LocalDateTime} carries none, and CrateDB reads a timestamp
-     * that names no offset as UTC — not as the JVM's zone, which is the
+     * that names no offset as UTC, not as the JVM's zone, the
      * assumption a local-zone PostgreSQL leaves behind. The suite runs in UTC,
      * so the values are built against a zone of their own rather than the
      * default one.</p>
@@ -1129,7 +1129,7 @@ public class TypesIT extends BaseIntegrationTest {
 
     /**
      * A converted value still reports whether the column was null. The
-     * conversions this driver adds read the value before answering, which is
+     * conversions this driver adds read the value before answering, and that is
      * where a wrapping driver classically loses the flag.
      */
     @Test
@@ -1200,7 +1200,7 @@ public class TypesIT extends BaseIntegrationTest {
 
     /**
      * A series whose elements are boxed as different kinds of number binds as
-     * the widest of them, which is the CrateDB array type they describe
+     * the widest of them, the CrateDB array type they describe
      * between them. A series of nothing but nulls describes none, and is left
      * for the server to type from the column.
      */

@@ -74,11 +74,11 @@ with them.
 definition — CrateDB stores JSON data in ``object`` columns. A value cast to
 ``json`` reads back as a ``Map``, the same way an ``object`` does.
 
-Binding a ``java.time`` value carries the zone it has. A ``LocalDateTime``
-has none, and a ``timestamptz`` column reads one as UTC rather than in the
-JVM's zone — which is what CrateDB does with a timestamp that names no
-offset, and the opposite of the habit a local-zone PostgreSQL leaves. Bind
-an ``OffsetDateTime`` or an ``Instant`` where the offset matters.
+Binding a ``java.time`` value carries the zone it has. A ``LocalDateTime`` has
+none, and a ``timestamptz`` column reads one as UTC instead of in the JVM's
+zone, which is what CrateDB does with any timestamp naming no offset. A
+local-zone PostgreSQL leaves the opposite habit. Bind an ``OffsetDateTime`` or
+an ``Instant`` where the offset matters.
 
 
 .. _vector-search:
@@ -160,15 +160,14 @@ Arrays of timestamps
 
 A ``timestamp with time zone`` holds an instant, so an array of them is bound
 with each element's offset written out and means the same moment wherever the
-JVM stands. A ``timestamp without time zone`` holds a wall clock instead, and
-an array of them is bound in the JVM's own zone — the same reading
-``setTimestamp()`` gives a single value, and the same one ``getTimestamp()``
-gives back.
+JVM stands. A ``timestamp without time zone`` holds a wall clock, and an array
+of them is bound in the JVM's own zone. That is the reading ``setTimestamp()``
+gives a single value, and the one ``getTimestamp()`` gives back.
 
-Binding a collection is the one case with nothing to go on: the column type is
-not known at the point the values are converted, so the elements are written as
-the instants they name. A ``List<java.sql.Timestamp>`` therefore lands in a
-``timestamp without time zone`` column as its UTC wall clock rather than the
+Binding a collection is the one case with nothing to go on. The column type is
+unknown at the point the values are converted, so the elements are written as
+the instants they name, and a ``List<java.sql.Timestamp>`` lands in a
+``timestamp without time zone`` column as its UTC wall clock instead of the
 JVM's. Name the type to say which is meant:
 
 .. code-block:: java
@@ -186,7 +185,7 @@ JVM's. Name the type to say which is meant:
 Arrays of geographic points
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A ``geo_point`` is a pair of doubles, which makes an array of them
+A ``geo_point`` is a pair of doubles, which leaves an array of them
 indistinguishable from an array of arrays. CrateDB accepts no array of numbers
 for a ``geo_point`` array, so bind the points as the WKT text it does accept:
 
@@ -197,9 +196,9 @@ for a ``geo_point`` array, so bind the points as the WKT text it does accept:
 Arrays of arrays
 ~~~~~~~~~~~~~~~~
 
-A column of ``array(array(...))`` travels as JSON rather than as a PostgreSQL
-array — the PostgreSQL array format cannot hold sub-arrays of differing
-length. The driver reads it either way round:
+The PostgreSQL array format cannot hold sub-arrays of differing length, so a
+column of ``array(array(...))`` travels as JSON. The driver reads it either way
+round:
 
 .. code-block:: java
 
@@ -221,9 +220,9 @@ with ``createArrayOf()``:
 
 .. NOTE::
 
-   ``Array.getResultSet()`` is the one thing such a column cannot offer: its
+   ``Array.getResultSet()`` is the one thing such a column cannot offer. Its
    elements are arrays, and the PostgreSQL protocol has no column descriptor
-   for those. It raises ``SQLFeatureNotSupportedException``; ``getArray()``
+   for those, so it raises ``SQLFeatureNotSupportedException``. ``getArray()``
    reads the same elements.
 
 Type descriptions
@@ -247,19 +246,18 @@ described class and the value ``getObject()`` returns differ:
 | ``regproc``            |                          |                        |
 +------------------------+--------------------------+------------------------+
 
-Code that maps values by their described type — rather than by reading them
-through ``getObject()`` — has to account for that. Casting a value to the class
-named for it throws ``ClassCastException`` for ``bit(n)``, ``regclass`` and
-``regproc``, which is the use ``getColumnClassName()`` exists for.
+Code that maps values by their described type, instead of reading them through
+``getObject()``, has to account for that. Casting a value to the class named for
+it throws ``ClassCastException`` for ``bit(n)``, ``regclass`` and ``regproc``,
+which is the use ``getColumnClassName()`` exists for.
 
-The three rows CrateDB sends as json share one column type, so the described
-class is the one they have in common. An ``object`` reads as a ``Map`` and a
-column of nested arrays as a ``List``, and which of the two a column holds is
-not something the described type can say.
+CrateDB sends the first three rows under one column type, so the described class
+is the one their forms have in common. An ``object`` reads as a ``Map`` and a
+column of nested arrays as a ``List``, and the described type cannot say which
+of the two a column holds.
 
 The last two rows are pgJDBC's own type descriptions rather than anything
-CrateDB does: the ``bit(n)`` one is `pgjdbc#2955`_, open upstream since
-September 2023, and the ``regclass`` and ``regproc`` one is reported nowhere.
+CrateDB does. The ``bit(n)`` one is `pgjdbc#2955`_, open upstream.
 
 Object types
 ------------
@@ -281,10 +279,10 @@ every nested column of the object, through ``getObject()``:
 An ``object`` column can hold null, in which case ``getObject()`` returns
 null rather than an empty map.
 
-The value arrives as json text, and the map is built from it on each read.
-Code that only forwards an object elsewhere — an export, a copy between
-stores — can take the text itself with ``getString()`` and skip building the
-map, which is the larger of the two by several times.
+The value arrives as json text, and the map is built from it on each read. The
+map is several times the larger of the two, so code that only forwards an object
+elsewhere (an export, a copy between stores) can take the text itself with
+``getString()`` and skip building it.
 
 Json carries fewer types than Java does, so a map written and read back is
 not always the map that went in:
@@ -294,9 +292,9 @@ not always the map that went in:
   the value would make what a nested column reads as depend on the row.
 - A ``java.time`` value is written as ISO-8601 text, which CrateDB reads a
   ``timestamp`` from. A ``java.sql.Timestamp`` is written as epoch
-  milliseconds, which it equally reads a ``timestamp`` from — but a
-  *dynamic* object infers ``bigint`` from it, so declare the nested column
-  if a ``timestamp`` is what it should be.
+  milliseconds, which it equally reads a ``timestamp`` from, though a
+  *dynamic* object infers ``bigint`` from it. Declare the nested column where
+  a ``timestamp`` is what it should be.
 - A ``byte[]`` is written as base64 text and reads back as a ``String``.
 - A ``BigDecimal`` reads back as a ``Double``, since a nested column of a
   fractional number is a ``double precision``.

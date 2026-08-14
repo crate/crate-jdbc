@@ -41,10 +41,9 @@ public class CrateArray implements Array {
 
     /**
      * Every method but {@link #free()} raises once the array has been given
-     * up, which is what JDBC has a freed array do. Freeing drops what pgJDBC
-     * read the elements from, and what its own methods do about that varies by
-     * the one called: some answer null, and some reach for the connection they
-     * no longer hold.
+     * up, as JDBC has a freed array do. Freeing drops what pgJDBC read the
+     * elements from, and its own methods differ over what to do about that:
+     * some answer null, others reach for the connection they no longer hold.
      */
     private void checkUsable() throws SQLException {
         if (freed) {
@@ -53,9 +52,8 @@ public class CrateArray implements Array {
     }
 
     /**
-     * The pgJDBC array underneath. Binding an array as a statement parameter
-     * goes through the array literal or the binary representation pgJDBC
-     * builds from its own implementation.
+     * The pgJDBC array underneath. Binding one as a parameter goes through the
+     * literal or binary form pgJDBC builds from its own implementation.
      */
     Array delegate() {
         return delegate;
@@ -91,11 +89,11 @@ public class CrateArray implements Array {
     }
 
     /**
-     * Elements are converted in place down through nested arrays. An array
-     * whose elements all come back unchanged is handed on as pgJDBC built
-     * it, keeping its component type ({@code String[]}, {@code Integer[]},
-     * ...); converting widens the array to {@code Object[]}, since a
-     * converted value does not share a type with the elements around it.
+     * Elements are converted in place, down through nested arrays. An array
+     * whose elements all come back unchanged is handed on as pgJDBC built it,
+     * keeping its component type ({@code String[]}, {@code Integer[]}).
+     * Converting widens the array to {@code Object[]}, since a converted value
+     * shares no type with the elements around it.
      */
     private static Object convert(Object array, boolean jsonElements) throws SQLException {
         if (!(array instanceof Object[])) {
@@ -136,10 +134,7 @@ public class CrateArray implements Array {
         return delegate.getBaseType();
     }
 
-    /**
-     * The index/value pairs of this array. The rows belong to the array rather
-     * than to a statement, so they report none.
-     */
+    /** The index/value pairs. The rows belong to the array, so report no statement. */
     @Override
     public ResultSet getResultSet() throws SQLException {
         checkUsable();

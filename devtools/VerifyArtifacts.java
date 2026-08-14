@@ -32,15 +32,15 @@ import java.util.jar.Manifest;
  * Checks what the driver's two artifacts contain and how each behaves on the
  * classpaths it is dropped into.
  *
- * <p>Three things vary, and all three decide which classes load and in which
- * order: the artifact — {@code crate-jdbc}, which declares pgJDBC as a
- * dependency, or {@code crate-jdbc-standalone}, which bundles a relocated copy
- * of it; the arrangement — the system classpath, or a class loader of its own
- * as a tool that keeps each driver in a plugin directory would build; and
+ * <p>Three things vary, and each decides which classes load and in which
+ * order. The artifact is either {@code crate-jdbc}, which declares pgJDBC as a
+ * dependency, or {@code crate-jdbc-standalone}, which bundles a relocated copy.
+ * The arrangement is either the system classpath or a class loader of its own,
+ * as built by a tool that keeps each driver in a plugin directory. The third is
  * which class an application touches first, since registering with the
- * {@link DriverManager} happens in a class initializer. No value oracle sees
- * any of this: a fault here is a driver that answers the wrong URLs, or none,
- * while every value it does return is right.</p>
+ * {@link DriverManager} happens in a class initializer. A fault here is a
+ * driver that answers the wrong URLs, or none, while every value it does return
+ * is right, so no suite reading values would see it.</p>
  *
  * <p>Each scenario runs in a JVM of its own, because a JVM decides class
  * initialization once. Run through the {@code verifyArtifacts} Gradle task:
@@ -56,9 +56,8 @@ public class VerifyArtifacts {
     private static String shadedPath;
 
     /**
-     * Class-file namespaces that must not appear unrelocated: a second copy
-     * of them on an application's classpath is what the standalone jar
-     * exists to avoid.
+     * Class-file namespaces that must not appear unrelocated. The standalone
+     * jar exists to keep a second copy of them off an application's classpath.
      */
     private static final String[] MUST_BE_RELOCATED = {
         "org/postgresql/", "com/fasterxml/", "org/checkerframework/",
@@ -81,9 +80,8 @@ public class VerifyArtifacts {
         boolean standalone = artifact.equals("standalone");
 
         if (standalone) {
-            // What the jar holds is a property of the jar, not of the
-            // classpath, so it is checked once per scenario rather than once
-            // per run only because each scenario is its own JVM.
+            // A property of the jar rather than of the classpath. It runs
+            // once per scenario only because each scenario is its own JVM.
             verifyContents(new File(classpath[0]));
         }
         if (scenario.equals("alone")) {
@@ -134,8 +132,8 @@ public class VerifyArtifacts {
         expectPresent(entries, "io/crate/client/jdbc/CrateDriver.class");
         expectPresent(entries, shadedPath + "org/postgresql/Driver.class");
         // The driver reads its own version from here, and does so the first
-        // time an application asks for it rather than at startup — so a jar
-        // that shipped without it would fail in the field, not here.
+        // time an application asks rather than at startup, so a jar that
+        // shipped without it would fail in the field instead of here.
         expectPresent(entries, "io/crate/client/jdbc/version.properties");
         expectPresent(entries, "META-INF/LICENSE");
         expectPresent(entries, "META-INF/NOTICE");
@@ -150,11 +148,10 @@ public class VerifyArtifacts {
 
     /**
      * The artifact as it sits in a tool's driver directory. Both answer crate
-     * URLs. What each does with a postgresql URL is the difference between
-     * them: the standalone jar's pgJDBC is a relocated copy that belongs to
-     * the driver, so it stays out of the DriverManager, while the thin
-     * artifact's is the published one an application put on its own classpath
-     * and has to keep answering.
+     * URLs, and a postgresql URL is where they differ. The standalone jar's
+     * pgJDBC is a relocated copy belonging to the driver, so it stays out of
+     * the DriverManager; the thin artifact's is the published one an
+     * application put on its own classpath, and has to keep answering.
      */
     private static void verifyAlone(boolean standalone) throws Exception {
         Driver crateDriver = DriverManager.getDriver("jdbc:crate://localhost:5432/doc");
@@ -187,9 +184,9 @@ public class VerifyArtifacts {
      * standalone artifact building one instantiates the bundled pgJDBC driver,
      * which registers itself, and only {@link io.crate.client.jdbc.CrateDriver}'s
      * class initializer takes it back out. Nothing here loads that class on
-     * purpose: the jar's single service entry names it, so the DriverManager
-     * loads it before it can answer any lookup. This scenario holds that order
-     * — a second service entry, or a driver lookup that skips the service
+     * purpose. The jar's single service entry names it, so the DriverManager
+     * loads it before it can answer any lookup, and this scenario holds that
+     * order. A second service entry, or a driver lookup skipping the service
      * scan, would let the bundled pgJDBC answer {@code jdbc:postgresql://}.
      */
     private static void verifyDataSourceLoadedFirst(boolean standalone) throws Exception {
@@ -208,11 +205,11 @@ public class VerifyArtifacts {
     }
 
     /**
-     * An application that names the driver class itself, as configuration that
-     * predates the service entry has it do. This reaches the driver's class
-     * initializer without the DriverManager's service scan, which is the other
-     * way in — and the one that decides, in the standalone artifact, whether
-     * the bundled pgJDBC is taken back out before anything can ask for it.
+     * An application that names the driver class itself, as configuration
+     * predating the service entry has it do. This is the other way into the
+     * driver's class initializer, reaching it without the DriverManager's
+     * service scan, and in the standalone artifact it decides whether the
+     * bundled pgJDBC is taken back out before anything can ask for it.
      */
     private static void verifyDriverClassLoadedFirst(boolean standalone) throws Exception {
         Class.forName("io.crate.client.jdbc.CrateDriver");
@@ -224,10 +221,10 @@ public class VerifyArtifacts {
     }
 
     /**
-     * Who answers a {@code jdbc:postgresql://} URL. In the thin artifact that
-     * is the published pgJDBC the application put on its classpath, and it has
-     * to still be registered: the driver takes a bundled pgJDBC out of the
-     * DriverManager, and doing that to a pgJDBC it does not own would break
+     * Who answers a {@code jdbc:postgresql://} URL. In the thin artifact it is
+     * the published pgJDBC the application put on its classpath, which has to
+     * still be registered. The driver takes a bundled pgJDBC out of the
+     * DriverManager, and doing the same to one it does not own would break
      * every application that uses both.
      */
     private static void expectPostgresUrlsAnswered(boolean standalone) throws Exception {
@@ -244,29 +241,29 @@ public class VerifyArtifacts {
         Driver postgres = DriverManager.getDriver("jdbc:postgresql://localhost:5432/doc");
         expect("org.postgresql.Driver".equals(postgres.getClass().getName()),
             "postgresql URLs answered by " + postgres.getClass().getName());
-        // Named rather than imported: on the standalone classpath there is no
-        // org.postgresql package for this program to compile against.
+        // Named, not imported. The standalone classpath has no org.postgresql
+        // package for this program to compile against.
         expect((boolean) Class.forName("org.postgresql.Driver")
                 .getMethod("isRegistered").invoke(null),
             "the pgJDBC the application installed was taken out of the DriverManager");
     }
 
     /**
-     * The jar in a class loader of its own, which is how a tool that keeps
-     * each driver in its own plugin directory loads it — Apache Hop, Pentaho,
-     * DBeaver, a servlet container's web application.
+     * The jar in a class loader of its own, as a tool keeping each driver in
+     * its own plugin directory loads it (Apache Hop, Pentaho, DBeaver, a
+     * servlet container's web application).
      *
-     * <p>The {@code META-INF/services} entry does not carry the driver here:
-     * the DriverManager scans for services with the thread context class
-     * loader, which does not reach into a loader it knows nothing about. So
-     * nothing loads {@link io.crate.client.jdbc.CrateDriver} on the
-     * DriverManager's behalf, and the bundled pgJDBC — which registers itself
-     * the moment anything in the jar touches it — would stay registered.</p>
+     * <p>The {@code META-INF/services} entry does not carry the driver here.
+     * The DriverManager scans for services with the thread context class
+     * loader, which does not reach into a loader it knows nothing about, so
+     * nothing loads {@link io.crate.client.jdbc.CrateDriver} on its behalf. The
+     * bundled pgJDBC registers itself the moment anything in the jar touches
+     * it, and would stay registered.</p>
      *
-     * <p>What is asked of the bundled driver is whether it holds a
-     * registration, rather than whether the DriverManager hands it out: the
-     * DriverManager only reports drivers the asking class loader can see, so
-     * from out here it would answer no either way.</p>
+     * <p>The bundled driver is asked whether it holds a registration, not
+     * whether the DriverManager hands it out. The DriverManager reports only
+     * drivers the asking class loader can see, so from out here it would answer
+     * no either way.</p>
      */
     private static void verifyInPluginClassLoader(boolean standalone, String[] classpath)
             throws Exception {
@@ -276,7 +273,7 @@ public class VerifyArtifacts {
         }
         // The platform loader as parent keeps the copy on this program's own
         // classpath out of the way, so the classes under test are the plugin
-        // loader's and their initialization is what is being observed.
+        // loader's and it is their initialization being observed.
         try (URLClassLoader plugin = new URLClassLoader(urls, ClassLoader.getPlatformClassLoader())) {
             Class.forName("io.crate.client.jdbc.CrateDataSource", true, plugin);
 
@@ -294,8 +291,8 @@ public class VerifyArtifacts {
                     "the pgJDBC the application installed was taken out of the DriverManager");
             }
 
-            // Reading the driver's own version reaches version.properties, which
-            // is packaged rather than compiled in.
+            // Reading the driver's own version reaches version.properties,
+            // which is packaged rather than compiled in.
             Class<?> driver = Class.forName("io.crate.client.jdbc.CrateDriver", true, plugin);
             Object version = driver.getMethod("getMajorVersion")
                 .invoke(driver.getDeclaredConstructor().newInstance());
@@ -304,8 +301,8 @@ public class VerifyArtifacts {
     }
 
     /**
-     * The jar next to a stock pgJDBC, the situation in tools that ship both:
-     * the two drivers stay in their own lane.
+     * The jar next to a stock pgJDBC, as tools shipping both arrange it. Each
+     * driver answers its own URL scheme and no other.
      */
     private static void verifyAlongsidePostgresDriver() throws Exception {
         Driver crateDriver = DriverManager.getDriver("jdbc:crate://localhost:5432/doc");

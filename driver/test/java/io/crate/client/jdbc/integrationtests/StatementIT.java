@@ -41,9 +41,9 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * The controls JDBC puts on a statement — a timeout, a row cap, escape
- * syntax, and the closing rules — against a real server. They are stock
- * pgJDBC behavior, which means they hold only as far as CrateDB answers the
+ * The four controls JDBC puts on a statement, against a real server: a
+ * timeout, a row cap, escape syntax, and the closing rules. They are stock
+ * pgJDBC behavior, so they hold only as far as CrateDB answers the
  * protocol pgJDBC uses for them: a timeout, for instance, is a cancel request
  * sent over a second connection rather than anything the driver decides on
  * its own.
@@ -52,13 +52,14 @@ public class StatementIT extends BaseIntegrationTest {
 
     /**
      * A cross join over {@link #ROWS} rows per side: 2.5 billion row
-     * combinations, so no machine finishes it within {@link #TIMEOUT_SECONDS}.
-     * The size is what makes the timeout the reason the query ends — a tenth
-     * of it is answered well inside the timeout. The table matters as much: a
-     * query over {@code sys} tables, which CrateDB answers from memory on the
-     * thread serving the connection, holds that thread for its whole duration
-     * and is bounded by neither the cancel request a timeout sends nor the
-     * server's {@code statement_timeout}.
+     * combinations, so no machine finishes it within {@link #TIMEOUT_SECONDS}
+     * and the timeout is the reason it ends. A tenth of it answers well inside
+     * the timeout.
+     *
+     * <p>A user table is what makes the query bounded at all. CrateDB answers a
+     * query over {@code sys} tables inline instead of dispatching it, and never
+     * arms {@code statement_timeout} for one, so such a query would end only if
+     * the cancel request happened to land.</p>
      */
     private static final String LONG_RUNNING = "select count(*) from numbers a, numbers b";
 
@@ -111,8 +112,8 @@ public class StatementIT extends BaseIntegrationTest {
     /**
      * The timeout belongs to the statement that set it. The driver carries it
      * to the server as the session's {@code statement_timeout}, so the value
-     * the session already held — nothing, or one the application set for its
-     * own connection — is what it holds again afterwards.
+     * the session already held is what it holds again afterwards, whether
+     * that is nothing or one the application set for its own connection.
      *
      * <p>{@code 90s} is there because CrateDB prints it as {@code 1.5m} and
      * rejects {@code 1.5m}, so a setting given back in the spelling it was read
@@ -147,8 +148,8 @@ public class StatementIT extends BaseIntegrationTest {
     }
 
     /**
-     * A statement produces one result set per query it was given, which is
-     * what {@code getMoreResults()} walks. CrateDB answers a query text
+     * A statement produces one result set per query it was given, and
+     * {@code getMoreResults()} walks them. CrateDB answers a query text
      * holding several statements with several result sets, the way
      * {@code DatabaseMetaData.supportsMultipleResultSets()} announces.
      */
@@ -254,8 +255,8 @@ public class StatementIT extends BaseIntegrationTest {
     /**
      * A statement asked for with a scroll type, a concurrency or a holdability
      * is still one of this driver's, so the CrateDB behavior does not depend on
-     * how a caller asked for it. A framework that configures its statements —
-     * most do — would otherwise be handed pgJDBC's.
+     * how a caller asked for it. Most frameworks configure their statements,
+     * and would otherwise be handed pgJDBC's.
      */
     @Test
     public void statementsAskedForWithOptionsAreStillThisDriversOwn() throws Exception {
@@ -283,8 +284,8 @@ public class StatementIT extends BaseIntegrationTest {
 
     /**
      * A scroll type is not only accepted but honoured: the rows are held so
-     * that a caller can move about in them, which is what a report generator
-     * asking for one is after.
+     * that a caller can move about in them, which a report generator asking
+     * for one is after.
      */
     @Test
     public void aScrollableResultSetScrolls() throws Exception {
@@ -302,7 +303,8 @@ public class StatementIT extends BaseIntegrationTest {
     }
 
     /**
-     * CrateDB generates no keys — no sequences, no identity columns — but the
+     * CrateDB generates no keys, having neither sequences nor identity
+     * columns, and yet the
      * request still answers, because pgJDBC serves it by asking the server to
      * return the row it just wrote. So what comes back is the inserted row
      * rather than anything the server made up, and naming columns narrows it.

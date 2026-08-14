@@ -25,10 +25,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The version of the CrateDB server behind a connection, as opposed to the
- * PostgreSQL release CrateDB emulates on the wire — which is what
- * {@code DatabaseMetaData.getDatabaseProductVersion()} reports, because that
- * is the version pgJDBC and PostgreSQL tooling reason about.
+ * The version of the CrateDB server behind a connection.
+ * {@code DatabaseMetaData.getDatabaseProductVersion()} reports the PostgreSQL
+ * release CrateDB emulates on the wire instead, that being the version pgJDBC
+ * and PostgreSQL tooling reason about.
  */
 public final class CrateVersion {
 

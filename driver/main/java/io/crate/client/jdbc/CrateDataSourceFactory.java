@@ -24,12 +24,11 @@ import javax.naming.spi.ObjectFactory;
 import java.util.Hashtable;
 
 /**
- * Rebuilds a {@link CrateDataSource} from the JNDI reference it was bound
- * as. A directory holds a data source as the properties it was configured
- * with plus the name of the factory that turns them back into an object, and
- * pgJDBC's own factory answers only for pgJDBC's classes — a CrateDB data
- * source it is handed is not one it knows, and it says so by returning
- * nothing.
+ * Rebuilds a {@link CrateDataSource} from the JNDI reference it was bound as.
+ * A directory holds a data source as the properties it was configured with plus
+ * the name of the factory that turns them back into an object. pgJDBC's own
+ * factory answers for pgJDBC's classes alone, and returns nothing when handed a
+ * CrateDB data source.
  */
 public class CrateDataSourceFactory implements ObjectFactory {
 

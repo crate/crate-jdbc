@@ -23,37 +23,23 @@ import java.sql.Types;
 
 /**
  * What a statement's parameters take, answered for the parameters this driver
- * binds itself. A CrateDB OBJECT and a column of nested arrays both take json,
- * which {@link CrateParameters} builds from a {@code Map} or a {@code List}
- * rather than expecting pgJDBC's {@code PGobject} — so pgJDBC's answer for what
- * {@code setObject} accepts is not the one that holds here.
+ * binds itself. {@link CrateParameters} builds a json parameter from a
+ * {@code Map} or a {@code List}, so an application never has to construct
+ * pgJDBC's {@code PGobject} for one.
  *
- * <p>Which parameters those are is settled once and kept, because deciding it
- * costs a query: pgJDBC reads a parameter's type name through a catalog lookup.
- * The type code, which needs no lookup, narrows the parameters worth asking
- * about first — a statement with no json parameter never triggers it at all.</p>
+ * <p>The reading side, and the caching this shares with it, is described in
+ * {@link CrateResultSetMetaData}.</p>
  */
 public class CrateParameterMetaData extends ForwardingParameterMetaData {
 
-    /**
-     * Whether each parameter carries json, indexed from zero and filled in on
-     * first use. A null entry is a parameter not yet asked about.
-     */
+    /** Whether each parameter carries json, filled in on first use. */
     private Boolean[] json;
 
     CrateParameterMetaData(ParameterMetaData delegate) {
         super(delegate);
     }
 
-    /**
-     * Whether a parameter takes json: an OBJECT, a geo_shape, nested arrays.
-     *
-     * <p>The type code is read first for both of its properties: it settles
-     * every parameter that cannot be json without the lookup, and it is where a
-     * parameter index outside the statement is refused — by the delegate, in the
-     * terms it refuses one everywhere else, rather than by this method reaching
-     * past the end of what it kept.</p>
-     */
+    /** Whether a parameter takes json: an OBJECT, a geo_shape, nested arrays. */
     private boolean isJson(int param) throws SQLException {
         if (delegate.getParameterType(param) != Types.OTHER) {
             return false;
@@ -70,12 +56,9 @@ public class CrateParameterMetaData extends ForwardingParameterMetaData {
     }
 
     /**
-     * The class a value bound to this parameter is given as. For json this is
-     * {@link Object}: an OBJECT is bound from a {@code Map} and a column of
-     * nested arrays from a {@code List}, and CrateDB sends both under the same
-     * type, so nothing narrower than what they have in common can be promised.
-     * Naming pgJDBC's {@code PGobject} — the class it would have required —
-     * would name one an application never has to build for this driver.
+     * The class a value bound to this parameter is given as. A json parameter
+     * is described as {@link Object}, for the reason
+     * {@link CrateResultSetMetaData#getColumnClassName} gives.
      */
     @Override
     public String getParameterClassName(int param) throws SQLException {

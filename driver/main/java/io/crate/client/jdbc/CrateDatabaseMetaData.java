@@ -28,9 +28,9 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 
 /**
- * A description of CrateDB, where pgJDBC's is a description of PostgreSQL:
- * the product it names, the SQL CrateDB has no grammar for, the limits it
- * does not put on identifiers, and the single catalog its objects live in.
+ * A description of CrateDB, where pgJDBC's describes PostgreSQL: the product
+ * it names, the SQL CrateDB has no grammar for, the limits it does not put on
+ * identifiers, and the single catalog its objects live in.
  *
  * <p>Metadata rows arrive as {@link CrateResultSet}s, so navigating from a row
  * to its statement and connection stays inside this driver.</p>
@@ -39,8 +39,8 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
 
     /**
      * The oldest CrateDB whose {@code pg_catalog} carries what pgJDBC's
-     * metadata queries read — {@code current_catalog} among it, which arrived
-     * in the 6.x line.
+     * metadata queries read, {@code current_catalog} among it, which arrived in
+     * the 6.x line.
      */
     private static final int MINIMUM_MAJOR = 6;
     private static final int MINIMUM_MINOR = 0;
@@ -85,10 +85,9 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
 
     /**
      * CrateDB has no transactions: {@code BEGIN} and {@code COMMIT} are
-     * accepted and do nothing, and there is no {@code ROLLBACK}. Frameworks
-     * that ask before they rely on transactional bookkeeping are told so
-     * here rather than discovering it from a rollback that quietly kept
-     * every write.
+     * accepted and do nothing, and there is no {@code ROLLBACK}. A framework
+     * that asks before relying on transactional bookkeeping learns it here,
+     * instead of from a rollback that quietly kept every write.
      */
     @Override
     public boolean supportsTransactions() {
@@ -139,14 +138,14 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
     }
 
     /**
-     * {@code PROCEDURE} is not part of CrateDB's SQL grammar at all, which is
-     * why {@link #getProcedures} lists none. A tool that offers to browse or
-     * call them is told here rather than by an empty list it reads as "none
+     * {@code PROCEDURE} is not part of CrateDB's SQL grammar at all, so
+     * {@link #getProcedures} lists none. A tool offering to browse or call them
+     * learns it here, instead of from an empty list it would read as "none
      * defined yet".
      *
      * <p>{@code supportsStoredFunctionsUsingCallSyntax} stays as pgJDBC answers
-     * it: a {@code {call f(?)}} escape really is honored, because pgJDBC
-     * rewrites it into a {@code SELECT}.</p>
+     * it. A {@code {call f(?)}} escape is honored, pgJDBC rewriting it into a
+     * {@code SELECT}.</p>
      */
     @Override
     public boolean supportsStoredProcedures() {
@@ -159,10 +158,9 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
     }
 
     /**
-     * How many columns a table may hold, which for CrateDB is the mapping's
-     * field limit rather than the number of columns PostgreSQL fits in a page.
-     * The limit is a table setting, so this is its default — a tool sizing a
-     * generated table against it is the case worth answering.
+     * The mapping's field limit, where PostgreSQL counts the columns it fits in
+     * a page. It is a table setting, so this reports the default a tool sizing
+     * a generated table needs.
      */
     @Override
     public int getMaxColumnsInTable() {
@@ -170,10 +168,9 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
     }
 
     /**
-     * CrateDB puts no length limit on the names of tables, columns, schemas
-     * or users, where PostgreSQL cuts them off at 63 characters. Zero is how
-     * JDBC spells "no limit", and keeps a tool from shortening a name the
-     * server would have taken.
+     * CrateDB puts no length limit on identifiers, where PostgreSQL cuts them
+     * off at 63 characters. Zero is how JDBC spells "no limit", and it keeps a
+     * tool from shortening a name the server would have taken.
      */
     @Override
     public int getMaxCatalogNameLength() {
@@ -220,8 +217,8 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
     }
 
     /**
-     * The URL the connection was opened with, in this driver's scheme rather
-     * than the {@code jdbc:postgresql://} form it rewrites one to.
+     * The URL the connection was opened with, in this driver's scheme instead
+     * of the {@code jdbc:postgresql://} form it rewrites one to.
      */
     @Override
     public String getURL() throws SQLException {
@@ -233,9 +230,9 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
 
     /**
      * A catalog argument as pgJDBC's queries want it. JDBC spells "ignore the
-     * catalog" as {@code null}; pgJDBC reads the empty string as "objects
-     * belonging to no catalog", which every CrateDB object fails, so callers
-     * that spell it the other way get no rows at all.
+     * catalog" as {@code null}, while pgJDBC reads the empty string as "objects
+     * belonging to no catalog", which every CrateDB object fails. A caller
+     * spelling it the other way would get no rows at all.
      */
     private static String catalogOrNull(String catalog) {
         return "".equals(catalog) ? null : catalog;
@@ -257,8 +254,8 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
     /**
      * A failed metadata query, told in CrateDB's terms when the server is
      * older than the one pgJDBC's catalog queries need. Such a server refuses
-     * them by naming a catalog column the caller never asked about, which
-     * says nothing a caller can act on; the version does.
+     * them by naming a catalog column the caller never asked about. The version
+     * is the part a caller can act on.
      */
     private SQLException metadataFailure(SQLException cause) {
         CrateVersion version;
@@ -280,12 +277,12 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
 
     /**
      * Metadata rows as this driver's result sets, so that navigating from a
-     * row back to its statement and connection stays inside the driver
-     * instead of reaching the pgJDBC connection underneath.
+     * row back to its statement and connection stays inside the driver instead
+     * of reaching the pgJDBC connection underneath.
      *
-     * <p>The rows are taken from the wrapping statement rather than built
-     * beside it, so that a caller who navigates from the rows to the statement
-     * and back arrives at the rows it started from.</p>
+     * <p>The rows are taken from the wrapping statement instead of built beside
+     * it, so a caller navigating from the rows to the statement and back
+     * arrives at the rows it started from.</p>
      */
     private ResultSet wrap(ResultSet resultSet) throws SQLException {
         Statement statement = resultSet.getStatement();
@@ -358,30 +355,30 @@ public class CrateDatabaseMetaData extends ForwardingDatabaseMetaData {
     }
 
     /**
-     * A catalog no CrateDB carries, which is how the empty answer below is
-     * obtained: pgJDBC builds the result set before it decides there is
-     * nothing to fill it with, so asking it about a catalog that cannot match
-     * yields the columns without the query.
+     * A catalog no CrateDB carries, which is how the empty answers below are
+     * obtained. pgJDBC builds the result set before deciding there is nothing
+     * to fill it with, so asking about a catalog that cannot match yields the
+     * columns without the query.
      */
     private static final String NO_SUCH_CATALOG = " ";
 
     /**
      * No indexes are described. pgJDBC reads them through
      * {@code pg_get_indexdef} and {@code information_schema._pg_expandarray},
-     * neither of which CrateDB's partial {@code pg_catalog} provides, so the
-     * query behind this cannot run at all. Supplying the two functions would
-     * not be enough to make it answer: {@code pg_am} and {@code pg_indexes}
-     * are present but hold no rows, which a query cannot tell from a schema
-     * that has no indexes, and {@code pg_index} describes a primary key's own
-     * index as {@code indisprimary} true, {@code indisunique} false and
-     * {@code indnatts} zero — a row no correct answer can be read from.
+     * and CrateDB's partial {@code pg_catalog} provides neither, so the query
+     * behind this cannot run. Supplying the two functions would still not make
+     * it answer: {@code pg_am} and {@code pg_indexes} are present but empty,
+     * which a query cannot tell from a schema holding no indexes, and
+     * {@code pg_index} describes a primary key's own index as
+     * {@code indisprimary} true, {@code indisunique} false and
+     * {@code indnatts} zero, a row no correct answer reads out of.
      *
-     * <p>Nothing is the answer rather than a failure because every tool that
-     * introspects a schema asks this of every table, and a driver that raises
-     * here stops the introspection rather than the part of it that wanted
-     * indexes. It is what {@link #getImportedKeys} and {@link #getExportedKeys}
-     * already do for a feature CrateDB equally lacks. The columns a row is
-     * addressed by are readable through {@link #getPrimaryKeys}.</p>
+     * <p>The answer is no rows instead of a failure because every tool that
+     * introspects a schema asks this of every table, and raising here would
+     * stop the introspection rather than the part of it wanting indexes.
+     * {@link #getImportedKeys} and {@link #getExportedKeys} do the same for a
+     * feature CrateDB equally lacks. The columns a row is addressed by are
+     * readable through {@link #getPrimaryKeys}.</p>
      */
     @Override
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate)

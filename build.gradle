@@ -24,22 +24,22 @@ configurations {
 dependencies {
     api "org.postgresql:postgresql:${pgjdbcVersion}"
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.22.1'
-    // Jackson has no serializer for java.time out of the box, and refuses the
-    // types rather than guessing at one. CrateDB timestamps are ordinary
-    // values to bind, so the module that reads and writes them belongs here.
+    // Jackson ships no serializer for java.time and refuses those types
+    // rather than guessing at one. CrateDB timestamps are ordinary values to
+    // bind, so the module that reads and writes them belongs here.
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.1'
 
     testImplementation 'org.hamcrest:hamcrest:3.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
     testImplementation 'org.testcontainers:cratedb:1.21.4'
 
-    // Most applications reach the driver through a connection pool, which
-    // exercises the corners the JDBC API leaves to the driver.
+    // Most applications reach the driver through a connection pool, and a
+    // pool exercises the corners the JDBC API leaves to a driver.
     testImplementation 'com.zaxxer:HikariCP:7.0.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // Runs `mutationTest`. Held apart from the test classpath: it is a tool
-    // the build launches, not something the suites compile against.
+    // Runs `mutationTest`. Held apart from the test classpath, being a tool
+    // the build launches rather than something the suites compile against.
     mutation 'org.pitest:pitest-command-line:1.25.9'
     mutation 'org.pitest:pitest-junit5-plugin:1.2.3'
 }
@@ -54,11 +54,9 @@ tasks.withType(JavaCompile).configureEach {
     options.release = 11
 }
 
-/**
- * Every source file carries the Apache license header, has no unused
- * imports, and ends in a newline. The generated Forwarding* classes are
- * covered too — the generator emits the same header.
- */
+// Every source file carries the Apache license header, has no unused imports
+// and ends in a newline. The generator emits the same header, so the generated
+// classes are covered too.
 spotless {
     java {
         target 'driver/**/*.java', 'devtools/*.java'
@@ -71,10 +69,9 @@ spotless {
 
 /**
  * The version the driver reports through {@code DatabaseMetaData} and
- * {@code java.sql.Driver}, written out from the version being built so that
- * a release cannot ship an artifact that misreports itself. It is packaged
- * next to the classes rather than added to the sources, which describe the
- * driver at every version.
+ * {@code java.sql.Driver}, written from the version being built so a release
+ * cannot ship an artifact that misreports itself. Packaged beside the classes,
+ * never added to the sources, which describe the driver at every version.
  */
 tasks.register('generateVersionResource', WriteProperties) {
     destinationFile = layout.buildDirectory.file('generated/version.properties')
@@ -116,11 +113,9 @@ nexusPublishing {
 
 /**
  * An archive is a function of its sources alone: no build timestamps, and an
- * entry order of its own rather than the order the filesystem happens to walk
- * a directory in. Without the second, the same sources build to different
- * bytes on a machine whose filesystem enumerates differently, which is the
- * difference between a published artifact anyone can rebuild and one they can
- * only take on trust.
+ * entry order of its own instead of the filesystem's. Without the second, a
+ * machine that enumerates differently builds different bytes from the same
+ * sources, and nobody can rebuild the published artifact to check it.
  */
 tasks.withType(AbstractArchiveTask).configureEach {
     reproducibleFileOrder = true
@@ -137,27 +132,20 @@ jar {
     }
 }
 
-/**
- * crate-jdbc is the thin artifact: it declares its dependencies and bundles
- * nothing. The shadow plugin's own fat jar would otherwise be published
- * alongside it as a variant, carrying an unrelocated copy of pgJDBC — the
- * classpath clash `standaloneJar` goes to lengths to avoid.
- */
+// crate-jdbc declares its dependencies and bundles nothing. The shadow
+// plugin's fat jar would otherwise publish alongside it as a variant, carrying
+// the unrelocated pgJDBC `standaloneJar` goes to lengths to keep out.
 components.java.withVariantsFromConfiguration(configurations.shadowRuntimeElements) { skip() }
 tasks.named('shadowJar') { enabled = false }
 
-/**
- * Dependencies the standalone jar leaves out. pgJDBC only reads
- * checkerframework's annotations at compile time, so nothing looks for them
- * at runtime.
- */
+// Left out of the standalone jar: pgJDBC reads checkerframework's annotations
+// at compile time alone, so nothing looks for them at runtime.
 ext.standaloneExclusions = ['org.checkerframework:checker-qual']
 
 /**
- * The license and notice files of the dependencies the standalone jar
- * bundles, laid out the way pgJDBC lays out the ones it bundles itself:
- * META-INF/licenses/<artifact>/. Relocating a dependency's classes does not
- * relicense them, so its license has to travel with them.
+ * The license and notice files of what the standalone jar bundles, laid out as
+ * pgJDBC lays out its own: META-INF/licenses/<artifact>/. Relocating a
+ * dependency's classes does not relicense them.
  */
 tasks.register('standaloneLicenses') {
     description = 'Collects the license files of the bundled dependencies.'
@@ -187,10 +175,8 @@ tasks.register('standaloneLicenses') {
     }
 }
 
-/**
- * Reports the version being built, and nothing else — `devtools/create_tag.sh`
- * and the release workflow read it to hold the tag to the version.
- */
+// Read by devtools/create_tag.sh and the release workflow, to hold the tag to
+// the version.
 tasks.register('getVersion') {
     doLast {
         logger.quiet(project.version.toString())
@@ -198,21 +184,17 @@ tasks.register('getVersion') {
 }
 
 /**
- * The `java` the single-file programs under `devtools/` run on. They are
- * launched rather than compiled into a source set, so without this they would
- * take whichever JDK happens to come first on the developer's PATH — and
- * `GenerateForwarding` reflects over `java.sql`, whose interfaces grow from
- * one release to the next. Pinning it keeps what the build checks, and what
- * regenerating produces, the same on every machine.
+ * The `java` the single-file programs under `devtools/` run on. Launched rather
+ * than compiled into a source set, they would otherwise take whichever JDK
+ * comes first on PATH, and `GenerateForwarding` reflects over `java.sql`, whose
+ * interfaces grow from one release to the next.
  */
 def devtoolsJava = javaToolchains.launcherFor {
     languageVersion = JavaLanguageVersion.of(21)
 }.map { it.executablePath.asFile.absolutePath }
 
-/**
- * Reports where the pgJDBC the build pins was resolved to, for running
- * `devtools/GenerateForwarding.java` against that exact version.
- */
+// Where the pinned pgJDBC resolved to, for running GenerateForwarding against
+// that exact version.
 tasks.register('printPgJdbcJar') {
     def pgjdbc = configurations.runtimeClasspath.filter { it.name.startsWith('postgresql-') }
     doLast {
@@ -221,10 +203,9 @@ tasks.register('printPgJdbcJar') {
 }
 
 /**
- * Writes the Forwarding* classes over the checked-in ones. This is the only
- * way to regenerate them: it runs the generator against the pgJDBC the build
- * pins and on the JDK it pins, which is what `verifyForwardingClasses` then
- * holds the result to.
+ * Writes the Forwarding* classes over the checked-in ones, running the
+ * generator against the pgJDBC and the JDK the build pins. Regenerating any
+ * other way produces sources `verifyForwardingClasses` then rejects.
  */
 tasks.register('generateForwardingClasses', Exec) {
     description = 'Regenerates the Forwarding* classes in place.'
@@ -236,12 +217,11 @@ tasks.register('generateForwardingClasses', Exec) {
 }
 
 /**
- * Self-contained variant for consumers that drop a single jar into a tool's
- * driver directory (Apache Hop, Pentaho, DBeaver manual setup). All bundled
- * dependencies are relocated under io.crate.shade so the jar cannot clash
- * with another pgjdbc or jackson on the same classpath. The relocated
- * `io.crate.shade.org.postgresql` namespace is a published API kept stable
- * for existing consumers (e.g. sslfactory configuration values).
+ * Self-contained variant for a tool's driver directory (Apache Hop, Pentaho,
+ * DBeaver). Every bundled dependency is relocated under io.crate.shade, so the
+ * jar cannot clash with another pgjdbc or jackson on the same classpath. That
+ * `io.crate.shade.org.postgresql` namespace is published API: configuration
+ * values name it, sslfactory among them.
  */
 tasks.register('standaloneJar', ShadowJar) {
     dependsOn tasks.named('standaloneLicenses')
@@ -263,14 +243,14 @@ tasks.register('standaloneJar', ShadowJar) {
         project.standaloneExclusions.each { exclude(dependency(it)) }
     }
 
-    // The bundled pgjdbc must not self-register with the DriverManager: only
-    // CrateDriver may answer jdbc:crate:// URLs, and jdbc:postgresql:// is
-    // deliberately left to a (potentially co-installed) vanilla pgjdbc. The
-    // exclude drops every service entry (matched against source-relative
-    // paths); the child spec below re-adds only CrateDriver's, unmatched by
-    // the exclude because its source-relative path is just "java.sql.Driver".
-    // The bundled jackson's service entries go with them: they name classes
-    // under their original package, which relocation has moved away.
+    // The bundled pgjdbc must not self-register with the DriverManager. Only
+    // CrateDriver answers jdbc:crate:// URLs, and jdbc:postgresql:// is left
+    // to a vanilla pgjdbc the application may have installed alongside. The
+    // exclude drops every service entry, matched against source-relative
+    // paths; the child spec below re-adds CrateDriver's alone, whose
+    // source-relative path is just "java.sql.Driver" and so goes unmatched.
+    // The bundled jackson's entries go with the rest: they name classes under
+    // their original package, which relocation has moved away.
     exclude 'META-INF/services/**'
     from('driver/main/resources/META-INF/services') {
         include 'java.sql.Driver'
@@ -299,20 +279,9 @@ tasks.register('standaloneJar', ShadowJar) {
     relocate 'com.fasterxml.jackson', 'io.crate.shade.com.fasterxml.jackson'
 }
 
-/**
- * Checks what each artifact contains and how it behaves on the classpaths it
- * lands on. Each cell is a JVM of its own, because what they check is how the
- * classes initialize and register — which a JVM decides once.
- *
- * <p>Three things vary: the artifact, the arrangement its classes are loaded
- * in, and which class an application touches first. The thin artifact's pgJDBC
- * belongs to the application and has to keep answering `jdbc:postgresql://`;
- * the standalone's is a relocated copy that must never answer it. Both claims
- * are decided in a class initializer, so both need the scenarios rather than a
- * reading of the code. `devtools/VerifyArtifacts.java` names them; the
- * `alongside-pg` cell is the only one that puts anything on the classpath the
- * artifact does not bring itself.</p>
- */
+// What each artifact contains and how it behaves on the classpaths it lands
+// on. A JVM per cell, class initialization being what decides it and a JVM
+// deciding that once. devtools/VerifyArtifacts.java describes the scenarios.
 def standaloneJarFile = tasks.named('standaloneJar').flatMap { it.archiveFile }
 def thinJarFile = tasks.named('jar').flatMap { it.archiveFile }
 def shadePrefix = 'io.crate.shade'
@@ -384,11 +353,8 @@ project.ext.developers = {
     }
 }
 
-/**
- * A bill of materials for what the driver pulls in, so that consumers can
- * audit the standalone jar's bundled dependencies too — relocation hides
- * them from the scanners that read a pom.
- */
+// A bill of materials, so consumers can audit the standalone jar's bundled
+// dependencies: relocation hides those from scanners that read a pom.
 cyclonedxBom {
     includeConfigs = ['runtimeClasspath']
     outputFormat = 'json'
@@ -434,22 +400,19 @@ publishing {
 signing {
     def signingKey = findProperty("signingKey")
     def signingPassword = findProperty("signingPassword")
-    // Publishing to Maven Central needs signatures, and a build that reaches
-    // it without a key has to say so rather than upload artifacts Central
-    // rejects. Everything else — publishToMavenLocal above all — signs only
-    // when a key happens to be configured. The task graph is asked by path.
+    // Publishing to Maven Central needs signatures, so a build reaching it
+    // without a key says so instead of uploading artifacts Central rejects.
+    // Every other publication, publishToMavenLocal above all, signs only when
+    // a key happens to be configured. The task graph is asked by path.
     required = { gradle.taskGraph.hasTask(":publishToSonatype") }
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign(publishing.publications)
 }
 
 
-/**
- * The release the tests run on. The driver is built for Java 11 while the
- * build itself needs a newer JDK, so `-PtestJavaVersion=11` puts the suites
- * on the baseline rather than only compiling for it. Left out, they run on
- * the JDK running the build.
- */
+// The driver is built for Java 11 while the build needs a newer JDK, so
+// `-PtestJavaVersion=11` puts the suites on the baseline instead of only
+// compiling for it. Left out, they run on the build's own JDK.
 def testJavaVersion = providers.gradleProperty('testJavaVersion')
 
 tasks.withType(Test).configureEach {
@@ -464,10 +427,9 @@ tasks.withType(Test).configureEach {
     systemProperty 'project.version', project.version
     // Timestamps without time zone read back as wall-clock time in the JVM
     // zone; pin it so assertions are deterministic across machines and CI.
-    // `-PtestTimeZone=Europe/Berlin` runs the suites at an offset instead,
-    // which is the only way the paths that go through the default calendar
-    // are exercised at all — at UTC a conversion that uses it and one that
-    // does not give the same answer.
+    // `-PtestTimeZone=Europe/Berlin` runs the suites at an offset instead.
+    // Nothing else exercises the paths that go through the default calendar:
+    // at UTC a conversion that uses it and one that does not agree.
     systemProperty 'user.timezone', providers.gradleProperty('testTimeZone').getOrElse('UTC')
     // The docker-java bundled with testcontainers speaks Docker API 1.32 by
     // default, which Docker Engine 29+ rejects (its minimum is 1.44).
@@ -479,11 +441,8 @@ tasks.withType(Test).configureEach {
     testLogging.showStandardStreams = true
 }
 
-/**
- * The tests that need no server, so that a plain `gradlew test` runs
- * without Docker. The integration tests live in the *IT classes and run
- * against a real CrateDB.
- */
+// No server needed, so a plain `gradlew test` runs without Docker. The *IT
+// classes hold the ones that need a real CrateDB.
 test {
     filter {
         excludeTestsMatching '*IT'
@@ -503,21 +462,10 @@ tasks.register('integrationTest', Test) {
     outputs.upToDateWhen { false }
 }
 
-/**
- * The suites again with assertions off, which is how every JVM not started
- * with `-ea` runs them.
- *
- * <p>pgJDBC asks the server to describe a statement under
- * `preferQueryMode=simple`, where the protocol has no message to carry the
- * answer. An assertion catches that; without one the request falls through
- * into the simple-query path and the statement is executed — so a metadata
- * call writes to the database. The two outcomes are mutually exclusive, and
- * only this task reaches the one applications actually meet.</p>
- *
- * <p>Tests that apply to one setting and not the other say so with an
- * assumption, so both this task and `integrationTest` report skips. That is
- * the arrangement working, not a suite going missing.</p>
- */
+// The suites with assertions off, which is the only way to reach what a plain
+// JVM meets where pgJDBC guards a request with an assertion of its own. Both
+// this task and `integrationTest` report skips, a test belonging to one setting
+// assuming its way out of the other. See DEVELOP.rst.
 tasks.register('integrationTestNoAssertions', Test) {
     description = 'Runs the integration tests that only behave that way with assertions disabled.'
     group = 'verification'
@@ -530,26 +478,10 @@ tasks.register('integrationTestNoAssertions', Test) {
     outputs.upToDateWhen { false }
 }
 
-/**
- * The suites against the standalone artifact, with a real server behind them.
- *
- * <p>`verifyArtifacts` reads what the jars contain and settles which driver
- * answers which URL scheme, in a process that connects to nothing. What it
- * cannot see is a relocated class that only fails once it is used: a class
- * named in a string, a service looked up by name, a resource read by path.
- * Those need the driver to actually carry a value to a server and back, which
- * is what the suites do.
- *
- * <p>The unrelocated pgJDBC is kept off the classpath, and so are this
- * project's own class files — the driver has to come out of the jar being
- * tested, and a name it failed to relocate has to find nothing rather than
- * find the copy an ordinary run would have supplied.</p>
- *
- * <p>A suite naming a pgJDBC type by its plain package cannot run here: under
- * this artifact those types live under the shade prefix, so the name resolves
- * to nothing. Such a suite says so with a tag. This is the same thing
- * `docs/migration.rst` tells an application that imported the shaded names.</p>
- */
+// The suites against the standalone artifact, which is what reaches a name
+// that failed to relocate: those fail only once used. The unrelocated pgJDBC
+// and this project's class files are kept off the classpath so the driver comes
+// out of the jar under test. See DEVELOP.rst.
 tasks.register('standaloneTest', Test) {
     description = 'Runs the integration tests against the standalone artifact.'
     group = 'verification'
@@ -560,9 +492,9 @@ tasks.register('standaloneTest', Test) {
     useJUnitPlatform {
         excludeTags 'pgjdbc-types'
     }
-    // A pattern rather than a filter: a filter is applied after the candidates
-    // have been loaded, and the unit tests among them name pgJDBC types that
-    // this classpath has under another name.
+    // A pattern, not a filter. A filter is applied after the candidates have
+    // been loaded, and the unit tests among them name pgJDBC types that this
+    // classpath has under another name.
     include '**/*IT.class'
     outputs.upToDateWhen { false }
 }
@@ -571,13 +503,8 @@ jacoco {
     toolVersion = '0.8.15'
 }
 
-/**
- * Coverage is off unless `-Pcoverage` asks for it. The agent would otherwise
- * attach to every test run, including the cells of the CI matrix on the
- * newest JREs, where a coverage tool is the part of the toolchain most likely
- * to lag behind the JDK. Measuring is a thing to ask for, on one JDK, rather
- * than a tax on every run.
- */
+// Off unless `-Pcoverage` asks for it: the agent would otherwise attach to
+// every run, including CI cells on JREs a coverage tool may not support yet.
 def coverage = providers.gradleProperty('coverage')
 
 tasks.withType(Test).configureEach {
@@ -586,19 +513,10 @@ tasks.withType(Test).configureEach {
     }
 }
 
-/**
- * What the suites reach of the classes this project actually writes.
- *
- * <p>The generated Forwarding* classes are left out. They are delegation and
- * nothing else, they outnumber the hand-written classes, and they are already
- * held to a fresh generation by `verifyForwardingClasses` — counting them
- * would answer a question nobody asked with a number large enough to bury the
- * one they did.</p>
- *
- * <p>Execution data is taken from every suite that ran, because most of the
- * driver is only reachable with a server behind it: a report over the unit
- * tests alone would describe the project as barely tested.</p>
- */
+// What the suites reach of the hand-written classes. The generated Forwarding*
+// classes are left out, `verifyForwardingClasses` holding them to a fresh
+// generation already, and execution data comes from every suite that ran: most
+// of the driver needs a server behind it.
 tasks.named('jacocoTestReport', JacocoReport) {
     dependsOn tasks.named('test'), tasks.named('integrationTest'),
         tasks.named('integrationTestNoAssertions')
@@ -612,29 +530,10 @@ tasks.named('jacocoTestReport', JacocoReport) {
     }
 }
 
-/**
- * Whether the suites would notice if the driver were wrong.
- *
- * <p>Coverage counts the lines a run reached, which a suite that asserts
- * nothing scores just as well on. This changes a line — an operator, a
- * constant, a returned value — and reruns the tests that covered it: a change
- * no test objects to is a line nothing is holding. The report at
- * {@code build/reports/pitest} lists those, and they are the point of running
- * it; the percentage is a summary of them.</p>
- *
- * <p>The generated Forwarding* classes are left out for the reason the
- * coverage report leaves them out. They pass their arguments on and return
- * what came back; a change to one of them is a change to which method is
- * called, which the generation check already holds.</p>
- *
- * <p>The server comes from outside. The suites boot a CrateDB of their own per
- * JVM, and this starts a JVM per batch of changes, so a run that started its
- * own would spend its time on containers; {@code CRATE_URL} is the arrangement
- * the suites already have for a server someone else is running. One change is
- * tried at a time for the same reason the suites run one class at a time: they
- * share that server, and a run that dropped the tables another was reading
- * would report a failure that is the arrangement rather than the change.</p>
- */
+// Whether the suites would notice if the driver were wrong: it changes a line
+// and reruns the tests that covered it, reporting the changes nothing failed
+// on. The server comes from outside through CRATE_URL, a JVM per batch of
+// changes being too many to boot containers for. See DEVELOP.rst.
 tasks.register('mutationTest', JavaExec) {
     description = 'Changes the hand-written classes and reports what no test objects to.'
     group = 'verification'
@@ -662,22 +561,22 @@ tasks.register('mutationTest', JavaExec) {
         environment 'CRATE_URL', server.get()
         args '--classPath', underTest.files.join(','),
             '--sourceDirs', 'driver/main/java',
-            // The driver, and nothing else on that classpath. Package globs
-            // would take the suites in too — they sit under the same root, and
-            // changing a test to see whether anything notices is a question
-            // about the suite that asks it, not about the driver.
+            // The driver, and nothing else on that classpath. The suites sit
+            // under the same root, so a package glob would take them in, and
+            // changing a test to see whether anything notices asks about the
+            // suite instead of about the driver.
             '--mutableCodePaths', mainClasses.files.join(','),
-            // Narrowed with -PmutationClasses / -PmutationTests, which is how
-            // one class is asked again after a gap the report found is closed.
+            // Narrowed with -PmutationClasses / -PmutationTests, to ask one
+            // class again once a gap the report found is closed.
             '--targetClasses', providers.gradleProperty('mutationClasses')
                 .getOrElse('io.crate.client.jdbc.*'),
             '--excludedClasses', 'io.crate.client.jdbc.Forwarding*',
             '--targetTests', providers.gradleProperty('mutationTests')
                 .getOrElse('io.crate.client.jdbc.*'),
-            // The suites that bring up a server whatever CRATE_URL says,
-            // because the server is what they are about — a cluster, and one
-            // that asks who is connecting. Either would be started again for
-            // every change tried against a line it covers.
+            // The two suites that bring up a server whatever CRATE_URL says,
+            // the server being what they are about: a cluster, and one that
+            // asks who is connecting. Either would be started again for every
+            // change tried against a line it covers.
             '--excludedTestClasses', 'io.crate.client.jdbc.integrationtests.ClusterIT,' +
                 'io.crate.client.jdbc.integrationtests.AuthenticationIT',
             '--testPlugin', 'junit5',
@@ -686,8 +585,8 @@ tasks.register('mutationTest', JavaExec) {
             '--timestampedReports', 'false',
             '--threads', '1',
             // A statement under test may be waiting out a query timeout of its
-            // own, which is seconds rather than the milliseconds a local
-            // server answers in.
+            // own, measured in seconds where a local server answers in
+            // milliseconds.
             '--timeoutConst', '30000',
             '--jvmArgs', [
                 "-Dproject.version=${project.version}",
@@ -698,12 +597,8 @@ tasks.register('mutationTest', JavaExec) {
     }
 }
 
-/**
- * The Forwarding* classes are generated from the JDBC and pgJDBC interfaces
- * (see devtools/GenerateForwarding.java). Regenerating has to leave the
- * checked-in files untouched; anything else means the sources and the
- * interfaces they wrap have drifted apart.
- */
+// Regenerating has to leave the checked-in Forwarding* classes untouched.
+// Anything else means they and the interfaces they wrap have drifted apart.
 tasks.register('verifyForwardingClasses', Exec) {
     description = 'Checks the generated Forwarding* classes against a fresh generation.'
     group = 'verification'

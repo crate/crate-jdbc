@@ -77,7 +77,7 @@ public class CrateDriverTest {
 
     /**
      * The scheme is what decides, and it is the whole scheme: a URL that only
-     * starts like one this driver answers is not one.
+     * starts like one this driver answers still is not one.
      */
     @Test
     public void processUrlRejectsWhatOnlyLooksLikeAScheme() {
@@ -165,7 +165,7 @@ public class CrateDriverTest {
 
     /**
      * The driver registers itself when its class is loaded, and can be taken
-     * out of the DriverManager and put back — which is what an application
+     * out of the DriverManager and put back, as an application
      * container does when it unloads the classes that brought it in. Neither
      * step can happen twice.
      */

@@ -10,8 +10,8 @@ Introduction
 ============
 
 The driver registers ``io.crate.client.jdbc.CrateDriver`` with the
-``DriverManager`` as soon as it is on the class path — the jar names it in a
-``META-INF/services/java.sql.Driver`` entry, which the ``DriverManager``
+``DriverManager`` as soon as it is on the class path. The jar names it in a
+``META-INF/services/java.sql.Driver`` entry that the ``DriverManager``
 reads.
 
 .. _basics:
@@ -37,9 +37,9 @@ statements resolve against::
 
     jdbc:crate://<HOST>/<SCHEMA>
 
-``<HOST>`` is a host string — ``<HOST_ADDR>:<PORT>``, where ``<PORT>`` is a
-:ref:`psql.port <crate-reference:conf_ports>` such as ``localhost:5432`` or
-``198.51.100.1:5432``. The ``jdbc:`` prefix may be left off, but tools and
+``<HOST>`` is a host string, ``<HOST_ADDR>:<PORT>``, where ``<PORT>`` is a
+:ref:`psql.port <crate-reference:conf_ports>`: ``localhost:5432`` or
+``198.51.100.1:5432``. The ``jdbc:`` prefix may be left off, though tools and
 connection pools that validate JDBC URLs expect it.
 
 Leave the schema out and CrateDB's default schema, ``doc``, is used::
@@ -75,8 +75,8 @@ It can be changed on an open connection with ``setSchema``:
         "jdbc:crate://localhost:5432/doc?user=crate");
     conn.setSchema("my_schema");
 
-Either way it only decides how unqualified names are resolved — a statement
-can name any schema it likes, whatever the connection is set to.
+Either way it decides how unqualified names resolve and nothing more. A
+statement can name any schema it likes, whatever the connection is set to.
 
 .. NOTE::
 
@@ -124,13 +124,12 @@ with a CrateDB-specific default or meaning are listed below.
 
   Sets the password for authentication.
 
-  A login the server turns down — a wrong password, or a user it does not
-  have — raises a ``SQLException`` whose SQLState is ``28000``. Leaving the
-  property out where the server asks for a password raises ``08004``
-  instead: the driver has nothing to send and gives up before answering, so
-  it reports a connection it never established. Code that branches on the
-  state to tell a bad credential from an unreachable server has to accept
-  both.
+  A login the server turns down, whether for a wrong password or an unknown
+  user, raises a ``SQLException`` whose SQLState is ``28000``. Leaving the
+  property out where the server asks for a password raises ``08004`` instead:
+  the driver has nothing to send and gives up before answering, so it reports a
+  connection it never established. Code that branches on the state to tell a bad
+  credential from an unreachable server has to accept both.
 
 :``sslmode``:
 
@@ -151,13 +150,13 @@ with a CrateDB-specific default or meaning are listed below.
 
 :``loadBalanceHosts``:
 
-  If set to ``true``, the driver will randomly shuffle the order of the host
-  strings. Over multiple connection attempts, this distributes connection
-  attempts across the whole cluster, functioning as `client-side random load
-  balancing`_.
-  If ``false``, the driver will try the hosts in the order they are defined.
+  Whether the host strings are shuffled before a connection is attempted, so
+  that connections spread across the cluster as `client-side random load
+  balancing`_. Set it to ``false`` to try the hosts in the order they are
+  written.
 
-  Defaults to ``true`` for this driver; stock pgJDBC defaults to ``false``.
+  Defaults to ``true`` for this driver, where stock pgJDBC defaults to
+  ``false``.
 
 :``assumeMinServerVersion``:
 
@@ -168,11 +167,11 @@ with a CrateDB-specific default or meaning are listed below.
 
 :``connectTimeout``, ``socketTimeout``:
 
-  Seconds to wait for a connection to be established (``10`` by default),
-  and for a reply on an established one (``0``, meaning no limit — a
-  network that fails silently blocks the calling thread indefinitely).
+  Seconds to wait for a connection to be established (``10`` by default), and
+  for a reply on an established one (``0``, meaning no limit, so a network that
+  fails silently blocks the calling thread indefinitely).
 
-  ``socketTimeout`` bounds a query too, but by closing the connection. Use
+  ``socketTimeout`` bounds a query too, by closing the connection. Use
   ``Statement.setQueryTimeout()`` to bound a statement and keep the
   connection.
 
@@ -182,10 +181,9 @@ Reading large results
 =====================
 
 By default a query's whole result set is read into the client before
-``next()`` returns a row. ``setFetchSize()`` makes the rows arrive in
-batches, held on the server in between — but only on a connection with
-auto-commit disabled, which for CrateDB costs nothing since it has no
-transactions:
+``next()`` returns a row. ``setFetchSize()`` makes the rows arrive in batches,
+held on the server in between, on a connection with auto-commit disabled.
+Disabling it costs nothing against CrateDB, which has no transactions:
 
 .. code-block:: java
 
@@ -216,11 +214,10 @@ in one round trip, and is how bulk loads should be written:
     }
     int[] written = insert.executeBatch();
 
-A batch is all or nothing: anything in it the server rejects leaves the
-whole batch unwritten, and ``executeBatch()`` raises
-``BatchUpdateException`` whose update counts are ``EXECUTE_FAILED``
-throughout. Entries have to be statements that write; a query among them
-fails the batch.
+A batch is all or nothing. Anything in it the server rejects leaves the whole
+batch unwritten, and ``executeBatch()`` raises ``BatchUpdateException`` whose
+update counts are ``EXECUTE_FAILED`` throughout. Every entry has to be a
+statement that writes, since a query among them fails the batch.
 
 Values a write produced are read back through ``getGeneratedKeys()``. Name
 the columns when preparing the statement and they are appended to it as a
@@ -242,8 +239,8 @@ Data sources and connection pools
 =================================
 
 The driver works with the usual JDBC connection pools. A pool needs a
-``DataSource``, and ``io.crate.client.jdbc.CrateDataSource`` is the one that
-carries the CrateDB behavior — a plain ``PGSimpleDataSource`` hands out
+``DataSource``, and ``io.crate.client.jdbc.CrateDataSource`` is the one
+carrying the CrateDB behavior. A plain ``PGSimpleDataSource`` hands out
 connections without it:
 
 .. code-block:: java
@@ -279,8 +276,8 @@ by name. Tomcat's ``context.xml``, for example:
               url="jdbc:crate://localhost:5432/doc"
               user="crate"/>
 
-The ``factory`` attribute is what matters: pgJDBC's own factory does not
-answer for a CrateDB data source, so without it the lookup fails.
+The ``factory`` attribute is what matters. pgJDBC's own factory does not
+answer for a CrateDB data source, so the lookup fails without it.
 
 .. _server-version:
 

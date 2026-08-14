@@ -5,18 +5,18 @@ Choosing a JDBC driver
 ######################
 
 CrateDB speaks the `PostgreSQL Wire Protocol`_, so Java applications have two
-working options: the official `PostgreSQL JDBC Driver`_ (pgJDBC) and this
-driver, which is a thin adaptation layer on top of it. Both require
-**CrateDB 6.0 or later** for full metadata support.
+working options: the official `PostgreSQL JDBC Driver`_ (pgJDBC), and this
+driver, a thin adaptation layer on top of it. Both require **CrateDB 6.0 or
+later** for full metadata support.
 
 
 ********************
 Stock pgJDBC is fine
 ********************
 
-For plain SQL — queries, inserts, updates, prepared statements, batches,
-cursor-based fetching, connection pools — the vanilla driver works against
-CrateDB unchanged:
+For plain SQL the vanilla driver works against CrateDB unchanged: queries,
+inserts, updates, prepared statements, batches, cursor-based fetching,
+connection pools.
 
 .. code-block:: java
 
@@ -52,11 +52,11 @@ runs inside a framework that expects transactional bookkeeping:
   that pick an SQL dialect by product name do not fall back to
   PostgreSQL-specific SQL.
 
-Everything else — wire protocol, authentication, TLS, pooling behavior,
-cursors, the metadata API — is pgJDBC, so anything documented there applies
-here too. Switching between the two is a change of URL scheme:
-``jdbc:postgresql://`` versus ``jdbc:crate://``. What neither of them can do
-is listed under :ref:`limitations`.
+Everything else is pgJDBC, so anything documented there applies here too: wire
+protocol, authentication, TLS, pooling behavior, cursors, the metadata API.
+Switching between the two is a change of URL scheme, ``jdbc:postgresql://``
+against ``jdbc:crate://``. What neither of them can do is listed under
+:ref:`limitations`.
 
 
 .. _PostgreSQL JDBC Driver: https://jdbc.postgresql.org/

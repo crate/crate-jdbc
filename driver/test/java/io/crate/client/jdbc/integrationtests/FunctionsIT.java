@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Calling a CrateDB user-defined function through JDBC's {@code {call f(?)}}
- * syntax, which is how a framework invokes one without writing CrateDB's own
+ * syntax, how a framework invokes one without writing CrateDB's own
  * SQL.
  *
  * <p>CrateDB's user-defined routines are functions, not stored procedures:

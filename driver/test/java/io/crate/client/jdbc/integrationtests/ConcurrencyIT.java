@@ -51,9 +51,9 @@ import static org.hamcrest.Matchers.is;
  * The driver under several threads at once.
  *
  * <p>An application reaches the driver through a pool, and a pool is
- * concurrency: several threads holding connections from one data source, and —
- * where an application shares a connection, which JDBC allows and pools do
- * between validation and hand-out — several threads on one connection. What
+ * concurrency: several threads holding connections from one data source,
+ * and several threads on one connection, which JDBC allows and which pools
+ * produce between validation and hand-out. What
  * the caches a connection keeps promise has to hold when more than one caller
  * asks at once, and a promise about an object kept across calls is one only a
  * lock can make.</p>

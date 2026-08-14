@@ -34,8 +34,8 @@ import java.util.Properties;
  * PostgreSQL wire protocol, and hands out {@link CrateConnection}s that
  * adapt the few behaviors where CrateDB differs from PostgreSQL.
  *
- * <p>{@code jdbc:postgresql://} URLs are deliberately not accepted; they
- * remain the province of a (possibly co-installed) PostgreSQL driver.</p>
+ * <p>{@code jdbc:postgresql://} URLs are deliberately left to a PostgreSQL
+ * driver, which an application may well have installed alongside this one.</p>
  */
 public class CrateDriver extends org.postgresql.Driver {
 
@@ -50,16 +50,15 @@ public class CrateDriver extends org.postgresql.Driver {
      * wins over these.
      *
      * <ul>
-     * <li>{@code PGDBNAME} is what a URL's path segment sets, and CrateDB
-     *     reads it as the schema to resolve unqualified names in. Left out,
-     *     pgJDBC fills in the user name — a PostgreSQL convention, where a
-     *     database is commonly named after its owner. CrateDB has no such
-     *     convention and its default schema is {@code doc}.</li>
-     * <li>{@code loadBalanceHosts} spreads connections over the hosts of a
-     *     URL naming several, which for a CrateDB cluster is every node.</li>
-     * <li>{@code assumeMinServerVersion} lets pgJDBC send the application
-     *     name in the startup packet rather than in a round trip of its
-     *     own.</li>
+     * <li>{@code PGDBNAME} is what a URL's path segment sets, and CrateDB reads
+     *     it as the schema to resolve unqualified names in. Left out, pgJDBC
+     *     fills in the user name, following the PostgreSQL convention of naming
+     *     a database after its owner. CrateDB's default schema is
+     *     {@code doc}.</li>
+     * <li>{@code loadBalanceHosts} spreads connections over the hosts of a URL
+     *     naming several, which for a CrateDB cluster is every node.</li>
+     * <li>{@code assumeMinServerVersion} lets pgJDBC send the application name
+     *     in the startup packet instead of in a round trip of its own.</li>
      * </ul>
      */
     private static final Map<String, String> DEFAULT_PROPERTIES = Map.of(
@@ -80,20 +79,18 @@ public class CrateDriver extends org.postgresql.Driver {
 
     /**
      * In the standalone artifact, the bundled pgJDBC superclass self-registers
-     * with the DriverManager during class initialization and would answer
-     * {@code jdbc:postgresql://} URLs. Those belong to a PostgreSQL driver the
-     * application installed on purpose, so the bundled copy is taken out of
-     * the DriverManager again. Everywhere else the superclass is pgJDBC as
-     * published, whose registration must be left alone.
+     * during class initialization and would answer {@code jdbc:postgresql://}
+     * URLs that belong to a PostgreSQL driver the application installed on
+     * purpose, so the bundled copy is taken back out. Everywhere else the
+     * superclass is pgJDBC as published, whose registration is left alone.
      *
-     * <p>pgJDBC holds the instance it registered in a static of its own, which
-     * {@code deregister()} takes back out. Reaching it that way rather than by
-     * searching the DriverManager matters: the search would call
-     * {@code DriverManager.getDrivers()}, and this runs inside a class
-     * initializer that the DriverManager's own service scan may have started.</p>
+     * <p>{@code deregister()} reaches the instance through a static of pgJDBC's
+     * own. Searching the DriverManager instead would call
+     * {@code DriverManager.getDrivers()} from inside a class initializer the
+     * DriverManager's own service scan may have started.</p>
      *
      * <p>The prefix is the one {@code build.gradle} relocates the bundled
-     * classes under; {@code devtools/VerifyArtifacts.java} holds the built
+     * classes under, and {@code devtools/VerifyArtifacts.java} holds the built
      * jar to this behavior.</p>
      */
     private static void deregisterBundledPgjdbc() throws SQLException {
@@ -123,10 +120,7 @@ public class CrateDriver extends org.postgresql.Driver {
         return new CrateConnection(super.connect(psqlUrl, withDefaults(info)));
     }
 
-    /**
-     * The caller's connection properties, with the CrateDB defaults filled in
-     * for the ones the caller left out.
-     */
+    /** The caller's connection properties, with the CrateDB defaults filled in. */
     static Properties withDefaults(Properties info) {
         Properties properties = new Properties();
         if (info != null) {
@@ -137,11 +131,10 @@ public class CrateDriver extends org.postgresql.Driver {
     }
 
     /**
-     * Rewrites the leading {@code crate://} or {@code jdbc:crate://} scheme
-     * to {@code jdbc:postgresql://}; returns null for any other URL. Only
-     * the scheme prefix is rewritten — the remainder of the URL, including
-     * parameter values that happen to contain the scheme string, passes
-     * through untouched.
+     * Rewrites the leading {@code crate://} or {@code jdbc:crate://} scheme to
+     * {@code jdbc:postgresql://}, and returns null for any other URL. Only the
+     * leading scheme is rewritten, so a parameter value holding the scheme
+     * string passes through untouched.
      */
     static String processURL(String url) {
         if (url == null) {
@@ -157,10 +150,7 @@ public class CrateDriver extends org.postgresql.Driver {
         return null;
     }
 
-    /**
-     * The properties a connection to the given URL can be opened with, or
-     * nothing for a URL this driver does not answer.
-     */
+    /** The properties this URL can be opened with, or nothing for a URL not ours. */
     @Override
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
         String psqlUrl = processURL(url);
@@ -190,9 +180,9 @@ public class CrateDriver extends org.postgresql.Driver {
     }
 
     /**
-     * Registers this driver with the {@link DriverManager}. The pgjdbc
-     * superclass registers itself separately through its own service
-     * entry; this registration only answers the crate URL schemes.
+     * Registers this driver with the {@link DriverManager}, for the crate URL
+     * schemes alone. The pgjdbc superclass registers itself through its own
+     * service entry.
      */
     public static void register() throws SQLException {
         if (isRegistered()) {

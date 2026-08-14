@@ -41,7 +41,7 @@ import java.util.StringJoiner;
  * cancel request travels on a second connection that a load balancer may point
  * at another node. On one node all of that is inert.</p>
  *
- * <p>Nodes reach each other by network alias over the transport port, which is
+ * <p>Nodes reach each other by network alias over the transport port, and that is
  * not published — the shared network is what makes that unnecessary. Clients
  * reach them from outside on the PostgreSQL port each container mapped, which
  * is a different one per node, so a URL can name them all.</p>
@@ -61,7 +61,7 @@ final class CrateDBCluster implements AutoCloseable {
 
     /**
      * Starts a cluster of the given size and comes back once every node has
-     * joined it — which is not the same as every node answering, and is the
+     * joined it. That is not the same as every node answering, and it is the
      * thing a test needs to be true.
      */
     static CrateDBCluster start(DockerImageName image, int size) {
@@ -142,7 +142,7 @@ final class CrateDBCluster implements AutoCloseable {
     }
 
     /**
-     * A URL naming every node, which is what a CrateDB URL is for: the driver
+     * A URL naming every node, as a CrateDB URL is meant to: the driver
      * turns on {@code loadBalanceHosts}, so a connection opened through it
      * lands on one node or another.
      */

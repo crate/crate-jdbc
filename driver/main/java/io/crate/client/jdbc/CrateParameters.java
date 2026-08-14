@@ -48,8 +48,8 @@ import java.util.Map;
  * <li>a collection or array of moments becomes a typed array of the same
  *     instants at UTC, since pgJDBC binds a series of them by the JVM's own
  *     zone or not at all,</li>
- * <li>any other collection becomes the array of the same values, which is
- *     the form pgJDBC binds a series in,</li>
+ * <li>any other collection becomes the array of the same values, the form
+ *     pgJDBC binds a series in,</li>
  * <li>an {@link Array} handed out by this driver is bound through the
  *     pgJDBC array it wraps,</li>
  * <li>an {@link Instant} becomes the same instant at UTC, which is the one
@@ -67,8 +67,7 @@ final class CrateParameters {
 
     /**
      * The value to hand to the pgJDBC statement, or the argument itself when
-     * nothing needs converting — the identity of the return value tells the
-     * caller which of the two happened.
+     * nothing needs converting. Callers tell the two apart by identity.
      */
     static Object toPg(Object value, CrateConnection connection) throws SQLException {
         if (value instanceof Map) {
@@ -76,9 +75,8 @@ final class CrateParameters {
         }
         if (value instanceof Instant) {
             // pgJDBC binds every other java.time value but has no branch for
-            // this one, and reports that it cannot infer a type. An instant is
-            // what a CrateDB timestamp holds, so it goes as the same instant
-            // at UTC — the zone CrateDB keeps them in.
+            // this one, and reports that it cannot infer a type. It goes as
+            // the same instant at UTC, the zone CrateDB keeps timestamps in.
             return ((Instant) value).atOffset(ZoneOffset.UTC);
         }
         if (value instanceof CrateJsonArray) {
@@ -102,18 +100,13 @@ final class CrateParameters {
         return unwrap(value);
     }
 
-    /**
-     * An empty series carries no element to take a type from. The empty array
-     * literal, bound untyped, lets the server read it as the array type of the
-     * column it lands in — including a column of nested arrays.
-     */
+    /** No element to take a type from, so the server takes one from the column. */
     private static final Untyped EMPTY_ARRAY = new Untyped("{}");
 
     /**
-     * A collection as the array of the same values. pgJDBC reads a series
-     * from an array, taking its element type from the array's component type,
-     * and has no branch for a collection — so a series binds the same way
-     * whichever of the two the caller happens to hold.
+     * A collection as the array of the same values, so a series binds the same
+     * way whichever of the two a caller holds. pgJDBC reads a series from an
+     * array alone, taking the element type from its component type.
      */
     private static Object toArray(Collection<?> elements) throws SQLException {
         Class<?> componentType = componentType(elements);
@@ -140,11 +133,10 @@ final class CrateParameters {
     }
 
     /**
-     * The element type a series binds as. Elements of one class bind as that
-     * class; numbers of several bind as the widest of them, since a series of
-     * whole numbers is a CrateDB {@code bigint} array and one with a fraction
-     * in it a {@code double precision} array, whichever Java boxes the callers
-     * happened to hold.
+     * The element type a series binds as: the elements' own class, or for
+     * numbers of several classes the widest of them. A series of whole numbers
+     * is a CrateDB {@code bigint} array and one holding a fraction a
+     * {@code double precision} array, whichever Java boxes it was written from.
      */
     private static Class<?> componentType(Collection<?> elements) throws SQLException {
         Class<?> componentType = null;
@@ -166,21 +158,17 @@ final class CrateParameters {
             componentType = widest;
         }
         // pgJDBC has no array form for Byte, and a CrateDB byte column is an
-        // int2 either way — createArrayOf("byte", ...) resolves to the same
-        // one — so a series of them binds as the width the server holds them
-        // at rather than as the width the caller happened to write.
+        // int2 either way (createArrayOf("byte", ...) resolves to the same
+        // one), so a series of them binds at the width the server holds them
+        // at instead of the width the caller happened to write.
         return componentType == Byte.class ? Short.class : componentType;
     }
 
     /**
-     * The type both numbers fit in, or null for a pair that has none. Two
-     * unrelated classes in a series describe no CrateDB array type, and
-     * guessing at their common superclass would only move the failure to the
-     * server.
-     *
-     * <p>Only the boxed primitives are widened. {@code BigDecimal} and
-     * {@code BigInteger} hold values no {@code double} or {@code long} can,
-     * so widening to one would answer a series the caller did not write.</p>
+     * The type both numbers fit in, or null for a pair with none: guessing at a
+     * common superclass would only move the failure to the server. Only the
+     * boxed primitives widen, {@code BigDecimal} and {@code BigInteger} holding
+     * values no {@code double} or {@code long} can.
      */
     private static Class<?> widest(Class<?> one, Class<?> other) {
         if (!isBoxedNumber(one) || !isBoxedNumber(other)) {
@@ -213,8 +201,9 @@ final class CrateParameters {
     /**
      * Text the server has to type from the column it lands in. CrateDB reads
      * the json type code as {@code OBJECT}, which reaches an OBJECT column and
-     * no other, so a value bound for a column of nested arrays — or an array
-     * whose element type nothing names — travels without a type code at all.
+     * no other, so two kinds of value travel with no type code at all: one
+     * bound for a column of nested arrays, and an array whose element type
+     * nothing names.
      */
     static final class Untyped {
 
@@ -231,9 +220,8 @@ final class CrateParameters {
     }
 
     /**
-     * Hands a converted parameter to pgJDBC. {@link Untyped} text is bound as
-     * {@code Types.OTHER}, which is what leaves the parameter's type
-     * unspecified on the wire.
+     * Hands a converted parameter to pgJDBC. {@code Types.OTHER} is what leaves
+     * {@link Untyped} text without a type on the wire.
      */
     static void bind(PreparedStatement delegate, int parameterIndex, Object converted) throws SQLException {
         if (converted instanceof Untyped) {
@@ -256,9 +244,8 @@ final class CrateParameters {
     }
 
     /**
-     * The pgJDBC array behind an array this driver handed out; every other
-     * value passes through, so the result stays reference-equal to the
-     * argument when there is nothing to unwrap.
+     * The pgJDBC array behind one this driver handed out. Every other value
+     * passes through, staying reference-equal to the argument.
      */
     static Object unwrap(Object value) {
         return value instanceof CrateArray ? ((CrateArray) value).delegate() : value;
@@ -269,9 +256,9 @@ final class CrateParameters {
     }
 
     /**
-     * Whether the elements are a series of {@code OBJECT} values. A series
-     * that mixes {@code Map}s with other values has no CrateDB type and is
-     * rejected rather than half-converted.
+     * Whether the elements are a series of {@code OBJECT} values. One mixing
+     * {@code Map}s with other values has no CrateDB type, and is rejected
+     * instead of half-converted.
      */
     private static boolean containsMaps(Collection<?> elements) throws SQLException {
         boolean maps = false;
@@ -293,12 +280,10 @@ final class CrateParameters {
 
     /**
      * Whether the elements are all moments in time. pgJDBC binds a series by
-     * the class of its elements, and it has an array form for
-     * {@link Timestamp} alone — one it writes out in the JVM's own zone, which
-     * CrateDB then reads as UTC. Every other way of spelling a moment it
-     * refuses outright. So a series of moments is taken away from that path
-     * and given a type, which is the one form that means the same instant
-     * wherever the JVM stands.
+     * the class of its elements and has an array form for {@link Timestamp}
+     * alone, refusing every other spelling of a moment outright. A series of
+     * moments is therefore taken off that path and given a type of its own, so
+     * that it stores the same instants wherever the JVM stands.
      */
     private static boolean holdsOnlyMoments(Collection<?> elements) {
         boolean moments = false;
@@ -316,15 +301,14 @@ final class CrateParameters {
     }
 
     /**
-     * The series with every moment in it written as the same instant at UTC —
-     * the zone CrateDB keeps timestamps in — and everything else left alone.
+     * The series with every moment written as the same instant at UTC, the
+     * zone CrateDB keeps timestamps in, and everything else left alone.
      *
-     * <p>A {@link Timestamp} is the one moment pgJDBC will put in an array,
-     * and it writes it out as a wall clock in the JVM's own zone while the
-     * server reads it as UTC, so an application anywhere but at offset zero
-     * stores an instant it did not mean. Naming the offset takes the JVM's
-     * zone out of it. A {@link LocalDateTime} names no zone at all, so it is
-     * read at UTC, which is where the server reads one sent as text.</p>
+     * <p>Naming the offset is what takes the JVM's zone out of it. Left to
+     * pgJDBC a {@link Timestamp} goes out as a wall clock in the JVM's zone for
+     * the server to read as UTC, so an application anywhere but at offset zero
+     * would store an instant it did not mean. A {@link LocalDateTime} names no
+     * zone, and UTC is where the server reads one sent as text.</p>
      */
     static Object[] atUtc(Object[] elements) {
         Object[] moments = new Object[elements.length];

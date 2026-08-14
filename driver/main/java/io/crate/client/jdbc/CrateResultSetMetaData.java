@@ -24,22 +24,20 @@ import java.sql.Types;
 /**
  * What a result set's columns hold, answered for the columns this driver reads
  * itself. A CrateDB OBJECT and a column of nested arrays both arrive as json,
- * which {@link CrateResultSet} decodes rather than handing over as pgJDBC's
- * {@code PGobject} — so pgJDBC's answer for what {@code getObject} produces is
- * not the one that holds here.
+ * which {@link CrateResultSet} decodes into a {@code Map} or a {@code List}
+ * instead of handing over pgJDBC's {@code PGobject}, so pgJDBC's answer for
+ * what {@code getObject} produces does not hold here.
  *
- * <p>Which columns those are is settled once and kept, because deciding it
- * costs a query: pgJDBC reads a column's type name through a catalog lookup it
- * runs for the whole row. The type code, which needs no lookup, narrows the
- * columns worth asking about first — a row with no json column never triggers
- * it at all.</p>
+ * <p>Deciding which columns those are costs a query, since pgJDBC reads a type
+ * name through a catalog lookup, so the answer is kept once found. The type
+ * code needs no lookup and settles every column that cannot be json, so a row
+ * without one never triggers the lookup.</p>
+ *
+ * <p>{@link CrateParameterMetaData} answers the same question for parameters.</p>
  */
 public class CrateResultSetMetaData extends ForwardingResultSetMetaData {
 
-    /**
-     * Whether each column carries json, indexed from zero and filled in on
-     * first use. A null entry is a column not yet asked about.
-     */
+    /** Whether each column carries json, filled in on first use. */
     private Boolean[] json;
 
     CrateResultSetMetaData(ResultSetMetaData delegate) throws SQLException {
@@ -48,12 +46,8 @@ public class CrateResultSetMetaData extends ForwardingResultSetMetaData {
 
     /**
      * Whether a column holds json: an OBJECT, a geo_shape, nested arrays.
-     *
-     * <p>The type code is read first for both of its properties: it settles
-     * every column that cannot be json without the lookup, and it is where a
-     * column index outside the row is refused — by the delegate, in the terms
-     * it refuses one everywhere else, rather than by this method reaching past
-     * the end of what it kept.</p>
+     * Reading the type code first leaves the delegate to refuse a column index
+     * outside the row, in the terms it refuses one everywhere else.
      */
     boolean isJson(int column) throws SQLException {
         if (delegate.getColumnType(column) != Types.OTHER) {
@@ -71,12 +65,9 @@ public class CrateResultSetMetaData extends ForwardingResultSetMetaData {
     }
 
     /**
-     * The class a value of this column is read as. For json this is
-     * {@link Object}: an OBJECT is read as a {@code Map} and a column of nested
-     * arrays as a {@code List}, and CrateDB sends both under the same type, so
-     * nothing narrower than what they have in common can be promised. Naming
-     * pgJDBC's {@code PGobject} — the class it would have produced — would name
-     * one an application never receives from this driver.
+     * The class a value of this column is read as. CrateDB sends an OBJECT and
+     * a column of nested arrays under one type, read as a {@code Map} and a
+     * {@code List}, so {@link Object} is as narrow as a json column gets.
      */
     @Override
     public String getColumnClassName(int column) throws SQLException {

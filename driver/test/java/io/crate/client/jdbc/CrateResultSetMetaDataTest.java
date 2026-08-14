@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CrateResultSetMetaDataTest {
 
-    /** A json column and a column of another type, which is all the decision turns on. */
+    /** A json column and a column of another type: all the decision turns on. */
     private static final int JSON_COLUMN = 1;
     private static final int TEXT_COLUMN = 2;
 
@@ -125,7 +125,7 @@ public class CrateResultSetMetaDataTest {
 
         /**
          * The column an argument names, refused where the row has no such
-         * column — which is what pgJDBC does, and what the wrapper is being
+         * column, as pgJDBC does and as the wrapper is being
          * held to doing on its way there.
          */
         private static int column(Object[] arguments) throws SQLException {

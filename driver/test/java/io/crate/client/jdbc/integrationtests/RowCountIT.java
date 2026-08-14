@@ -35,9 +35,9 @@ import static org.hamcrest.Matchers.is;
 
 /**
  * Pins the row count a statement reports: DDL reports a single affected row,
- * and an operation whose exact count CrateDB cannot determine — deleting from
- * a partitioned table by partition — reports zero, having arrived as −1 on the
- * wire.
+ * and an operation whose exact count CrateDB cannot determine, such as
+ * deleting from a partitioned table by partition, reports zero, having
+ * arrived as −1 on the wire.
  *
  * <p>JDBC has two ways to ask, one answering an {@code int} and one a
  * {@code long} for counts that would not fit in one. They run different code,

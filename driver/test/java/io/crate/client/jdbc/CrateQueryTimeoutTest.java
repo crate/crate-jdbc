@@ -39,7 +39,7 @@ public class CrateQueryTimeoutTest {
     @ParameterizedTest
     @CsvSource({
         "0s, 0",
-        // No unit at all is milliseconds, which is the one spelling that
+        // No unit at all means milliseconds, the one spelling that
         // needs a value other than zero to say anything.
         "0, 0",
         "250, 250",

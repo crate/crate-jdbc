@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Connecting as a user who has to prove who they are.
  *
  * <p>The rest of the suite connects as the superuser to a server that asks
- * nothing of anyone, which is one branch of the handshake and the one an
+ * nothing of anyone, one branch of the handshake and the one an
  * application least often takes. A server can instead be told which users may
  * connect from where and how they are to be authenticated, and this starts one
  * that has been: the superuser is trusted, and everybody else owes a
@@ -106,7 +106,7 @@ public class AuthenticationIT extends BaseIntegrationTest {
     }
 
     /**
-     * The trusted entry still works, which is what makes the refusals below
+     * The trusted entry still works, so the refusals below
      * the server asking rather than the server being unreachable.
      */
     @Test
@@ -143,7 +143,7 @@ public class AuthenticationIT extends BaseIntegrationTest {
 
     /**
      * A user the server does not have is refused as the wrong password is,
-     * which is what keeps a caller from learning which names exist.
+     * so that a caller cannot learn which names exist.
      */
     @Test
     public void anUnknownUserIsRefused() {

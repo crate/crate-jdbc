@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 
 /**
  * The version of this driver, as the build stamped it into
- * {@code version.properties}. Reading it from the artifact rather than
+ * {@code version.properties}. Reading it from the artifact instead of
  * restating it in source keeps a release from shipping a driver that
  * misreports itself through {@link java.sql.DatabaseMetaData} and
  * {@link java.sql.Driver}.

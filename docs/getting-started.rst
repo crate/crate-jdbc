@@ -16,7 +16,7 @@ Install
 
 The driver comes in two variants, both published to Maven Central: use
 `crate-jdbc`_ where a build tool resolves dependencies, and
-`crate-jdbc-standalone`_ where a single JAR is required. :ref:`internals`
+`crate-jdbc-standalone`_ where a single jar is required. :ref:`internals`
 describes what each contains.
 
 As a dependency
@@ -51,18 +51,18 @@ With `Gradle`_, from the Maven Central repository:
 In a database tool
 ------------------
 
-Tools such as `Apache Hop`_, Pentaho, `DBeaver`_ and `SQuirreL`_ load a
-driver from a directory of JARs rather than resolving it. Download
-`crate-jdbc-standalone`_ from Maven Central, drop the JAR in, and register
-the driver with:
+Tools such as `Apache Hop`_, Pentaho, `DBeaver`_ and `SQuirreL`_ load a driver
+from a directory of jars instead of resolving it. Download
+`crate-jdbc-standalone`_ from Maven Central, drop the jar in, and register the
+driver with:
 
 :Driver class: ``io.crate.client.jdbc.CrateDriver``
 :URL template: ``jdbc:crate://<host>:5432/<schema>``
 :Default port: ``5432``
 
-The standalone JAR bundles pgJDBC under a namespace of its own, so it can sit
-next to a PostgreSQL driver in the same directory without either shadowing
-the other. It is not meant for use as a build dependency.
+The standalone jar bundles pgJDBC under a namespace of its own, so it can sit
+next to a PostgreSQL driver in the same directory without either shadowing the
+other. It is not meant for use as a build dependency.
 
 .. SEEALSO::
 
