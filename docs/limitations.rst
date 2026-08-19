@@ -23,6 +23,33 @@ block pgJDBC opens under manual commit mode, and savepoints raise
 only isolation level.
 
 
+**********
+Time zones
+**********
+
+There is no session time zone. ``SET TIME ZONE 'Europe/Berlin'`` and
+``SET timezone = 'Europe/Berlin'`` are both accepted and both answer ``SET``,
+and the value is then discarded; the release notes for CrateDB 5.1.0 say so.
+Neither spelling reads back either: ``SHOW TIME ZONE`` is a syntax error and
+``SHOW timezone`` answers ``Unknown session setting name 'timezone'``, so a
+client cannot discover at runtime that the setting did not take.
+
+A ``TIMESTAMP WITH TIME ZONE`` literal naming no offset is read as UTC, which is
+CrateDB's documented behaviour rather than a gap. An application outside UTC that
+writes ``'2024-03-01 12:00:00'`` therefore stores noon UTC, not noon where it
+stands, and reads it back consistently shifted. Name the offset —
+``'2024-03-01 12:00:00+01:00'`` — or write the instant.
+
+Bound values are not affected. A moment bound as a parameter goes out naming its
+offset, and a series of them goes out as the same instants at UTC, because
+pgJDBC would otherwise send a ``Timestamp`` as a wall clock in the JVM's zone for
+the server to read as UTC. That is why an application at any offset stores the
+instant it meant through this driver, and why one assembling the same value into
+SQL text does not.
+
+Progress on a real session time zone is tracked upstream as `CrateDB issue
+7196`_.
+
 ********
 Metadata
 ********
@@ -173,3 +200,6 @@ First-contact failures
 
     pgJDBC's catalog queries read columns that arrived in the 6.x line. Use
     crate-jdbc 2.7.0 against an older server.
+
+
+.. _CrateDB issue 7196: https://github.com/crate/crate/issues/7196

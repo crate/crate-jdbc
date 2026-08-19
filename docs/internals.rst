@@ -134,12 +134,16 @@ ends. A statement that sets no timeout never touches the setting.
 Both mechanisms stay in play, because each covers a case the other does not.
 Neither dependably bounds a query CrateDB answers inline instead of dispatching
 to its execution pool, which is what a query over ``sys`` tables is. The server
-arms ``statement_timeout`` only once ``Plan.execute`` has returned, and an
-inline execution has finished by then, so such a query runs past the setting
-without ever meeting it. A cancel request does usually end one, though not
-reliably enough to lean on. Bound a query over ``sys`` tables in its own text,
-with a ``LIMIT`` or a narrower filter. A query over a table function is
-dispatched like any other and ends on its timeout.
+schedules the abort only once ``Plan.execute`` has returned, and an inline
+execution has finished by then, so such a query runs past the setting without
+ever meeting it. A cancel request does usually end one, though not reliably:
+the wire protocol, the inter-node transport and the channel that accepts
+connections share one event loop group, and an inline query holds the loop
+thread serving its connection for its whole duration. A cancel that arrives on
+another thread of that group takes effect, and one assigned to the thread
+already occupied waits for the query it was meant to stop. Bound a query over
+``sys`` tables in its own text, with a ``LIMIT`` or a narrower filter. A query
+over a table function is dispatched like any other and ends on its timeout.
 
 The bracket holds for the execution and not for the reading of its rows. A
 statement with a fetch size leaves a cursor open under manual commit mode, and
