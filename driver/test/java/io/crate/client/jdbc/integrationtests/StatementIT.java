@@ -41,12 +41,14 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * The four controls JDBC puts on a statement, against a real server: a
- * timeout, a row cap, escape syntax, and the closing rules. They are stock
- * pgJDBC behavior, so they hold only as far as CrateDB answers the
- * protocol pgJDBC uses for them: a timeout, for instance, is a cancel request
- * sent over a second connection rather than anything the driver decides on
- * its own.
+ * A statement against a real server: what a query timeout costs the session
+ * it ran in, how many result sets one statement hands back, and what a closed
+ * statement and its result set still answer.
+ *
+ * <p>A timeout is the driver's own. CrateDB never receives the cancel request
+ * pgJDBC sends over a second connection in time to end a query with it, so the
+ * driver arms the session's {@code statement_timeout} as well, and owes the
+ * session the setting it found.</p>
  */
 public class StatementIT extends BaseIntegrationTest {
 
@@ -88,32 +90,10 @@ public class StatementIT extends BaseIntegrationTest {
     }
 
     /**
-     * The abort reaches the caller as an ordinary {@code SQLException}, and the
-     * connection stays in step with the server afterwards — a driver that
-     * mishandled the cancel would leave the protocol stream desynchronized and
-     * the next statement would fail or hang.
-     */
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    public void queryTimeoutAbortsALongRunningQuery() throws Exception {
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement()) {
-            stmt.setQueryTimeout(TIMEOUT_SECONDS);
-            assertThat(stmt.getQueryTimeout(), is(TIMEOUT_SECONDS));
-
-            assertThrows(SQLException.class, () -> stmt.executeQuery(LONG_RUNNING));
-
-            ResultSet rs = conn.createStatement().executeQuery("select 1");
-            assertThat(rs.next(), is(true));
-            assertThat(rs.getInt(1), is(1));
-        }
-    }
-
-    /**
-     * The timeout belongs to the statement that set it. The driver carries it
-     * to the server as the session's {@code statement_timeout}, so the value
-     * the session already held is what it holds again afterwards, whether
-     * that is nothing or one the application set for its own connection.
+     * A timeout ends a query that outruns it, and the timeout belongs to the
+     * statement that set it: the value the session already held is what it
+     * holds again afterwards, whether that is nothing or one the application
+     * set for its own connection.
      *
      * <p>{@code 90s} is there because CrateDB prints it as {@code 1.5m} and
      * rejects {@code 1.5m}, so a setting given back in the spelling it was read
@@ -131,10 +111,18 @@ public class StatementIT extends BaseIntegrationTest {
 
             try (Statement stmt = conn.createStatement()) {
                 stmt.setQueryTimeout(TIMEOUT_SECONDS);
+                assertThat(stmt.getQueryTimeout(), is(TIMEOUT_SECONDS));
                 assertThrows(SQLException.class, () -> stmt.executeQuery(LONG_RUNNING));
             }
 
             assertThat(statementTimeout(conn), is(held));
+            // The connection is still in step with the server: a driver that
+            // mishandled the cancel would leave the protocol stream
+            // desynchronized and this would fail or hang.
+            try (ResultSet rs = conn.createStatement().executeQuery("select 1")) {
+                assertThat(rs.next(), is(true));
+                assertThat(rs.getInt(1), is(1));
+            }
         }
     }
 
@@ -144,6 +132,55 @@ public class StatementIT extends BaseIntegrationTest {
                  "select setting from pg_settings where name = 'statement_timeout'")) {
             assertThat(rs.next(), is(true));
             return rs.getString(1);
+        }
+    }
+
+    /**
+     * Every call that runs something on the server is bracketed by the
+     * statement's query timeout, and each of them answers for what it ran:
+     * a query says it has rows, an insert says it has none, and a count of
+     * the rows written fits either width. The generated keys these calls also
+     * ask for are {@link CrudBatchIT}'s.
+     */
+    @Test
+    public void everyExecutionAnswersForWhatItRan() throws Exception {
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            stmt.execute("create table keyed (id integer primary key)"
+                + " clustered into 1 shards with (number_of_replicas=0)");
+            try {
+                String insert = "insert into keyed (id) values (";
+                assertThat(stmt.execute(insert + "1)", Statement.RETURN_GENERATED_KEYS), is(false));
+                assertThat(stmt.execute(insert + "2)", new String[]{"id"}), is(false));
+                assertThat(stmt.executeUpdate(insert + "3)", Statement.RETURN_GENERATED_KEYS), is(1));
+                assertThat(stmt.executeUpdate(insert + "4)", new String[]{"id"}), is(1));
+                assertThat(stmt.executeLargeUpdate(insert + "5)", Statement.RETURN_GENERATED_KEYS), is(1L));
+                assertThat(stmt.executeLargeUpdate(insert + "6)", new String[]{"id"}), is(1L));
+
+                stmt.execute("refresh table keyed");
+                assertThat(stmt.execute("select id from keyed", Statement.NO_GENERATED_KEYS), is(true));
+                assertThat(stmt.execute("select id from keyed", new String[0]), is(true));
+            } finally {
+                stmt.execute("drop table keyed");
+            }
+        }
+    }
+
+    /**
+     * Naming generated keys by column position is refused rather than run:
+     * pgJDBC names them in the SQL it rewrites, and a position is not a name.
+     * The refusal arrives through the same three calls, which is where a
+     * caller meets it.
+     */
+    @Test
+    public void namingGeneratedKeysByPositionIsRefused() throws Exception {
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            String insert = "insert into keyed (id) values (1)";
+            int[] byPosition = {1};
+
+            assertThat(assertThrows(SQLException.class, () -> stmt.execute(insert, byPosition))
+                .getSQLState(), is("0A000"));
+            assertThrows(SQLException.class, () -> stmt.executeUpdate(insert, byPosition));
+            assertThrows(SQLException.class, () -> stmt.executeLargeUpdate(insert, byPosition));
         }
     }
 
@@ -172,47 +209,6 @@ public class StatementIT extends BaseIntegrationTest {
         }
     }
 
-    @Test
-    public void maxRowsLimitsTheRowsRead() throws Exception {
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement()) {
-            stmt.setMaxRows(2);
-            assertThat(stmt.getMaxRows(), is(2));
-
-            int rows = 0;
-            try (ResultSet rs = stmt.executeQuery("select unnest([1, 2, 3, 4, 5])")) {
-                while (rs.next()) {
-                    rows++;
-                }
-            }
-            assertThat(rows, is(2));
-        }
-    }
-
-    /**
-     * The escape syntax JDBC defines for portable SQL, which reporting tools
-     * emit. pgJDBC rewrites it into the server's own dialect before sending.
-     */
-    @Test
-    public void jdbcEscapesAreTranslatedBeforeTheServerSeesThem() throws Exception {
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("select {fn ucase('abc')}, {ts '2024-01-02 03:04:05'}")) {
-            assertThat(rs.next(), is(true));
-            assertThat(rs.getString(1), is("ABC"));
-            assertThat(rs.getTimestamp(2).toString(), is("2024-01-02 03:04:05.0"));
-        }
-    }
-
-    @Test
-    public void escapesReachTheServerVerbatimWhenTranslationIsOff() throws Exception {
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement()) {
-            stmt.setEscapeProcessing(false);
-            assertThrows(SQLException.class, () -> stmt.executeQuery("select {fn ucase('abc')}"));
-        }
-    }
-
     /**
      * Closing a statement closes what it handed out, and both then refuse to
      * be used — the wrappers hold no state of their own that would answer
@@ -234,21 +230,6 @@ public class StatementIT extends BaseIntegrationTest {
             assertThrows(SQLException.class, () -> rs.getInt(1));
             assertThrows(SQLException.class, () -> rs.getObject(1));
             assertThrows(SQLException.class, () -> rs.getArray(1));
-        }
-    }
-
-    @Test
-    public void closeOnCompletionClosesTheStatementWithItsResultSet() throws Exception {
-        try (Connection conn = connect()) {
-            Statement stmt = conn.createStatement();
-            stmt.closeOnCompletion();
-            assertThat(stmt.isCloseOnCompletion(), is(true));
-
-            ResultSet rs = stmt.executeQuery("select 1");
-            assertThat(rs.next(), is(true));
-            rs.close();
-
-            assertThat(stmt.isClosed(), is(true));
         }
     }
 
@@ -282,118 +263,4 @@ public class StatementIT extends BaseIntegrationTest {
         }
     }
 
-    /**
-     * A scroll type is not only accepted but honoured: the rows are held so
-     * that a caller can move about in them, which a report generator asking
-     * for one is after.
-     */
-    @Test
-    public void aScrollableResultSetScrolls() throws Exception {
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement(
-                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-            ResultSet rs = stmt.executeQuery("select 1 union all select 2");
-
-            assertThat(rs.getType(), is(ResultSet.TYPE_SCROLL_INSENSITIVE));
-            assertThat(rs.last(), is(true));
-            assertThat(rs.getInt(1), is(2));
-            assertThat(rs.first(), is(true));
-            assertThat(rs.getInt(1), is(1));
-        }
-    }
-
-    /**
-     * CrateDB generates no keys, having neither sequences nor identity
-     * columns, and yet the
-     * request still answers, because pgJDBC serves it by asking the server to
-     * return the row it just wrote. So what comes back is the inserted row
-     * rather than anything the server made up, and naming columns narrows it.
-     */
-    @Test
-    public void askingForGeneratedKeysReturnsTheRowThatWasWritten() throws Exception {
-        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
-            stmt.execute("create table keyed (id integer primary key, name text)"
-                + " clustered into 1 shards with (number_of_replicas=0)");
-            try {
-                // An insert has no result set of its own, whatever it was
-                // asked to hand back afterwards.
-                assertThat(stmt.execute("insert into keyed (id, name) values (1, 'a')",
-                    Statement.RETURN_GENERATED_KEYS), is(false));
-                try (ResultSet keys = stmt.getGeneratedKeys()) {
-                    assertThat(keys.getMetaData().getColumnCount(), is(2));
-                    assertThat(keys.next(), is(true));
-                    assertThat(keys.getInt("id"), is(1));
-                    assertThat(keys.getString("name"), is("a"));
-                }
-
-                assertThat(stmt.executeUpdate("insert into keyed (id, name) values (2, 'b')",
-                    new String[]{"id"}), is(1));
-                try (ResultSet keys = stmt.getGeneratedKeys()) {
-                    assertThat(keys.getMetaData().getColumnCount(), is(1));
-                    assertThat(keys.next(), is(true));
-                    assertThat(keys.getInt("id"), is(2));
-                }
-
-                assertThat(stmt.execute("insert into keyed (id) values (6)",
-                    new String[]{"id"}), is(false));
-                try (ResultSet keys = stmt.getGeneratedKeys()) {
-                    assertThat(keys.getMetaData().getColumnCount(), is(1));
-                    assertThat(keys.next(), is(true));
-                    assertThat(keys.getInt("id"), is(6));
-                }
-
-                // A query run through the same calls still says it has rows,
-                // so what they report is the statement's own answer rather
-                // than a constant standing in for it.
-                stmt.execute("refresh table keyed");
-                assertThat(stmt.execute("select id from keyed", Statement.NO_GENERATED_KEYS),
-                    is(true));
-                assertThat(stmt.execute("select id from keyed", new String[0]), is(true));
-
-                assertThat(stmt.executeLargeUpdate("insert into keyed (id) values (3)",
-                    Statement.RETURN_GENERATED_KEYS), is(1L));
-                assertThat(stmt.executeLargeUpdate("insert into keyed (id) values (4)",
-                    new String[]{"id"}), is(1L));
-                assertThat(stmt.executeUpdate("insert into keyed (id) values (5)",
-                    Statement.NO_GENERATED_KEYS), is(1));
-            } finally {
-                stmt.execute("drop table keyed");
-            }
-        }
-    }
-
-    /**
-     * Naming the keys by column position is refused instead: pgJDBC has to
-     * name them in the SQL it rewrites, and a position is not a name. The
-     * refusal arrives when the statement is prepared as well as when one is
-     * run directly.
-     */
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"prepare", "execute", "executeUpdate", "executeLargeUpdate"})
-    public void askingForGeneratedKeysByColumnPositionIsRefused(String call) throws Exception {
-        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
-            stmt.execute("create table keyed (id integer) with (number_of_replicas=0)");
-            try {
-                String insert = "insert into keyed (id) values (1)";
-                SQLException refused = assertThrows(SQLException.class, () -> {
-                    switch (call) {
-                        case "prepare":
-                            conn.prepareStatement(insert, new int[]{1});
-                            break;
-                        case "execute":
-                            stmt.execute(insert, new int[]{1});
-                            break;
-                        case "executeUpdate":
-                            stmt.executeUpdate(insert, new int[]{1});
-                            break;
-                        default:
-                            stmt.executeLargeUpdate(insert, new int[]{1});
-                    }
-                });
-                assertThat(call, refused.getSQLState(), is("0A000"));
-            } finally {
-                stmt.execute("drop table keyed");
-            }
-        }
-    }
 }

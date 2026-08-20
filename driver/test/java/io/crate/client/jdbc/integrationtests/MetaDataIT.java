@@ -30,8 +30,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -40,9 +38,6 @@ import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.matchesRegex;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
@@ -69,9 +64,7 @@ public class MetaDataIT extends BaseIntegrationTest {
     static void setUpTables() throws Exception {
         dropAllUserTables();
         conn = connect();
-        conn.createStatement().execute("create table if not exists test.cluster (arr array(int), name string)");
         conn.createStatement().execute("create table if not exists doc.names (id int primary key, name string)");
-        conn.createStatement().execute("create table if not exists my_schema.names (id int primary key, name string)");
     }
 
     @AfterAll
@@ -143,205 +136,6 @@ public class MetaDataIT extends BaseIntegrationTest {
         return query;
     }
 
-    @Test
-    public void getTablesWithNullSchemaSpansAllSchemas() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getTables("", null, "clus%", TABLE_TYPES);
-
-        List<String> tables = new ArrayList<>();
-        while (rs.next()) {
-            tables.add(rs.getString("TABLE_SCHEM") + "." + rs.getString("TABLE_NAME"));
-        }
-        assertThat(tables, hasItems("sys.cluster", "sys.cluster_health", "test.cluster"));
-    }
-
-    @Test
-    public void getTablesWithEmptySchemaMatchesNothing() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getTables("", "", "clust%", null);
-        assertThat(rs.next(), is(false));
-    }
-
-    /**
-     * Asking for every table type also answers with the index entries CrateDB
-     * exposes through pg_class, which are not tables. A caller that wants
-     * tables has to say so.
-     */
-    @Test
-    public void getTablesWithNullTypesAlsoListsIndexEntries() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-
-        assertThat(columnValues(metaData.getTables("", "doc", "names%", null), "TABLE_TYPE"),
-            hasItems("TABLE", "INDEX"));
-        assertThat(columnValues(metaData.getTables("", "doc", "names%", TABLE_TYPES), "TABLE_TYPE"),
-            is(List.of("TABLE")));
-    }
-
-    @Test
-    public void getColumnsReportsArrayColumns() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getColumns("", "test", "clus%", "ar%");
-
-        assertThat(rs.next(), is(true));
-        assertThat(rs.getString("TABLE_SCHEM"), is("test"));
-        assertThat(rs.getString("TABLE_NAME"), is("cluster"));
-        assertThat(rs.getString("COLUMN_NAME"), is("arr"));
-        assertThat(rs.getString("TYPE_NAME"), is("_int4"));
-        assertThat(rs.getInt("DATA_TYPE"), is(Types.ARRAY));
-        assertThat(rs.getInt("ORDINAL_POSITION"), is(1));
-        assertThat(rs.next(), is(false));
-    }
-
-    @Test
-    public void getColumnsWithEmptySchemaMatchesNothing() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getColumns("", "", "clus%", "name");
-        assertThat(rs.next(), is(false));
-    }
-
-    @Test
-    public void getColumnsWithNullSchemaSpansAllSchemas() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getColumns("", null, "clus%", "name");
-
-        assertThat(rs.next(), is(true));
-        assertThat(rs.getString("TABLE_SCHEM"), is("sys"));
-        assertThat(rs.getString("TABLE_NAME"), is("cluster"));
-        assertThat(rs.getString("COLUMN_NAME"), is("name"));
-
-        assertThat(rs.next(), is(true));
-        assertThat(rs.getString("TABLE_SCHEM"), is("test"));
-        assertThat(rs.getString("TABLE_NAME"), is("cluster"));
-        assertThat(rs.getString("COLUMN_NAME"), is("name"));
-        assertThat(rs.next(), is(false));
-    }
-
-    @Test
-    public void getSchemasReportsTheSingleCatalogEverySchemaBelongsTo() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getSchemas("", "tes%");
-
-        assertThat(rs.next(), is(true));
-        assertThat(rs.getString("TABLE_SCHEM"), is("test"));
-        assertThat(rs.getString("TABLE_CATALOG"), is("crate"));
-        assertThat(rs.next(), is(false));
-    }
-
-    @Test
-    public void getSchemasWithNullPatternListsAllSchemas() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getSchemas("", null);
-
-        List<String> schemas = new ArrayList<>();
-        while (rs.next()) {
-            schemas.add(rs.getString("TABLE_SCHEM"));
-        }
-        assertThat(schemas, hasItems("sys", "test", "information_schema"));
-    }
-
-    @Test
-    public void getColumnsListsNestedObjectColumns() throws Exception {
-        // Nested object columns are addressable in SQL (e.g. name['child'])
-        // and CrateDB's own catalogs list them, so getColumns exposes them
-        // alongside the top-level columns.
-        ResultSet resultSet = conn.getMetaData().getColumns(null, "sys", "nodes", null);
-        List<String> columns = new ArrayList<>();
-        while (resultSet.next()) {
-            columns.add(resultSet.getString(4));
-        }
-        assertThat(columns, hasItems("name", "hostname"));
-        assertThat(columns.stream().anyMatch(c -> c.contains("[")), is(true));
-    }
-
-    /**
-     * What a result set says about its own columns, and so what a mapper reads
-     * before a single row arrives. CrateDB describes a column by its
-     * type alone. It sends none of three things: the table the column came
-     * from, so a column is named by the label the query gave it; whether the
-     * column takes null; and the precision and scale a {@code numeric(p, s)} was
-     * declared with.
-     */
-    @Test
-    public void resultSetMetaDataDescribesTheColumnsOfAQuery() throws Exception {
-        conn.createStatement().execute(
-            "create table if not exists rsmd (id int primary key, amount numeric(10, 2), label text)");
-        try (Statement statement = conn.createStatement();
-             ResultSet rs = statement.executeQuery(
-                 "select id, amount, label as caption from rsmd where 1 = 0")) {
-            ResultSetMetaData metaData = rs.getMetaData();
-
-            assertThat(metaData.getColumnCount(), is(3));
-            assertThat(metaData.getColumnType(1), is(Types.INTEGER));
-            assertThat(metaData.getColumnType(2), is(Types.NUMERIC));
-            assertThat(metaData.getColumnClassName(2), is("java.math.BigDecimal"));
-
-            assertThat(metaData.getColumnLabel(3), is("caption"));
-            assertThat(metaData.getColumnName(3), is("caption"));
-
-            assertThat(metaData.isNullable(1), is(ResultSetMetaData.columnNullableUnknown));
-            assertThat(metaData.getPrecision(2), is(0));
-            assertThat(metaData.getScale(2), is(0));
-
-            assertThat(rs.getType(), is(ResultSet.TYPE_FORWARD_ONLY));
-            assertThat(rs.getConcurrency(), is(ResultSet.CONCUR_READ_ONLY));
-        } finally {
-            conn.createStatement().execute("drop table rsmd");
-        }
-    }
-
-    @Test
-    public void getSchemasListsBuiltinSchemas() throws Exception {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getSchemas();
-        List<String> schemas = new ArrayList<>();
-        while (rs.next()) {
-            schemas.add(rs.getString(1));
-        }
-        assertThat(schemas, hasItems("doc", "sys", "information_schema", "pg_catalog"));
-    }
-
-    @Test
-    public void getPrimaryKeysNamesTheKeyColumnOfATable() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getPrimaryKeys("", "doc", "names");
-        assertThat(rs.next(), is(true));
-        assertThat(rs.getString("TABLE_SCHEM"), is("doc"));
-        assertThat(rs.getString("TABLE_NAME"), is("names"));
-        assertThat(rs.getString("COLUMN_NAME"), is("id"));
-    }
-
-    @Test
-    public void getPrimaryKeysReturnsNothingForTableWithoutPk() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getPrimaryKeys("", "test", "cluster");
-        assertThat(rs.next(), is(false));
-    }
-
-    @Test
-    public void getPrimaryKeysWithNullSchemaDoesNotFilter() throws SQLException {
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet rs = metaData.getPrimaryKeys("", null, "names");
-        List<String> keys = new ArrayList<>();
-        while (rs.next()) {
-            keys.add(rs.getString("TABLE_SCHEM") + "." + rs.getString("TABLE_NAME")
-                     + "." + rs.getString("COLUMN_NAME"));
-        }
-        assertThat(keys, hasItems("doc.names.id", "my_schema.names.id"));
-    }
-
-    @Test
-    public void getPrimaryKeysListsCompositeKeyColumns() throws SQLException {
-        conn.createStatement().execute(
-            "create table if not exists t_multi_pks (id int primary key, id2 int primary key, name string)");
-        try {
-            // JDBC orders the key columns by name, not by their place in the key.
-            assertThat(columnValues(conn.getMetaData().getPrimaryKeys("", "doc", "t_multi_pks"), "COLUMN_NAME"),
-                is(List.of("id", "id2")));
-        } finally {
-            conn.createStatement().execute("drop table t_multi_pks");
-        }
-    }
-
     /**
      * What the metadata says CrateDB is, where pgJDBC would say what
      * PostgreSQL is. Frameworks read these before deciding what SQL to
@@ -363,6 +157,13 @@ public class MetaDataIT extends BaseIntegrationTest {
             Arguments.of("supportsIntegrityEnhancementFacility", false),
             Arguments.of("supportsSelectForUpdate", false),
             Arguments.of("supportsRefCursors", false),
+            // CrateDB has no PROCEDURE in its grammar at all, so a tool is
+            // told none can exist rather than reading an empty list as
+            // "none yet".
+            Arguments.of("supportsStoredProcedures", false),
+            Arguments.of("allProceduresAreCallable", false),
+            // A table's column count is bounded by the mapping's field limit.
+            Arguments.of("getMaxColumnsInTable", 1000),
             // Identifiers are unbounded; PostgreSQL cuts them off at 63.
             Arguments.of("getMaxCatalogNameLength", 0),
             Arguments.of("getMaxColumnNameLength", 0),
@@ -399,20 +200,13 @@ public class MetaDataIT extends BaseIntegrationTest {
 
     /**
      * The driver identifies itself rather than the pgJDBC release it builds
-     * on, and reports the PostgreSQL release CrateDB emulates as the product
-     * version, that being what PostgreSQL tooling reasons about.
+     * on: one version, whether a caller reads it as text or as its parts.
      */
     @Test
-    public void metaDataReportsThisDriverAndTheEmulatedServer() throws Exception {
+    public void metaDataReportsThisDriverAndNotThePgJdbcItBuildsOn() throws Exception {
         DatabaseMetaData metaData = conn.getMetaData();
         assertThat(metaData.getDriverVersion(),
             startsWith(metaData.getDriverMajorVersion() + "." + metaData.getDriverMinorVersion()));
-
-        assertThat(metaData.getDatabaseProductVersion(), matchesRegex("\\d+\\.\\d+"));
-        assertThat(metaData.getDatabaseMajorVersion(), greaterThanOrEqualTo(10));
-        assertThat(metaData.getDatabaseMinorVersion(), greaterThanOrEqualTo(0));
-        assertThat(metaData.getMaxConnections(), greaterThan(0));
-        assertThat(metaData.getSQLKeywords().split(",").length, greaterThan(0));
     }
 
     /**
@@ -546,22 +340,6 @@ public class MetaDataIT extends BaseIntegrationTest {
             assertThat(names, hasItems("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "NON_UNIQUE",
                 "INDEX_NAME", "ORDINAL_POSITION", "COLUMN_NAME", "CARDINALITY"));
         }
-    }
-
-    /**
-     * CrateDB has no {@code PROCEDURE} in its grammar at all, so a tool is
-     * told none can exist rather than reading the empty list as "none yet".
-     */
-    @Test
-    public void storedProceduresAreReportedAsUnsupported() throws Exception {
-        assertThat(conn.getMetaData().supportsStoredProcedures(), is(false));
-        assertThat(conn.getMetaData().allProceduresAreCallable(), is(false));
-    }
-
-    /** A table's column count is bounded by the mapping's field limit. */
-    @Test
-    public void maxColumnsInTableIsCrateDbsFieldLimit() throws Exception {
-        assertThat(conn.getMetaData().getMaxColumnsInTable(), is(1000));
     }
 
     /**

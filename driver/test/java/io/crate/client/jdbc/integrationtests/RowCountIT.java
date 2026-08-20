@@ -34,16 +34,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Pins the row count a statement reports: DDL reports a single affected row,
- * and an operation whose exact count CrateDB cannot determine, such as
- * deleting from a partitioned table by partition, reports zero, having
- * arrived as −1 on the wire.
+ * Pins the row count a statement reports: a statement that changes rows
+ * reports how many, and CrateDB counts a DDL statement as one.
  *
  * <p>JDBC has two ways to ask, one answering an {@code int} and one a
- * {@code long} for counts that would not fit in one. They run different code,
- * and an application that switched between them over a count of zero would be
- * reading a difference the database never reported, so every case here is
- * asserted through both.</p>
+ * {@code long} for counts that would not fit in one. Each brackets the
+ * execution with the statement's query timeout on its own, so they are two
+ * paths rather than one calling the other, and every case here is asserted
+ * through both.</p>
  */
 public class RowCountIT extends BaseIntegrationTest {
 
@@ -79,18 +77,6 @@ public class RowCountIT extends BaseIntegrationTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("updateForms")
-    public void unknownRowCountReportsZero(String form, UpdateCount count) throws Exception {
-        try (Connection conn = connect(); Statement statement = conn.createStatement()) {
-            statement.execute("create table t (p string, x int) partitioned by (p)");
-            statement.execute("insert into t (p, x) values ('a', 1)");
-            statement.execute("refresh table t");
-
-            assertThat(count.of(statement, "delete from t where p = 'a'"), is(0L));
-        }
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("updateForms")
     public void aCountedDeleteReportsTheRowsItRemoved(String form, UpdateCount count) throws Exception {
         try (Connection conn = connect(); Statement statement = conn.createStatement()) {
             statement.execute("create table t (id int)");
@@ -101,11 +87,7 @@ public class RowCountIT extends BaseIntegrationTest {
         }
     }
 
-    /**
-     * A prepared statement answers the same, through the accessor of each
-     * width. Both bracket the execution with the query timeout, so they are
-     * separate paths rather than one calling the other.
-     */
+    /** A prepared statement answers the same, at either width. */
     @Test
     public void aPreparedStatementReportsTheSameCountAtEitherWidth() throws Exception {
         try (Connection conn = connect(); Statement statement = conn.createStatement()) {

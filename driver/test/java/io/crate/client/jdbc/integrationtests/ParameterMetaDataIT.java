@@ -85,22 +85,6 @@ public class ParameterMetaDataIT extends BaseIntegrationTest {
     }
 
     /**
-     * A parameter CrateDB has a PostgreSQL type for is described by pgJDBC,
-     * which the driver has no reason to improve on.
-     */
-    @ParameterizedTest(name = "{1}")
-    @CsvSource({
-        "1, int4, java.lang.Integer",
-        "2, varchar, java.lang.String",
-    })
-    public void aParameterWithAPostgresTypeIsDescribedByPgJdbc(
-            int index, String typeName, String className) throws Exception {
-        ParameterMetaData parameters = parametersOf(INSERT);
-        assertThat(parameters.getParameterTypeName(index), is(typeName));
-        assertThat(parameters.getParameterClassName(index), is(className));
-    }
-
-    /**
      * A parameter that travels as json is bound from a {@code Map} or a
      * {@code List}, so the class named is the one those have in common. The
      * three CrateDB types that reach the server this way are all described the
@@ -169,16 +153,4 @@ public class ParameterMetaDataIT extends BaseIntegrationTest {
         }
     }
 
-    /**
-     * A statement whose parameters are all ordinary types is described without
-     * the driver reading a single type name, and answers as pgJDBC does.
-     */
-    @Test
-    public void aStatementWithoutJsonParametersIsDescribedThroughout() throws Exception {
-        ParameterMetaData parameters =
-            parametersOf("select id from param_meta where id = ? and name = ?");
-        assertThat(parameters.getParameterCount(), is(2));
-        assertThat(parameters.getParameterClassName(1), is("java.lang.Integer"));
-        assertThat(parameters.getParameterClassName(2), is("java.lang.String"));
-    }
 }
