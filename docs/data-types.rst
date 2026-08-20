@@ -289,7 +289,9 @@ not always the map that went in:
 
 - A whole number reads back as a ``Long``, whatever it was written as: a
   whole number in an ``object`` is a ``bigint``, and sizing the Java type to
-  the value would make what a nested column reads as depend on the row.
+  the value would make what a nested column reads as depend on the row. One
+  too large for a ``bigint`` is a ``numeric``, which holds 38 digits and
+  reads back as a ``BigInteger``.
 - A ``java.time`` value is written as ISO-8601 text, which CrateDB reads a
   ``timestamp`` from. A ``java.sql.Timestamp`` is written as epoch
   milliseconds, which it equally reads a ``timestamp`` from, though a

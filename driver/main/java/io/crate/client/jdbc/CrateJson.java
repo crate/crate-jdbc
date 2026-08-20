@@ -20,7 +20,6 @@ package io.crate.client.jdbc;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.core.exc.StreamConstraintsException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -31,6 +30,10 @@ import org.postgresql.util.PSQLState;
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  * JSON bridge between CrateDB's OBJECT type and java.util collections. OBJECT
@@ -49,10 +52,12 @@ final class CrateJson {
      *     timestamp from. Under Jackson's other option, epoch numbers, a value
      *     without a zone has no epoch to write and comes out as an array of its
      *     fields.</li>
-     * <li>A whole number is read back as a {@code Long}, because a whole number
-     *     in a CrateDB OBJECT is a {@code bigint} whatever its magnitude.
-     *     Sizing the Java type to the value instead would make the type of what
-     *     a column reads as depend on the row.</li>
+     * <li>A whole number is read back as a {@code Long}, because a nested
+     *     column holding one is a {@code bigint}. Sizing the Java type to the
+     *     value instead would make the type of what a column reads as depend
+     *     on the row. Past a {@code bigint}'s range CrateDB types the column
+     *     {@code numeric} rather than {@code bigint}, and the value keeps the
+     *     {@code BigInteger} that holds it.</li>
      * <li>No ceiling on how long a single value may be. Jackson's guards
      *     against a hostile document (20 million characters to a string, 1000
      *     digits to a number) describe input arriving from somewhere untrusted.
@@ -75,7 +80,6 @@ final class CrateJson {
         return JsonMapper.builder(factory)
             .addModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .enable(DeserializationFeature.USE_LONG_FOR_INTS)
             .build();
     }
 
@@ -88,7 +92,7 @@ final class CrateJson {
 
     static <T> T parse(String json, Class<T> type) throws SQLException {
         try {
-            return MAPPER.readValue(json, type);
+            return type.cast(widened(MAPPER.readValue(json, type)));
         } catch (IOException e) {
             throw new SQLDataException("Cannot parse json value: " + describe(json, e),
                 PSQLState.DATA_ERROR.getState(), e);
@@ -102,6 +106,30 @@ final class CrateJson {
             throw new SQLDataException("Cannot serialize value to json: " + describe(value, e),
                 PSQLState.INVALID_PARAMETER_VALUE.getState(), e);
         }
+    }
+
+    /**
+     * Every whole number as the box a nested column's type calls for, Jackson
+     * having sized each to the value in front of it instead. The containers
+     * are the ones it has just built and nothing else holds yet, so the
+     * promotion happens in place.
+     */
+    @SuppressWarnings("unchecked")
+    private static Object widened(Object value) {
+        if (value instanceof Map) {
+            ((Map<Object, Object>) value).replaceAll((key, held) -> widened(held));
+        } else if (value instanceof List) {
+            ((List<Object>) value).replaceAll(CrateJson::widened);
+        } else if (value instanceof Collection) {
+            Collection<Object> items = (Collection<Object>) value;
+            List<Object> promoted = new ArrayList<>(items.size());
+            items.forEach(held -> promoted.add(widened(held)));
+            items.clear();
+            items.addAll(promoted);
+        } else if (value instanceof Integer) {
+            return ((Integer) value).longValue();
+        }
+        return value;
     }
 
     /** How much of a value a message quotes back. */

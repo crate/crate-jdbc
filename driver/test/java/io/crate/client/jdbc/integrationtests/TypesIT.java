@@ -31,6 +31,7 @@ import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGobject;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.Date;
@@ -801,13 +802,17 @@ public class TypesIT extends BaseIntegrationTest {
 
     /**
      * A whole number in an OBJECT is a {@code bigint} whatever Java box it was
-     * written from, so it reads back as a {@code Long} at any magnitude.
+     * written from, so it reads back as a {@code Long}. One too large for a
+     * {@code bigint} is a {@code numeric}, which CrateDB stores to 38 digits
+     * and which reads back as the {@code BigInteger} holding it.
      */
     @Test
     public void wholeNumbersInAnObjectReadBackAsLong() throws Exception {
+        BigInteger past = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE);
         Map<String, Object> value = new HashMap<>();
         value.put("small", 5);
         value.put("large", 5_000_000_000L);
+        value.put("past", past);
 
         try (PreparedStatement select = conn.prepareStatement("select ?::object")) {
             select.setObject(1, value);
@@ -817,6 +822,7 @@ public class TypesIT extends BaseIntegrationTest {
             Map<?, ?> back = (Map<?, ?>) resultSet.getObject(1);
             assertThat(back.get("small"), is(5L));
             assertThat(back.get("large"), is(5_000_000_000L));
+            assertThat(back.get("past"), is(past));
         }
     }
 

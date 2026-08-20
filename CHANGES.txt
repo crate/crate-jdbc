@@ -86,8 +86,9 @@ Types
 
 - ``OBJECT`` values bind from a ``java.util.Map`` and read back as one,
   through ``getObject()``, ``getObject(column, type)`` and the array forms
-  alike. ``java.time`` values nested in one are written as ISO-8601 text, and
-  a whole number reads back as the ``Long`` such a nested column holds.
+  alike. ``java.time`` values nested in one are written as ISO-8601 text, a
+  whole number reads back as the ``Long`` such a nested column holds, and one
+  past a ``bigint``'s range as the ``BigInteger`` its ``numeric`` column does.
 
 - Columns of ``array(array(...))``, which CrateDB sends as json rather than in
   the PostgreSQL array format, read through ``getArray()`` and ``getObject()``
@@ -109,10 +110,9 @@ Types
 Metadata
 --------
 
-- ``DatabaseMetaData`` describes CrateDB where the two databases differ, as
-  ``docs/internals.rst`` lists: the SQL features CrateDB has no grammar for,
-  identifier lengths reported as unbounded, CrateDB's own field limit, and
-  this driver's name, version and URL scheme rather than pgJDBC's.
+- ``DatabaseMetaData`` describes CrateDB where the two differ, as
+  ``docs/internals.rst`` lists: unsupported SQL features, unbounded identifier
+  lengths, CrateDB's field limit, and this driver's own name, version and URL.
 
 - ``getIndexInfo()`` answers with no rows instead of passing on the server's
   complaint about a PostgreSQL function the caller never used, which every

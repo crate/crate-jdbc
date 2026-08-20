@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.StreamReadConstraints;
 import org.junit.jupiter.api.Test;
 import org.postgresql.util.PGobject;
 
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,18 +79,36 @@ public class CrateJsonTest {
     }
 
     /**
-     * A whole number in a CrateDB OBJECT is a {@code bigint} whatever its
-     * magnitude, so reading one back must not size the Java type to the value.
+     * A whole number in a CrateDB OBJECT is a {@code bigint}, at any depth and
+     * whatever its magnitude, so reading one back must not size the Java type
+     * to the value.
      */
     @Test
     public void wholeNumbersReadBackAsLong() throws SQLException {
         Map<String, Object> map = new HashMap<>();
         map.put("small", 5);
         map.put("large", 5_000_000_000L);
+        map.put("nested", Collections.singletonMap("deep", 7));
+        map.put("list", Arrays.asList(1, 2));
 
         Map<?, ?> parsed = (Map<?, ?>) CrateJson.parse(CrateJson.write(map));
         assertThat(parsed.get("small"), is(5L));
         assertThat(parsed.get("large"), is(5_000_000_000L));
+        assertThat(((Map<?, ?>) parsed.get("nested")).get("deep"), is(7L));
+        assertThat(parsed.get("list"), is(Arrays.asList(1L, 2L)));
+    }
+
+    /**
+     * Past a {@code bigint}'s range the nested column is a {@code numeric},
+     * and the value keeps the box that holds it rather than failing to read.
+     */
+    @Test
+    public void aWholeNumberPastABigintsRangeReadsBackAsBigInteger() throws SQLException {
+        BigInteger past = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE);
+
+        Map<?, ?> parsed = (Map<?, ?>) CrateJson.parse("{\"n\":" + past + "}");
+
+        assertThat(parsed.get("n"), is(past));
     }
 
     /** CrateDB reads a timestamp from ISO-8601 text. */
