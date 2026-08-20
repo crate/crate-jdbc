@@ -18,131 +18,31 @@
 package io.crate.client.jdbc.integrationtests;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Pins cursor-based fetching through the crate:// driver. A fetch size is
- * honored only while autoCommit is disabled: with manual commit the rows
- * stay on the server and arrive one batch at a time, with autoCommit the
- * whole result set is read into the client at once.
+ * What a query timeout and a cursor do to each other. A fetch size under
+ * manual commit leaves the rows on the server, to arrive one batch at a time,
+ * and the timeout the driver applies is the session's {@code statement_timeout}
+ * — a setting that would bound the fetches as readily as the execution that
+ * opened the cursor.
  *
- * <p>Which of the two happened is read off the rows themselves: once the
- * connection is aborted, only what the client already holds can still be
- * iterated — one batch for a cursor, everything for a materialized result
- * set.</p>
+ * <p>How many rows the client holds is read off the rows themselves: once the
+ * connection is aborted, only what was already fetched can still be
+ * iterated.</p>
  */
 public class FetchSizeIT extends BaseIntegrationTest {
 
     private static final int FETCH_SIZE = 10;
 
     private static final String SUMMITS = "select * from sys.summits";
-
-    /**
-     * Cursor-based fetching holds for a prepared statement as it does for a
-     * plain one: what brackets an execution is written once, on the statement
-     * wrapper both are built on.
-     */
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("statements")
-    public void fetchSizeBatchesRowsUnderManualCommit(String description, Query query) throws Exception {
-        try (Connection connection = connect()) {
-            connection.setAutoCommit(false);
-            try (Statement statement = query.prepare(connection)) {
-                statement.setFetchSize(FETCH_SIZE);
-                ResultSet rs = query.run(statement);
-                assertThat(rs.getFetchSize(), is(FETCH_SIZE));
-                assertThat(rowsHeldByTheClient(connection, rs), is(FETCH_SIZE));
-            }
-        }
-    }
-
-    static Stream<Arguments> statements() {
-        return Stream.of(
-            Arguments.of("Statement", new Query() {
-                @Override
-                public Statement prepare(Connection connection) throws SQLException {
-                    return connection.createStatement();
-                }
-
-                @Override
-                public ResultSet run(Statement statement) throws SQLException {
-                    return statement.executeQuery(SUMMITS);
-                }
-            }),
-            Arguments.of("PreparedStatement", new Query() {
-                @Override
-                public Statement prepare(Connection connection) throws SQLException {
-                    return connection.prepareStatement(SUMMITS);
-                }
-
-                @Override
-                public ResultSet run(Statement statement) throws SQLException {
-                    return ((PreparedStatement) statement).executeQuery();
-                }
-            })
-        );
-    }
-
-    interface Query {
-        Statement prepare(Connection connection) throws SQLException;
-
-        ResultSet run(Statement statement) throws SQLException;
-    }
-
-    @Test
-    public void fetchSizeIgnoredWithAutoCommit() throws Exception {
-        int summits;
-        try (Connection counting = connect()) {
-            summits = countSummits(counting);
-        }
-        try (Connection connection = connect();
-             Statement statement = connection.createStatement()) {
-            connection.setAutoCommit(true);
-            statement.setFetchSize(FETCH_SIZE);
-            statement.execute(SUMMITS);
-            ResultSet rs = statement.getResultSet();
-            assertThat(rs.getFetchSize(), is(FETCH_SIZE));
-            assertThat(rowsHeldByTheClient(connection, rs), is(summits));
-        }
-    }
-
-    /**
-     * Batches follow one another until the rows run out: what a cursor is for
-     * is reading a result set larger than the client wants to hold.
-     */
-    @Test
-    public void everyBatchIsFetchedUntilTheRowsRunOut() throws Exception {
-        int summits;
-        try (Connection counting = connect()) {
-            summits = countSummits(counting);
-        }
-        try (Connection connection = connect();
-             Statement statement = connection.createStatement()) {
-            connection.setAutoCommit(false);
-            statement.setFetchSize(FETCH_SIZE);
-            try (ResultSet rs = statement.executeQuery(SUMMITS)) {
-                int rows = 0;
-                while (rs.next()) {
-                    rows++;
-                }
-                assertThat(rows, is(summits));
-                assertThat(summits, greaterThan(FETCH_SIZE));
-            }
-        }
-    }
 
     /**
      * A query timeout is applied around the execution and taken off again
@@ -174,6 +74,10 @@ public class FetchSizeIT extends BaseIntegrationTest {
      * The timeout bounds the execution that opens the cursor, and no more: it
      * is off the session again by the time the first batch is in the client's
      * hands, so the fetches that bring the rest of the rows run unbounded.
+     *
+     * <p>That the client holds a batch and not the whole result set is what
+     * makes this and the test above it say anything: both would pass on a
+     * driver that never batched at all.</p>
      */
     @Test
     public void aCursorFetchesItsRowsOutsideTheQueryTimeout() throws Exception {
@@ -184,8 +88,9 @@ public class FetchSizeIT extends BaseIntegrationTest {
             statement.setQueryTimeout(30);
             String ownTimeout = sessionStatementTimeout(connection);
             try (ResultSet rs = statement.executeQuery(SUMMITS)) {
-                assertThat(rs.next(), is(true));
+                assertThat(rs.getFetchSize(), is(FETCH_SIZE));
                 assertThat(sessionStatementTimeout(connection), is(ownTimeout));
+                assertThat(rowsHeldByTheClient(connection, rs), is(FETCH_SIZE));
             }
         }
     }

@@ -466,6 +466,12 @@ public class TypesIT extends BaseIntegrationTest {
         String describedClass = resultSet.getMetaData().getColumnClassName(1);
         assertThat(describedClass, is(Object.class.getName()));
         assertThat(Class.forName(describedClass).isInstance(resultSet.getObject(1)), is(true));
+
+        // The statement describes the rows it would produce in the same terms
+        // the rows do, which is what a mapper reads before running anything.
+        try (PreparedStatement prepared = conn.prepareStatement(query)) {
+            assertThat(prepared.getMetaData().getColumnClassName(1), is(describedClass));
+        }
     }
 
     static Stream<Arguments> jsonColumnQueries() {

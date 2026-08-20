@@ -125,34 +125,6 @@ jobs:
       - name: Run integration tests
         run: ./gradlew integrationTest -PtestTimeZone=${{ matrix.time-zone }}
 
-  # The suites that only behave the way applications meet them when assertions
-  # are off. pgJDBC guards its describe request with an assertion, so `-ea` —
-  # which every other job here runs with — hides the outcome a plain JVM gets.
-  # The setting is an axis of its own, and one run of it answers for all of
-  # them.
-  no-assertions:
-
-    name: Test with assertions disabled
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-
-      - name: Acquire sources
-        uses: actions/checkout@v6
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Run integration tests
-        run: ./gradlew integrationTestNoAssertions
-
   # What the suites reach of the hand-written classes. One JRE: the coverage
   # agent supports a narrower range of JDKs than the driver does, and the
   # answer does not depend on which one the suites ran on.

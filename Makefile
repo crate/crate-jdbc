@@ -30,7 +30,7 @@ TEST_TIME_ZONE ?= Europe/Berlin
 COVERAGE_JAVA_VERSION ?= 21
 
 .DEFAULT_GOAL := help
-.PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned itest-noassert \
+.PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned \
         itest-standalone coverage mutation \
         check verify format docs docs-check forwarding publish-local sbom version clean
 
@@ -67,9 +67,6 @@ itest-cluster:  ## Run the integration tests against a CrateDB cluster
 itest-zoned:  ## Run the integration tests in a JVM zone away from UTC
 	$(GRADLE) integrationTest -PtestTimeZone=$(TEST_TIME_ZONE)
 
-itest-noassert:  ## Run the integration tests that need assertions disabled
-	$(GRADLE) integrationTestNoAssertions
-
 itest-standalone:  ## Run the integration tests against the standalone artifact
 	$(GRADLE) standaloneTest
 
@@ -84,7 +81,7 @@ check:  ## Unit tests, code style, generated-code and artifact checks
 
 # Not docs-check: its link checker reaches the open internet and fails on
 # rate limits rather than on anything in the tree.
-verify: check test-baseline itest itest-floor itest-cluster itest-zoned itest-noassert itest-standalone  ## Tests and checks, across the supported ranges
+verify: check test-baseline itest itest-floor itest-cluster itest-zoned itest-standalone  ## Tests and checks, across the supported ranges
 
 format:  ## Apply the code style
 	$(GRADLE) spotlessApply

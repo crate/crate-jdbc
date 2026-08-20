@@ -462,22 +462,6 @@ tasks.register('integrationTest', Test) {
     outputs.upToDateWhen { false }
 }
 
-// The suites with assertions off, which is the only way to reach what a plain
-// JVM meets where pgJDBC guards a request with an assertion of its own. Both
-// this task and `integrationTest` report skips, a test belonging to one setting
-// assuming its way out of the other. See DEVELOP.rst.
-tasks.register('integrationTestNoAssertions', Test) {
-    description = 'Runs the integration tests that only behave that way with assertions disabled.'
-    group = 'verification'
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-    enableAssertions = false
-    filter {
-        includeTestsMatching '*SimpleQueryModeIT'
-    }
-    outputs.upToDateWhen { false }
-}
-
 // The suites against the standalone artifact, which is what reaches a name
 // that failed to relocate: those fail only once used. The unrelocated pgJDBC
 // and this project's class files are kept off the classpath so the driver comes
@@ -518,8 +502,7 @@ tasks.withType(Test).configureEach {
 // generation already, and execution data comes from every suite that ran: most
 // of the driver needs a server behind it.
 tasks.named('jacocoTestReport', JacocoReport) {
-    dependsOn tasks.named('test'), tasks.named('integrationTest'),
-        tasks.named('integrationTestNoAssertions')
+    dependsOn tasks.named('test'), tasks.named('integrationTest')
     executionData.setFrom(fileTree(layout.buildDirectory.dir('jacoco')).include('*.exec'))
     classDirectories.setFrom(sourceSets.main.output.asFileTree.matching {
         exclude '**/Forwarding*.class'

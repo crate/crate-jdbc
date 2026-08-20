@@ -156,12 +156,12 @@ default to use nested or empty arrays.
 
 Under that mode, ``PreparedStatement.getMetaData()`` and
 ``getParameterMetaData()`` ask for a description the simple query protocol has
-no message to carry. With assertions enabled the driver fails an internal
-assertion. With assertions disabled, which is every JVM not started with
-``-ea``, the request falls through into the simple-query path and the statement
-is executed: ``getMetaData()`` on a prepared ``INSERT`` performs the insert and
-answers ``null``, and ``getParameterMetaData()`` on one performs it too. A
-metadata call writes to the database and reports nothing.
+no message to carry. With assertions enabled pgJDBC fails an assertion of its
+own. Without them, which is every JVM not started with ``-ea``, the request
+falls through into the simple-query path and the statement is executed:
+``getMetaData()`` on a prepared ``INSERT`` performs the insert and answers
+``null``, and ``getParameterMetaData()`` on one performs it too. A metadata
+call writes to the database and reports nothing.
 
 Executing the statement first helps only one of the two. A query that has run
 carries its own result description, so ``getMetaData()`` answers from it and

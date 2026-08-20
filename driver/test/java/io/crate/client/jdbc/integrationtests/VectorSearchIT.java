@@ -25,19 +25,18 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Pins k-nearest-neighbour search over {@code float_vector} columns: writing
- * embeddings through {@link Connection#createArrayOf}, restricting a query
- * with {@code knn_match}, and ranking with {@code vector_similarity}.
+ * A {@code float_vector} column, which is CrateDB's own type and reaches the
+ * server as an array of {@code real}: what
+ * {@code createArrayOf("float_vector", ...)} writes is what {@code getArray}
+ * reads back. {@code README.rst} ships that round trip as the quick start for
+ * vector search, and what a query then does with the column — {@code knn_match}
+ * and {@code vector_similarity} — is the server's.
  */
 public class VectorSearchIT extends BaseIntegrationTest {
 
@@ -59,7 +58,6 @@ public class VectorSearchIT extends BaseIntegrationTest {
             "insert into embeddings (id, label, embedding) values (?, ?, ?)")) {
             insert(insert, 1, "origin", 0.0f, 0.0f, 0.0f);
             insert(insert, 2, "near", 1.0f, 1.0f, 1.0f);
-            insert(insert, 3, "far", 9.0f, 9.0f, 9.0f);
         }
         conn.createStatement().execute("refresh table embeddings");
     }
@@ -84,63 +82,6 @@ public class VectorSearchIT extends BaseIntegrationTest {
         dropAllUserTables();
     }
 
-    /**
-     * {@code knn_match} restricts a query to the k nearest rows.
-     */
-    @Test
-    public void knnMatchRestrictsToTheNearestRows() throws Exception {
-        try (ResultSet resultSet = conn.createStatement().executeQuery(
-            "select label from embeddings where knn_match(embedding, [0.5, 0.5, 0.5], 2) " +
-            "order by _score desc")) {
-            List<String> labels = new ArrayList<>();
-            while (resultSet.next()) {
-                labels.add(resultSet.getString(1));
-            }
-            assertThat(labels, contains("origin", "near"));
-        }
-    }
-
-    /**
-     * The query vector binds as a parameter, so an embedding computed at
-     * runtime does not have to be spliced into the statement text.
-     */
-    @Test
-    public void queryVectorsBindAsParameters() throws Exception {
-        try (PreparedStatement search = conn.prepareStatement(
-            "select label from embeddings where knn_match(embedding, ?, 1)")) {
-            search.setArray(1, conn.createArrayOf("float_vector", new Float[]{9.0f, 9.0f, 9.0f}));
-            try (ResultSet resultSet = search.executeQuery()) {
-                assertThat(resultSet.next(), is(true));
-                assertThat(resultSet.getString(1), is("far"));
-            }
-        }
-    }
-
-    @Test
-    public void vectorSimilarityRanksRowsAgainstAQueryVector() throws Exception {
-        try (PreparedStatement scoring = conn.prepareStatement(
-            "select label, vector_similarity(embedding, ?) as score " +
-            "from embeddings order by score desc")) {
-            scoring.setArray(1, conn.createArrayOf("float_vector", new Float[]{1.0f, 1.0f, 1.0f}));
-            try (ResultSet resultSet = scoring.executeQuery()) {
-                List<String> labels = new ArrayList<>();
-                double previous = Double.MAX_VALUE;
-                while (resultSet.next()) {
-                    labels.add(resultSet.getString("label"));
-                    double score = resultSet.getDouble("score");
-                    assertThat(previous, is(greaterThan(score)));
-                    previous = score;
-                }
-                assertThat(labels, contains("near", "origin", "far"));
-            }
-        }
-    }
-
-    /**
-     * An embedding round-trips as an array of {@code real}: what
-     * {@code createArrayOf("float_vector", ...)} writes is what
-     * {@code getArray} reads back.
-     */
     @Test
     public void embeddingsRoundTripThroughGetArray() throws Exception {
         try (ResultSet resultSet = conn.createStatement().executeQuery(

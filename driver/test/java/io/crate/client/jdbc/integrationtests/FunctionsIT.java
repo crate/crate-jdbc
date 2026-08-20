@@ -28,7 +28,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,10 +43,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * <p>CrateDB's user-defined routines are functions, not stored procedures:
  * they return a value rather than filling in output parameters. pgJDBC turns
  * the call into a {@code SELECT}, so the answer arrives as a row, and the
- * output-parameter half of the API has nothing behind it. Both halves are
- * pinned here — the second because "not supported" is a promise to callers as
- * much as the first is, and because the day either layer implements it is a
- * day this driver has a conversion to get right.</p>
+ * conversions this driver puts on a call's getters stand for a server that
+ * grows output parameters rather than for one a caller meets — as
+ * {@code CrateCallableStatement} says where it says what they convert. Until
+ * then a caller reading one is refused, which is the answer those getters owe
+ * and the only one they can give.</p>
  */
 public class FunctionsIT extends BaseIntegrationTest {
 
@@ -126,20 +126,6 @@ public class FunctionsIT extends BaseIntegrationTest {
     }
 
     /**
-     * The form that asks for the return value as an output parameter is
-     * refused by the server: describing it needs a PostgreSQL type CrateDB has
-     * no equivalent for.
-     */
-    @Test
-    public void askingForTheReturnValueAsAnOutputParameterIsRefused() throws Exception {
-        try (CallableStatement call = conn.prepareCall("{? = call doubled(?)}")) {
-            call.registerOutParameter(1, Types.BIGINT);
-            call.setLong(2, 21);
-            assertThrows(SQLException.class, call::execute);
-        }
-    }
-
-    /**
      * Reading an output parameter from a call that declared none is refused
      * before the driver's own conversion is reached, so a caller gets the
      * complaint rather than a null.
@@ -152,19 +138,10 @@ public class FunctionsIT extends BaseIntegrationTest {
             assertThrows(SQLException.class, () -> call.getObject(1));
             assertThrows(SQLException.class, () -> call.getObject(1, Map.class));
             assertThrows(SQLException.class, () -> call.getArray(1));
-        }
-    }
 
-    /**
-     * Addressing an output parameter by name is unsupported one layer down —
-     * pgJDBC implements none of those forms. CrateDB addresses a function's
-     * arguments by position anyway.
-     */
-    @Test
-    public void addressingAnOutputParameterByNameIsUnsupported() throws Exception {
-        try (CallableStatement call = conn.prepareCall("{call doubled(?)}")) {
-            call.setLong(1, 21);
-            call.execute();
+            // Addressing one by name is unsupported a layer down, pgJDBC
+            // implementing none of those forms. CrateDB addresses a
+            // function's arguments by position anyway.
             assertThrows(SQLFeatureNotSupportedException.class, () -> call.getObject("a"));
             assertThrows(SQLFeatureNotSupportedException.class, () -> call.getObject("a", Map.class));
             assertThrows(SQLFeatureNotSupportedException.class, () -> call.getArray("a"));

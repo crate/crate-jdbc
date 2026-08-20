@@ -87,16 +87,6 @@ conversion through the default calendar and one without it disagree::
     $ make itest-cluster   # three nodes instead of one
     $ make itest-zoned     # the suites in Europe/Berlin
 
-Gradle enables assertions in its test JVMs, where applications run without
-them. pgJDBC guards a request that ``preferQueryMode=simple`` cannot carry with
-an assertion of its own, so the outcome a plain JVM meets, the request falling
-through and executing the statement, is reachable only with assertions off::
-
-    $ make itest-noassert
-
-The tests that apply to one setting and not the other skip themselves under
-the other, so both runs report skips.
-
 Coverage is measured over the hand-written classes. The generated
 ``Forwarding*`` classes are left out, being delegation the build already
 verifies against a fresh generation. It runs off by default, so no other run

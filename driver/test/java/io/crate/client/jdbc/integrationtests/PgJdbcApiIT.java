@@ -37,7 +37,6 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
@@ -64,27 +63,22 @@ public class PgJdbcApiIT extends BaseIntegrationTest {
         dropAllUserTables();
     }
 
+    /**
+     * An application that reaches for pgJDBC's own API finds it: the wrappers
+     * are its interfaces, and unwrapping arrives at this driver's object or at
+     * pgJDBC's, whichever was asked for.
+     */
     @Test
-    public void connectionCastsToThePgJdbcInterface() throws Exception {
-        try (Connection conn = connect()) {
-            PGConnection pgConnection = (PGConnection) conn;
-            assertThat(pgConnection.getBackendPID() > 0, is(true));
-        }
-    }
-
-    @Test
-    public void statementsCastToThePgJdbcInterface() throws Exception {
+    public void connectionsAndStatementsCarryThePgJdbcApi() throws Exception {
         try (Connection conn = connect();
              PreparedStatement stmt = conn.prepareStatement("select id from test")) {
+            PGConnection pgConnection = (PGConnection) conn;
+            assertThat(pgConnection.getBackendPID() > 0, is(true));
+
             PGStatement pgStatement = (PGStatement) stmt;
             pgStatement.setPrepareThreshold(3);
             assertThat(pgStatement.getPrepareThreshold(), is(3));
-        }
-    }
 
-    @Test
-    public void connectionUnwrapsToBothItsOwnAndThePgJdbcType() throws Exception {
-        try (Connection conn = connect()) {
             assertThat(conn.isWrapperFor(CrateConnection.class), is(true));
             assertThat(conn.unwrap(CrateConnection.class), is(sameInstance(conn)));
             assertThat(conn.unwrap(PgConnection.class), is(instanceOf(PgConnection.class)));
@@ -119,20 +113,6 @@ public class PgJdbcApiIT extends BaseIntegrationTest {
     public void metadataNavigatesBackToTheConnectionItDescribes() throws Exception {
         try (Connection conn = connect()) {
             assertThat(conn.getMetaData().getConnection(), is(sameInstance(conn)));
-        }
-    }
-
-    @Test
-    public void arrayRowsNavigateInsideTheDriver() throws Exception {
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("select ['a', 'b'] as letters");
-            assertThat(rs.next(), is(true));
-
-            ResultSet elements = rs.getArray("letters").getResultSet();
-            assertThat(elements.getStatement(), is(nullValue()));
-            assertThat(elements.next(), is(true));
-            assertThat(elements.getString(2), is("a"));
         }
     }
 

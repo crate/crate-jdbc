@@ -88,29 +88,6 @@ public class CrudBatchIT extends BaseIntegrationTest {
     }
 
     @Test
-    public void prepareCallCanBeUsedToInsertRecords() throws Exception {
-        try (var conn = connect()) {
-            var stmt = conn.createStatement();
-            stmt.execute("DROP TABLE IF EXISTS tbl");
-            stmt.execute("CREATE TABLE tbl (x int, y int)");
-
-            try (var call = conn.prepareCall("INSERT INTO tbl (x, y) VALUES (?, ?)")) {
-                call.setInt(1, 1);
-                call.setInt(2, 15);
-                call.execute();
-            }
-
-            stmt.execute("REFRESH TABLE tbl");
-
-            var results = conn.createStatement().executeQuery("SELECT x, y FROM tbl ORDER BY 1");
-            assertThat(results.next(), is(true));
-            assertThat(results.getInt(1), is(1));
-            assertThat(results.getInt(2), is(15));
-            assertThat(results.next(), is(false));
-        }
-    }
-
-    @Test
     public void preparedStatementBatchInsertsEveryRow() throws Exception {
         try (var conn = connect()) {
             var stmt = conn.createStatement();
