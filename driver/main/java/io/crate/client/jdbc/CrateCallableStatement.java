@@ -28,11 +28,15 @@ import java.util.Map;
  * already does. An OBJECT comes back as a {@code Map} and an array as a
  * {@link CrateArray}, as everywhere else in this driver.
  *
- * <p>CrateDB has no stored procedures, so a call is an ordinary parameterized
- * statement whose parameters are addressed by position. pgJDBC answers every
- * by-name form with {@code SQLFeatureNotSupportedException}, and the overrides
- * for those here settle what a parameter converts to for the day it does
- * implement them.</p>
+ * <p>No parameter of a call reaches those conversions against CrateDB.
+ * CrateDB has no stored procedures, so a call is an ordinary parameterized
+ * statement whose parameters are addressed by position; declaring an output
+ * parameter needs the {@code {? = call f(?)}} form, which the server refuses
+ * because describing it would need a PostgreSQL type CrateDB has no
+ * equivalent for. Reading a parameter that was never declared is refused a
+ * layer down, in pgJDBC, as is every by-name form. What the overrides below
+ * settle is therefore what a parameter would read as for the day CrateDB
+ * grows output parameters, not anything a caller meets now.</p>
  */
 public class CrateCallableStatement extends ForwardingCallableStatement {
 

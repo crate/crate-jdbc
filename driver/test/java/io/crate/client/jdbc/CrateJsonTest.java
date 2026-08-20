@@ -17,6 +17,7 @@
 
 package io.crate.client.jdbc;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import org.junit.jupiter.api.Test;
 import org.postgresql.util.PGobject;
 
@@ -149,6 +150,21 @@ public class CrateJsonTest {
 
         SQLException raised = assertThrows(SQLException.class, () -> CrateJson.write(map));
         assertThat(raised.getMessage().length(), lessThan(1_000));
+    }
+
+    /**
+     * Jackson's ceiling on how long one string may be describes a document
+     * arriving from somewhere untrusted. An OBJECT column's value is neither:
+     * the server accepted it and this driver has it buffered already, so a
+     * text field past that ceiling still reads.
+     */
+    @Test
+    public void aStringPastJacksonsOwnCeilingIsStillRead() throws SQLException {
+        String text = "x".repeat(StreamReadConstraints.DEFAULT_MAX_STRING_LEN + 1);
+
+        Map<?, ?> read = CrateJson.parse("{\"text\":\"" + text + "\"}", Map.class);
+
+        assertThat(read.get("text"), is(text));
     }
 
     @Test
