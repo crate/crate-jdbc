@@ -175,8 +175,8 @@ tasks.register('standaloneLicenses') {
     }
 }
 
-// Prints the version being built, for the tooling that holds a release tag to
-// it.
+// Read by devtools/create_tag.sh and the release workflow, to hold the tag to
+// the version.
 tasks.register('getVersion') {
     doLast {
         logger.quiet(project.version.toString())
