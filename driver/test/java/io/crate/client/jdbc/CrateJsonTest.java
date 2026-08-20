@@ -31,8 +31,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -65,6 +67,11 @@ public class CrateJsonTest {
         assertThat(CrateJson.parse(CrateJson.write(map)), is(map));
     }
 
+    /**
+     * An array reads into whichever {@code Collection} type was asked for, a
+     * {@code List} when none was, and its whole numbers arrive as
+     * {@code Long}s in either.
+     */
     @Test
     public void listsRoundTripThroughJson() throws SQLException {
         Map<String, Object> map = new HashMap<>();
@@ -76,6 +83,9 @@ public class CrateJsonTest {
         Object parsed = CrateJson.parse("[1, 2, 3]");
         assertThat(parsed, instanceOf(List.class));
         assertThat(parsed, is(Arrays.asList(1L, 2L, 3L)));
+
+        assertThat(CrateJson.parse("[1, 2, 3]", Set.class),
+            is(new HashSet<>(Arrays.asList(1L, 2L, 3L))));
     }
 
     /**
