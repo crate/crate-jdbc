@@ -140,14 +140,11 @@ supported server and JRE ranges.
 Generated sources
 =================
 
-The ``Forwarding*`` classes under ``driver/main/java`` are generated from
-the JDBC and pgJDBC interfaces by ``devtools/GenerateForwarding.java``.
-Regenerate them, against the pgJDBC version the build pins, with::
-
-    $ make forwarding
-
-``make check`` fails when the checked-in classes differ from a fresh
-generation, which is what a newer JDBC release adding methods looks like.
+The ``Forwarding*`` classes under ``driver/main/java`` are generated, for the
+reason the `internals documentation`_ gives. Regenerate them against the
+pgJDBC version the build pins with ``make forwarding``; ``make check`` fails
+when the checked-in classes differ from a fresh generation, which is what a
+newer JDBC release adding methods looks like.
 
 Upgrading pgJDBC
 ================
@@ -217,6 +214,7 @@ and prose checks.
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
 .. _Gradle: https://gradle.org/
 .. _Testcontainers: https://java.testcontainers.org/
+.. _internals documentation: https://cratedb.com/docs/jdbc/en/latest/internals.html
 .. _installation documentation: https://cratedb.com/docs/jdbc/en/latest/getting-started.html
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Sphinx: http://sphinx-doc.org/

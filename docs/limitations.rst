@@ -14,13 +14,8 @@ Transactions
 
 There are none. ``BEGIN`` and ``COMMIT`` parse and do nothing, ``ROLLBACK`` is
 absent from CrateDB's SQL grammar, and a statement is durable by the time it
-returns. ``rollback()`` therefore undoes nothing, ending only the transaction
-block pgJDBC opens under manual commit mode, and savepoints raise
-``SQLFeatureNotSupportedException``.
-
-``DatabaseMetaData`` says so: ``supportsTransactions()`` and
-``supportsSavepoints()`` report ``false``, and ``TRANSACTION_NONE`` is the
-only isolation level.
+returns. ``DatabaseMetaData`` reports as much, and :ref:`internals` describes
+what the driver does with ``rollback()``, savepoints and the isolation level.
 
 
 **********
@@ -85,11 +80,9 @@ Metadata
 
 :An empty-string catalog argument:
 
-    JDBC reads ``""`` as "objects belonging to no catalog", which every
-    CrateDB object fails, so by the letter of the specification such a call
-    answers with no rows. It is read as ``null`` instead, as though the catalog
-    had not been named. CrateDB has one catalog, and a caller spelling "any"
-    the other way is better served with the rows than with silence.
+    Read as ``null``, as though the catalog had not been named, rather than
+    as the specification's "objects belonging to no catalog" that every
+    CrateDB object fails. :ref:`internals` gives the reasoning.
 
 :Column descriptions:
 
