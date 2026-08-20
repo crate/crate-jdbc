@@ -60,6 +60,12 @@ public class TransactionsIT extends BaseIntegrationTest {
         dropAllUserTables();
     }
 
+    /**
+     * A commit ends the transaction block pgJDBC opens under manual commit
+     * mode and CrateDB parses and ignores it; a rollback does the same and
+     * undoes nothing, there being nothing to undo. Both writes are there
+     * afterwards.
+     */
     @Test
     public void rollbackIsNoOpAndAllWritesPersist() throws Exception {
         try (Connection conn = connect()) {
@@ -78,38 +84,12 @@ public class TransactionsIT extends BaseIntegrationTest {
         }
     }
 
-    @Test
-    public void commitSucceedsWithAutoCommitDisabled() throws Exception {
-        try (Connection conn = connect()) {
-            conn.setAutoCommit(false);
-            conn.createStatement().execute("insert into test (id, string_field) values (60, 'committed')");
-            conn.commit();
-            conn.setAutoCommit(true);
-            conn.createStatement().execute("refresh table test");
-            ResultSet rs = conn.createStatement().executeQuery("select count(*) from test where id = 60");
-            assertThat(rs.next(), is(true));
-            assertThat(rs.getLong(1), is(1L));
-        }
-    }
-
-    @Test
-    public void rollbackToSavepointIsUnsupported() throws Exception {
-        try (Connection conn = connect()) {
-            Savepoint savepoint = new Savepoint() {
-                @Override
-                public int getSavepointId() {
-                    return 1;
-                }
-
-                @Override
-                public String getSavepointName() {
-                    return "sp";
-                }
-            };
-            assertThrows(SQLFeatureNotSupportedException.class, () -> conn.rollback(savepoint));
-        }
-    }
-
+    /**
+     * Savepoints are no more part of CrateDB's SQL grammar than ROLLBACK is,
+     * so every call that takes or names one is refused as the unsupported
+     * feature the metadata announces, rather than reaching the server as a
+     * syntax error.
+     */
     @Test
     public void savepointsAreUnsupported() throws Exception {
         try (Connection conn = connect()) {
@@ -119,6 +99,7 @@ public class TransactionsIT extends BaseIntegrationTest {
 
             assertThrows(SQLFeatureNotSupportedException.class, () -> conn.setSavepoint("sp"));
             assertThrows(SQLFeatureNotSupportedException.class, () -> conn.releaseSavepoint(null));
+            assertThrows(SQLFeatureNotSupportedException.class, () -> conn.rollback((Savepoint) null));
         }
     }
 

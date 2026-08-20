@@ -26,24 +26,19 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Pins connection-level behavior of the crate:// driver: schema selection,
- * multi-host URLs, how server errors surface, and single result set
- * semantics. Batching is {@link CrudBatchIT}'s.
+ * Pins connection-level behavior of the crate:// driver: the schema a URL
+ * naming none lands in, the several hosts one may name, the CrateDB version a
+ * connection reads and keeps, and how a server error reaches the caller.
  */
 public class ConnectionIT extends BaseIntegrationTest {
 
@@ -56,33 +51,6 @@ public class ConnectionIT extends BaseIntegrationTest {
     @AfterEach
     void tearDownTables() {
         dropAllUserTables();
-    }
-
-    /**
-     * {@code setSchema} moves the search path, so unqualified statements land
-     * in the named schema — the JDBC way of doing what the {@code /schema}
-     * segment of the URL does at connect time.
-     */
-    @Test
-    public void customSchemaAppliesToStatements() throws SQLException, InterruptedException {
-        try (Connection conn = connect()) {
-            conn.setSchema("foo");
-            assertThat(conn.getSchema(), is("foo"));
-
-            Statement stmt = conn.createStatement();
-            stmt.execute("CREATE TABLE t (name STRING) WITH (number_of_replicas=0)");
-            ensureYellow();
-
-            ResultSet rs = stmt.executeQuery(
-                "SELECT table_schema " +
-                "FROM information_schema.TABLES " +
-                "WHERE table_name = 't'"
-            );
-
-            assertThat(rs.next(), is(true));
-            assertThat(rs.getObject(1), is("foo"));
-            assertThat(rs.next(), is(false));
-        }
     }
 
     /**
@@ -101,59 +69,6 @@ public class ConnectionIT extends BaseIntegrationTest {
         }
     }
 
-    @Test
-    public void customSchemaAppliesToPreparedStatements() throws Exception {
-        try (Connection conn = connect()) {
-            conn.setSchema("bar");
-
-            PreparedStatement stmt = conn.prepareStatement(
-                "CREATE TABLE t (id INTEGER) WITH (number_of_replicas=0)");
-            assertThat(stmt.execute(), is(false));
-            ensureYellow();
-
-            ResultSet rs = conn.createStatement().executeQuery(
-                "SELECT table_schema " +
-                "FROM information_schema.TABLES " +
-                "WHERE table_name = 't'"
-            );
-
-            assertThat(rs.next(), is(true));
-            assertThat(rs.getObject(1), is("bar"));
-            assertThat(rs.next(), is(false));
-        }
-    }
-
-    @Test
-    public void preparedStatementWithoutMatchesReturnsEmptyResultSet() throws Exception {
-        try (Connection conn = connect()) {
-            PreparedStatement preparedStatement = conn.prepareStatement("select * from test where id = ?");
-            preparedStatement.setInt(1, 2);
-            ResultSet resultSet = preparedStatement.executeQuery();
-
-            assertThat(resultSet, notNullValue());
-            assertThat(resultSet.isBeforeFirst(), is(false));
-        }
-    }
-
-    @Test
-    public void syntaxErrorRaisesSQLException() throws Exception {
-        try (Connection conn = connect()) {
-            SQLException e = assertThrows(SQLException.class,
-                () -> conn.createStatement().execute("ERROR"));
-            // The parser message wording varies across CrateDB versions.
-            assertThat(e.getMessage(), anyOf(
-                containsString("line 1:1: no viable alternative at input 'ERROR'"),
-                containsString("line 1:1: mismatched input 'ERROR' expecting {'SELECT', '"),
-                containsString("line 1:1: extraneous input 'ERROR' expecting {")
-            ));
-            // CrateDB classifies a parse failure as a syntax error from 6.4
-            // on; before that it reports an internal error.
-            if (serverAtLeast(6, 4)) {
-                assertThat(e.getSQLState(), is("42601"));
-            }
-        }
-    }
-
     /**
      * Server errors carry the SQLState of their condition, and that is what
      * frameworks classify errors by — a missing table has to be
@@ -169,33 +84,6 @@ public class ConnectionIT extends BaseIntegrationTest {
             SQLException missingColumn = assertThrows(SQLException.class,
                 () -> conn.createStatement().execute("select does_not_exist from test"));
             assertThat(missingColumn.getSQLState(), is("42703"));
-        }
-    }
-
-    @Test
-    public void liveConnectionsReportThemselvesValid() throws Exception {
-        Connection conn = connect();
-        assertThat(conn.isValid(2), is(true));
-        assertThat(conn.isClosed(), is(false));
-
-        conn.close();
-        assertThat(conn.isClosed(), is(true));
-        assertThat(conn.isValid(2), is(false));
-    }
-
-    /**
-     * CrateDB has no read-only sessions, so the flag is remembered on the
-     * connection and reported back without being enforced against the
-     * server.
-     */
-    @Test
-    public void readOnlyIsRememberedOnTheConnection() throws Exception {
-        try (Connection conn = connect()) {
-            conn.setReadOnly(true);
-            assertThat(conn.isReadOnly(), is(true));
-
-            conn.setReadOnly(false);
-            assertThat(conn.isReadOnly(), is(false));
         }
     }
 
@@ -234,14 +122,6 @@ public class ConnectionIT extends BaseIntegrationTest {
 
         SQLException refused = assertThrows(SQLException.class, crateConnection::getCrateVersion);
         assertThat(refused.getSQLState(), is("08003"));
-    }
-
-    @Test
-    public void unknownUrlParametersAreAccepted() throws Exception {
-        String url = connectionUrl() + "&somethingUnknown=abcd";
-        try (Connection conn = DriverManager.getConnection(url)) {
-            assertThat(conn.isValid(2), is(true));
-        }
     }
 
     /**

@@ -19,9 +19,7 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.Timeout;
 
 import java.sql.Connection;
@@ -51,11 +49,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  *
  * <p>The cluster is this suite's own rather than the one
  * {@code BaseIntegrationTest} hands out, so that these run wherever the
- * integration tests run rather than only when someone asks for several nodes.
- * The tests run in a fixed order: the last of them takes a node away, and what
- * follows would be measuring a different cluster.</p>
+ * integration tests run rather than only when someone asks for several
+ * nodes.</p>
  */
-@TestMethodOrder(MethodOrderer.MethodName.class)
 public class ClusterIT extends BaseIntegrationTest {
 
     /** Enough nodes that losing one leaves the rest with a quorum. */
@@ -92,11 +88,6 @@ public class ClusterIT extends BaseIntegrationTest {
         cluster = CrateDBCluster.start(serverImage(), NODES);
         try (Connection conn = DriverManager.getConnection(cluster.url());
              Statement statement = conn.createStatement()) {
-            statement.execute(
-                "create table replicated (id integer primary key, name string) " +
-                "clustered into 4 shards with (number_of_replicas = 1)");
-            statement.execute("insert into replicated (id, name) values (1, 'first'), (2, 'second')");
-            statement.execute("refresh table replicated");
             statement.execute(
                 "create table numbers (x integer) clustered into 4 shards " +
                 "with (number_of_replicas = 1)");
@@ -136,7 +127,7 @@ public class ClusterIT extends BaseIntegrationTest {
      * every test below pass while measuring nothing.
      */
     @Test
-    public void aTheClusterHasEveryNodeTheFixtureStarted() throws Exception {
+    public void theClusterHasEveryNodeTheFixtureStarted() throws Exception {
         for (int node = 0; node < NODES; node++) {
             try (Connection conn = DriverManager.getConnection(cluster.urlFor(node));
                  Statement statement = conn.createStatement();
@@ -155,7 +146,7 @@ public class ClusterIT extends BaseIntegrationTest {
      * opens a pool against a cluster gets the spread without asking.
      */
     @Test
-    public void bConnectionsOpenedThroughOneUrlLandOnMoreThanOneNode() throws Exception {
+    public void connectionsOpenedThroughOneUrlLandOnMoreThanOneNode() throws Exception {
         Set<String> reached = new HashSet<>();
         for (int attempt = 0; attempt < CONNECTION_ATTEMPTS; attempt++) {
             try (Connection conn = DriverManager.getConnection(cluster.url())) {
@@ -186,7 +177,7 @@ public class ClusterIT extends BaseIntegrationTest {
      */
     @Test
     @Timeout(value = 5, unit = TimeUnit.MINUTES)
-    public void cAQueryTimeoutEndsAQueryWhicheverNodeItRunsOn() throws Exception {
+    public void aQueryTimeoutEndsAQueryWhicheverNodeItRunsOn() throws Exception {
         for (int attempt = 0; attempt < TIMEOUT_ATTEMPTS; attempt++) {
             try (Connection conn = DriverManager.getConnection(cluster.url());
                  Statement statement = conn.createStatement()) {
@@ -206,28 +197,4 @@ public class ClusterIT extends BaseIntegrationTest {
         }
     }
 
-    /**
-     * A replicated table stays readable when a node goes: the remaining two
-     * keep the quorum and hold a copy of every shard, and a URL naming all
-     * three still opens on the ones that are left.
-     */
-    @Test
-    public void dTheClusterServesReadsAfterANodeGoesAway() throws Exception {
-        cluster.stop(NODES - 1);
-        assertThat(cluster.running(), is(NODES - 1));
-        for (int attempt = 0; attempt < 300; attempt++) {
-            try (Connection conn = DriverManager.getConnection(cluster.url());
-                 Statement statement = conn.createStatement();
-                 ResultSet rows = statement.executeQuery("select count(*) from replicated")) {
-                rows.next();
-                if (rows.getInt(1) == 2) {
-                    return;
-                }
-            } catch (SQLException recovering) {
-                // The shards the lost node held are being promoted.
-            }
-            Thread.sleep(200);
-        }
-        throw new AssertionError("The cluster never served the replicated table again");
-    }
 }

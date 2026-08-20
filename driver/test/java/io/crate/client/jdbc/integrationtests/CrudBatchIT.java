@@ -64,7 +64,9 @@ public class CrudBatchIT extends BaseIntegrationTest {
             var insertStmt = conn.prepareStatement("INSERT INTO tbl (x, y) VALUES (?, ?)");
             insertStmt.setInt(1, 1);
             insertStmt.setInt(2, 10);
-            insertStmt.execute();
+            // An insert has no rows to hand back, where the call below the
+            // batch tests runs a query through the same statement and has.
+            assertThat(insertStmt.execute(), is(false));
 
             stmt.execute("REFRESH TABLE tbl");
 

@@ -165,29 +165,6 @@ final class CrateDBCluster implements AutoCloseable {
         return "crate://" + node.getHost() + ":" + node.getMappedPort(5432) + "/doc?user=crate";
     }
 
-    int size() {
-        return nodes.size();
-    }
-
-    /** How many nodes are still running. */
-    int running() {
-        int running = 0;
-        for (CrateDBContainer node : nodes) {
-            if (node.isRunning()) {
-                running++;
-            }
-        }
-        return running;
-    }
-
-    /**
-     * Takes a node away, as a machine going down takes it away. The remaining
-     * nodes keep their quorum as long as more than half are left.
-     */
-    void stop(int node) {
-        nodes.get(node).stop();
-    }
-
     @Override
     public void close() {
         for (CrateDBContainer node : nodes) {
