@@ -1,4 +1,4 @@
-# Entry points for the workflows described in DEVELOP.rst and AGENTS.md.
+# Entry points for the workflows described in DEVELOP.rst.
 # Everything here delegates to Gradle; nothing configures the build.
 
 GRADLE ?= ./gradlew

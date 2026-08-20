@@ -179,27 +179,4 @@ already run the fall-through runs it a second time. Under this mode, call
 ``getParameterMetaData()`` not at all.
 
 
-**********************
-First-contact failures
-**********************
-
-:``No suitable driver found for jdbc:crate://…``:
-
-    The driver is not on the classpath, or something has taken it out of the
-    ``DriverManager``. With the standalone jar, check that it is the jar in
-    the tool's driver directory and that the driver class is
-    ``io.crate.client.jdbc.CrateDriver``.
-
-:``mismatched input 'ROLLBACK'``:
-
-    A plain pgJDBC driver is answering the connection, not this one. Check
-    that the URL scheme is ``jdbc:crate://``; ``jdbc:postgresql://`` URLs are
-    deliberately left to a PostgreSQL driver.
-
-:``This metadata call needs CrateDB 6.0 or later``:
-
-    pgJDBC's catalog queries read columns that arrived in the 6.x line. Use
-    crate-jdbc 2.7.0 against an older server.
-
-
 .. _CrateDB issue 7196: https://github.com/crate/crate/issues/7196

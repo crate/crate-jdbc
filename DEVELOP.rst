@@ -5,8 +5,6 @@ Developer guide
 These instructions show you how to build the CrateDB JDBC driver from the
 source code, and how to invoke the test suite. For a conventional install
 (using pre-built JAR files), follow the `installation documentation`_.
-`AGENTS.md`_ describes how the repository is laid out and the constraints to
-honor when changing it.
 
 
 Acquire source
@@ -226,7 +224,6 @@ and prose checks.
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
 .. _Gradle: https://gradle.org/
 .. _Testcontainers: https://java.testcontainers.org/
-.. _AGENTS.md: AGENTS.md
 .. _installation documentation: https://cratedb.com/docs/jdbc/en/latest/getting-started.html
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Sphinx: http://sphinx-doc.org/

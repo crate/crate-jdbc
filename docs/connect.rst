@@ -175,26 +175,6 @@ with a CrateDB-specific default or meaning are listed below.
   ``Statement.setQueryTimeout()`` to bound a statement and keep the
   connection.
 
-.. _fetching:
-
-Reading large results
-=====================
-
-By default a query's whole result set is read into the client before
-``next()`` returns a row. ``setFetchSize()`` makes the rows arrive in batches,
-held on the server in between, on a connection with auto-commit disabled.
-Disabling it costs nothing against CrateDB, which has no transactions:
-
-.. code-block:: java
-
-    conn.setAutoCommit(false);
-    Statement statement = conn.createStatement();
-    statement.setFetchSize(1000);
-    ResultSet rs = statement.executeQuery("SELECT * FROM large_table");
-
-``defaultRowFetchSize`` sets the same thing as a connection property, for
-applications that do not reach the statement.
-
 .. _batching:
 
 Writing many rows
@@ -294,17 +274,6 @@ CrateDB version itself asks the connection:
     if (version.atLeast(6, 2)) {
         // ...
     }
-
-.. _logging:
-
-Logging
-=======
-
-The driver logs through ``java.util.logging``, as pgJDBC does. Set the
-``loggerLevel`` connection property to ``DEBUG`` or ``TRACE`` to see the
-statements it sends, and ``loggerFile`` to write them to a file. Bridging
-``java.util.logging`` to SLF4J (with ``jul-to-slf4j``) routes them into an
-application's own logging setup.
 
 Next steps
 ==========
