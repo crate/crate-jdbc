@@ -41,8 +41,8 @@ The bare ``./gradlew publish`` task does something else. The Sonatype plugin
 registers Maven Central as a publishing repository, so ``publish`` targets
 it.
 
-Signing is skipped unless a key is configured, through the environment
-variables the release workflow passes:
+Signing is skipped unless a key is configured, through two environment
+variables:
 
  - ``ORG_GRADLE_PROJECT_signingKey``       — the private key, in ascii format
  - ``ORG_GRADLE_PROJECT_signingPassword``  — the password for that key
@@ -135,7 +135,7 @@ under that artifact the type has another name. Such a suite carries the
 checks on the artifacts: the contents of the standalone jar and its behavior
 on each classpath it lands on, and the generated forwarding classes against a
 fresh generation. ``make verify`` runs the checks and both suites across the
-supported server and JRE ranges, which is what the release workflow gates on.
+supported server and JRE ranges.
 
 Generated sources
 =================
@@ -165,15 +165,11 @@ To cut a release:
   version lives, and the driver reports it through ``DatabaseMetaData``
 
 - Move the ``Unreleased`` notes in ``CHANGES.txt`` under a heading for the
-  new version, dated (``YYYY/MM/DD x.y.z``) — both the tagging script and
-  the release workflow look for that form
+  new version, dated (``YYYY/MM/DD x.y.z``)
 
 - Commit your changes with a message like "prepare release x.x.x"
 
-- Push to origin
-
-- Create a tag by running ``make tag``, which refuses anything the
-  release workflow would reject once the tag is public
+- Push to origin, and tag that commit ``x.y.z``
 
 - Cut the ``x.y`` branch from the tag, which is where fixes for that minor
   land and which CI builds like ``master``
@@ -183,10 +179,7 @@ To cut a release:
 
 - Archive docs for old releases (see section below)
 
-Pushing the tag runs the ``Release`` workflow, which verifies the tag
-against the project version, runs the tests, and publishes to Maven Central.
-
-To publish by hand instead::
+Publish to Maven Central with::
 
     $ ./gradlew clean publishToSonatype closeAndReleaseSonatypeStagingRepository
 
