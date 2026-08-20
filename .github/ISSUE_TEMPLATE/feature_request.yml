@@ -1,0 +1,28 @@
+name: Feature request
+description: Something the driver should be able to do
+labels: ["feature"]
+body:
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: >
+        The problem you are solving, rather than the API you have in mind for
+        it — that way the driver can solve it the way that fits it best.
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: How you work around it today
+      description: >
+        Including "I use stock pgJDBC for this part" or "I drop down to raw
+        SQL", which tells us how much the gap costs.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: Tools, frameworks, or CrateDB features involved.
