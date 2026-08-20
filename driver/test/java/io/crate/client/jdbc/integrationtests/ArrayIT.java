@@ -28,6 +28,7 @@ import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -215,12 +216,16 @@ public class ArrayIT extends BaseIntegrationTest {
     /**
      * Both report json as the element type: one because its elements are
      * OBJECT values, the other because there is no PostgreSQL element type
-     * behind an array of arrays to name.
+     * behind an array of arrays to name. json is the type JDBC has no code of
+     * its own for, so both describe their elements as {@code OTHER}.
      */
     @Test
     public void bothReportJsonAsTheElementType() throws Exception {
         assertThat(objects.getBaseTypeName(), is("json"));
+        assertThat(objects.getBaseType(), is(Types.OTHER));
+
         assertThat(arrays.getBaseTypeName(), is("json"));
+        assertThat(arrays.getBaseType(), is(Types.OTHER));
     }
 
     /** The text of an array is the literal it arrived as. */

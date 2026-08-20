@@ -15,7 +15,8 @@ with them.
 +-----------------------+------------------+----------------------+---------------------------------------+
 | CrateDB type          | JDBC type        | ResultSet method     | Notes                                 |
 +=======================+==================+======================+=======================================+
-| ``boolean``           | ``BOOLEAN``      | ``getBoolean``       |                                       |
+| ``boolean``           | ``BIT``          | ``getBoolean``       | Reported as ``BIT``, as PostgreSQL's  |
+|                       |                  |                      | ``bool`` is.                          |
 +-----------------------+------------------+----------------------+---------------------------------------+
 | ``byte``              | see note         | ``getByte``          | Reported as ``SMALLINT`` by CrateDB   |
 |                       |                  |                      | 6.5 and later, as ``CHAR`` before it. |
@@ -52,7 +53,7 @@ with them.
 +-----------------------+------------------+----------------------+---------------------------------------+
 | ``interval``          | ``OTHER``        | ``getObject``        | Returns a ``PGInterval``.             |
 +-----------------------+------------------+----------------------+---------------------------------------+
-| ``bit(n)``            | ``OTHER``        | ``getObject``        | Returns a ``PGobject``; its value is  |
+| ``bit(n)``            | ``BIT``          | ``getObject``        | Returns a ``PGobject``; its value is  |
 |                       |                  |                      | the bit string.                       |
 +-----------------------+------------------+----------------------+---------------------------------------+
 | ``object``            | ``OTHER``        | ``getObject``        | Returns a ``Map<String, Object>``.    |
