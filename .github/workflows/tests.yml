@@ -125,38 +125,6 @@ jobs:
       - name: Run integration tests
         run: ./gradlew integrationTest -PtestTimeZone=${{ matrix.time-zone }}
 
-  # What the suites reach of the hand-written classes. One JRE: the coverage
-  # agent supports a narrower range of JDKs than the driver does, and the
-  # answer does not depend on which one the suites ran on.
-  coverage:
-
-    name: Measure coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-
-      - name: Acquire sources
-        uses: actions/checkout@v6
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Measure coverage
-        run: ./gradlew jacocoTestReport -Pcoverage
-
-      - name: Publish the report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: build/reports/jacoco/test
-
   # The suites against the standalone artifact, whose pgJDBC and Jackson are
   # relocated under io.crate.shade. A name that failed to relocate is invisible
   # to a check that reads the jar: it fails when it is used, and only a run
@@ -185,53 +153,6 @@ jobs:
 
       - name: Run integration tests against the standalone jar
         run: ./gradlew standaloneTest
-
-  # Whether the suites would notice the driver being wrong, which is the
-  # question coverage does not answer. Long: it reruns the covering tests for
-  # every change it makes, one at a time against a shared server. Asked for
-  # rather than run on every push.
-  mutation:
-
-    name: Report what no test objects to
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-
-    steps:
-
-      - name: Acquire sources
-        uses: actions/checkout@v6
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      # Started here rather than as a service container: CrateDB needs its
-      # discovery setting on the command line, which a service container has
-      # no way to pass.
-      - name: Start a CrateDB for the run to share
-        run: |
-          docker run --detach --name cratedb --publish 5432:5432 \
-            crate:latest -Cdiscovery.type=single-node -Cstats.enabled=true
-          timeout 120 sh -c \
-            'until docker exec cratedb curl -sf localhost:4200 >/dev/null; do sleep 2; done'
-
-      - name: Change the driver and see what fails
-        env:
-          CRATE_URL: crate://localhost:5432/doc?user=crate
-        run: ./gradlew mutationTest
-
-      - name: Publish the report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mutation
-          path: build/reports/pitest
 
   # Code style, the generated-code check and the artifact checks answer the
   # same whichever server and JRE the suites ran against, so they run once

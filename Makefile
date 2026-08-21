@@ -24,15 +24,10 @@ CLUSTER_NODES ?= 3
 # does not give the same answer.
 TEST_TIME_ZONE ?= Europe/Berlin
 
-# The JRE `make coverage` measures on. Pinned rather than left to the JVM
-# running the build, because the coverage agent supports a narrower range of
-# JDKs than the driver does, and a number from one JRE answers for all of them.
-COVERAGE_JAVA_VERSION ?= 21
-
 .DEFAULT_GOAL := help
 .PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned \
-        itest-standalone coverage mutation \
-        check verify format docs docs-check forwarding publish-local sbom version clean
+        itest-standalone check verify format docs docs-check forwarding \
+        publish-local sbom version clean
 
 help:  ## Show this help
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) \
@@ -69,12 +64,6 @@ itest-zoned:  ## Run the integration tests in a JVM zone away from UTC
 
 itest-standalone:  ## Run the integration tests against the standalone artifact
 	$(GRADLE) standaloneTest
-
-mutation:  ## Report the lines no test objects to being changed (needs CRATE_URL)
-	$(GRADLE) mutationTest
-
-coverage:  ## Measure what the suites reach of the hand-written classes
-	$(GRADLE) jacocoTestReport -Pcoverage -PtestJavaVersion=$(COVERAGE_JAVA_VERSION)
 
 check:  ## Unit tests, code style, generated-code and artifact checks
 	$(GRADLE) check
