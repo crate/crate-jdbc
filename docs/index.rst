@@ -12,8 +12,7 @@ A `JDBC`_ driver for `CrateDB`_, built on the official `PostgreSQL JDBC
 Driver`_ (JDBC 4.2). It is written in pure Java, speaks the `PostgreSQL Wire
 Protocol`_, and adds a thin adaptation layer for the behaviors where CrateDB
 differs from PostgreSQL, described under :ref:`internals`. It requires Java 11
-and CrateDB 6.0 or later. :ref:`choosing` compares it with using stock pgJDBC
-directly.
+and CrateDB 6.0 or later.
 
 .. _synopsis:
 
@@ -74,8 +73,6 @@ The `JDBC tutorial`_ and the `JDBC API documentation`_ cover the API itself.
     getting-started
     connect
     data-types
-    limitations
-    choosing
     internals
 
 

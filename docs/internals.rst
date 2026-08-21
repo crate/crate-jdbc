@@ -221,12 +221,9 @@ as the floor.
 | 2.7.0          | 2.0 and later       | 8 and later       |
 +----------------+---------------------+-------------------+
 
-:ref:`getCrateVersion() <server-version>` reports the server's CrateDB version
-to applications that need to branch on it. The JDBC API reports the PostgreSQL
+``CrateConnection.getCrateVersion()`` reports the server's CrateDB version to
+applications that need to branch on it. The JDBC API reports the PostgreSQL
 release CrateDB emulates, that being what PostgreSQL tooling reasons about.
-
-The parts of the API CrateDB cannot answer are listed under
-:ref:`limitations`.
 
 
 .. _Apache Flink JDBC Connector: https://github.com/apache/flink-connector-jdbc
