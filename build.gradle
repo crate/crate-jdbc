@@ -48,9 +48,20 @@ tasks.withType(JavaCompile).configureEach {
 // and ends in a newline. The generator emits the same header, so the generated
 // classes are covered too.
 spotless {
+    // The published sources carry the license header: they travel to Maven
+    // Central in a sources jar, and a file read there has no LICENSE beside it.
     java {
-        target 'driver/**/*.java', 'devtools/*.java'
+        target 'driver/main/**/*.java'
         licenseHeaderFile 'gradle/license-header.txt'
+        removeUnusedImports()
+        endWithNewline()
+        trimTrailingWhitespace()
+    }
+
+    // Tests and build tooling stay in the repository, where the root LICENSE
+    // and NOTICE state the terms for everything under it.
+    format 'javaInternal', com.diffplug.gradle.spotless.JavaExtension, {
+        target 'driver/test/**/*.java', 'devtools/*.java'
         removeUnusedImports()
         endWithNewline()
         trimTrailingWhitespace()
