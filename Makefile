@@ -5,9 +5,9 @@ GRADLE ?= ./gradlew
 
 # The oldest CrateDB the driver supports. `make itest-floor` runs the
 # integration suite against it on the oldest JRE too — the far corner of what
-# the driver claims to serve, and where behavior a later release introduced
-# shows up as a skipped test rather than a passing one. The CI matrix in
-# .github/workflows/tests.yml boots the same version.
+# the driver claims to serve, and where a type this release describes
+# differently from a later one is held to this release's description. The CI
+# matrix in .github/workflows/tests.yml boots the same version.
 FLOOR_CRATEDB_VERSION ?= 6.0.8
 
 # The oldest JRE the driver runs on. Gradle itself needs a newer JDK, so the
@@ -15,8 +15,9 @@ FLOOR_CRATEDB_VERSION ?= 6.0.8
 # build runs on.
 BASELINE_JAVA_VERSION ?= 11
 
-# How many nodes `make itest-cluster` brings up. Three is the smallest
-# cluster that still has a quorum after losing a node.
+# How many nodes `make itest-cluster` brings up. Several, so that connections
+# have somewhere to spread and the connection pgJDBC sends a cancel over can
+# reach a node other than the one running the query.
 CLUSTER_NODES ?= 3
 
 # The zone `make itest-zoned` runs the suites in. Anything but UTC: at offset

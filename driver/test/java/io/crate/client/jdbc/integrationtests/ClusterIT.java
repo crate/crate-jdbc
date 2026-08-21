@@ -54,7 +54,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 public class ClusterIT extends BaseIntegrationTest {
 
-    /** Enough nodes that losing one leaves the rest with a quorum. */
+    /**
+     * Enough nodes that a connection and the one pgJDBC sends a cancel over
+     * seldom land on the same node.
+     */
     private static final int NODES = 3;
 
     /** How many connections it takes before landing twice on one node stops being luck. */
