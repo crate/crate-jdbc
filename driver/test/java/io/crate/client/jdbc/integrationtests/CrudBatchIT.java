@@ -263,7 +263,6 @@ public class CrudBatchIT extends BaseIntegrationTest {
             var keys = stmt.getGeneratedKeys();
             assertThat(keys.next(), is(true));
             assertThat(keys.getInt("x"), is(3));
-
         }
     }
 

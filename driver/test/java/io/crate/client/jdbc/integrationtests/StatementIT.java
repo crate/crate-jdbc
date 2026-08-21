@@ -173,14 +173,18 @@ public class StatementIT extends BaseIntegrationTest {
      */
     @Test
     public void namingGeneratedKeysByPositionIsRefused() throws Exception {
-        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
-            String insert = "insert into keyed (id) values (1)";
-            int[] byPosition = {1};
+        // The refusal comes before anything is sent, so the table the
+        // statement names is one no server has.
+        String insert = "insert into nowhere (id) values (1)";
+        int[] byPosition = {1};
 
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             assertThat(assertThrows(SQLException.class, () -> stmt.execute(insert, byPosition))
                 .getSQLState(), is("0A000"));
-            assertThrows(SQLException.class, () -> stmt.executeUpdate(insert, byPosition));
-            assertThrows(SQLException.class, () -> stmt.executeLargeUpdate(insert, byPosition));
+            assertThat(assertThrows(SQLException.class, () -> stmt.executeUpdate(insert, byPosition))
+                .getSQLState(), is("0A000"));
+            assertThat(assertThrows(SQLException.class, () -> stmt.executeLargeUpdate(insert, byPosition))
+                .getSQLState(), is("0A000"));
         }
     }
 
