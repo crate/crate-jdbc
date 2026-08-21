@@ -75,9 +75,34 @@ public class CrateDriver extends org.postgresql.Driver {
     static {
         try {
             register();
+            deregisterBundledPgjdbc();
         } catch (SQLException e) {
             throw new ExceptionInInitializerError(e);
         }
+    }
+
+    /**
+     * In the standalone artifact, the bundled pgJDBC superclass self-registers
+     * during class initialization and would answer {@code jdbc:postgresql://}
+     * URLs that belong to a PostgreSQL driver the application installed on
+     * purpose, so the bundled copy is taken back out. Everywhere else the
+     * superclass is pgJDBC as published, whose registration is left alone.
+     *
+     * <p>{@code deregister()} reaches the instance through a static of pgJDBC's
+     * own. Searching the DriverManager instead would call
+     * {@code DriverManager.getDrivers()} from inside a class initializer the
+     * DriverManager's own service scan may have started.</p>
+     *
+     * <p>The prefix is the one {@code build.gradle} relocates the bundled
+     * classes under, and {@code devtools/VerifyArtifacts.java} holds the built
+     * jar to this behavior.</p>
+     */
+    private static void deregisterBundledPgjdbc() throws SQLException {
+        if (!CrateDriver.class.getSuperclass().getName().startsWith("io.crate.shade.")
+                || !org.postgresql.Driver.isRegistered()) {
+            return;
+        }
+        org.postgresql.Driver.deregister();
     }
 
     @Override

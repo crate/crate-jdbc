@@ -87,9 +87,22 @@ conversion through the default calendar and one without it disagree::
     $ make itest-cluster   # three nodes instead of one
     $ make itest-zoned     # the suites in Europe/Berlin
 
-``make check`` runs the unit tests together with the code style. ``make
-verify`` runs the checks and both suites across the supported server and JRE
-ranges.
+The published artifacts come in two shapes, and the suites run against the
+plain one. The standalone artifact carries pgJDBC and Jackson relocated under
+``io.crate.shade``, where a name that failed to relocate fails only once used,
+so the suites run against that jar too, with the ordinary pgJDBC kept off the
+classpath::
+
+    $ make itest-standalone
+
+A suite that names a pgJDBC type by its plain package cannot run there, since
+under that artifact the type has another name. Such a suite carries the
+``pgjdbc-types`` tag and is left out of this run.
+
+``make check`` runs the unit tests together with the code style and the checks
+on the artifacts: the contents of the standalone jar, and its behavior on each
+classpath it lands on. ``make verify`` runs the checks and both suites across
+the supported server and JRE ranges.
 
 Upgrading pgJDBC
 ================
@@ -103,7 +116,8 @@ A method the new release gives a body in the interface is the case to look for
 by hand. Nothing fails: the wrapper inherits that body and answers with it
 instead of asking pgJDBC, which has an implementation of its own. Compare the
 interface against the wrapper for methods it does not forward, and add them to
-the delegation block.
+the delegation block. The version is also written into the
+standalone jar's manifest as ``Bundled-PgJdbc-Version``.
 
 Preparing a release
 ===================
