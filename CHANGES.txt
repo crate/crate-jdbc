@@ -9,8 +9,8 @@ The driver is now a thin adaptation layer over the stock PostgreSQL JDBC
 driver, consumed as a regular dependency and declared in the published pom, in
 place of the fork of pgJDBC 42.2.5 it used to vendor. It requires CrateDB 6.0
 and Java 11; for an older server or JRE, use crate-jdbc 2.7.0. That layer is
-described in ``docs/internals.rst``, the upgrade from 2.7.0 in
-``docs/migration.rst``, and CrateDB's own gaps in ``docs/limitations.rst``.
+described in ``docs/internals.rst``, and CrateDB's own gaps in
+``docs/limitations.rst``.
 
 Artifacts
 ---------
@@ -105,7 +105,7 @@ Types
 
 - ``docs/data-types.rst`` carries the table of what each type binds and reads
   as. Timestamps, update counts for unknown row counts and reported SQL type
-  codes follow stock pgJDBC semantics; see ``docs/migration.rst``.
+  codes follow stock pgJDBC semantics.
 
 Metadata
 --------

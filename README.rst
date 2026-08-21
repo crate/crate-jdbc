@@ -83,7 +83,6 @@ Documentation and help
 
 - `CrateDB JDBC driver documentation`_
 - `Limitations`_
-- `Migrating to 3.0.x`_
 - `CrateDB reference documentation`_
 - `JDBC tutorial`_
 - `JDBC API documentation`_
@@ -117,7 +116,6 @@ Licensed under the Apache License, Version 2.0. See `LICENSE`_ and `NOTICE`_.
 .. _LICENSE: LICENSE
 .. _Limitations: https://cratedb.com/docs/jdbc/en/latest/limitations.html
 .. _managed on GitHub: https://github.com/crate/crate-jdbc
-.. _Migrating to 3.0.x: https://cratedb.com/docs/jdbc/en/latest/migration.html
 .. _NOTICE: NOTICE
 .. _PostgreSQL JDBC Driver: https://jdbc.postgresql.org/
 .. _PostgreSQL Wire Protocol: https://cratedb.com/docs/crate/reference/en/latest/interfaces/postgres.html

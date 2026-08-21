@@ -87,6 +87,24 @@ public class RowCountIT extends BaseIntegrationTest {
         }
     }
 
+    /**
+     * A {@code DELETE} spanning every partition of a partitioned table is one
+     * of the statements CrateDB answers with an unknown row count, sent as
+     * −1 on the wire. JDBC has no code for "unknown" outside batch execution,
+     * so it reads as no rows affected.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("updateForms")
+    public void anUnknownRowCountReportsNoRows(String form, UpdateCount count) throws Exception {
+        try (Connection conn = connect(); Statement statement = conn.createStatement()) {
+            statement.execute("create table t (id int, part int) partitioned by (part)");
+            statement.execute("insert into t (id, part) values (1, 1), (2, 2)");
+            statement.execute("refresh table t");
+
+            assertThat(count.of(statement, "delete from t"), is(0L));
+        }
+    }
+
     /** A prepared statement answers the same, at either width. */
     @Test
     public void aPreparedStatementReportsTheSameCountAtEitherWidth() throws Exception {

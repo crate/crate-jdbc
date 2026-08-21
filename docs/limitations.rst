@@ -18,6 +18,18 @@ returns. ``DatabaseMetaData`` reports as much, and :ref:`internals` describes
 what the driver does with ``rollback()``, savepoints and the isolation level.
 
 
+*************
+Update counts
+*************
+
+Some statements are answered with an unknown row count rather than a number,
+a ``DELETE`` spanning every partition of a partitioned table among them.
+CrateDB sends that as −1 on the wire, and JDBC defines no code for "unknown"
+outside batch execution, so ``executeUpdate()`` and ``executeLargeUpdate()``
+report 0. Code that branches on how many rows a statement changed has to
+allow for it.
+
+
 **********
 Time zones
 **********

@@ -77,7 +77,6 @@ The `JDBC tutorial`_ and the `JDBC API documentation`_ cover the API itself.
     limitations
     choosing
     internals
-    migration
 
 
 .. SEEALSO::
