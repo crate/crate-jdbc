@@ -1,14 +1,10 @@
 plugins {
     id 'java-library'
-    id 'com.gradleup.shadow' version '9.6.1'
     id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
-    id 'org.cyclonedx.bom' version '2.4.1'
     id 'com.diffplug.spotless' version '8.0.0'
     id 'maven-publish'
     id 'signing'
 }
-
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 repositories {
     mavenCentral()
@@ -112,17 +108,6 @@ nexusPublishing {
     }
 }
 
-/**
- * An archive is a function of its sources alone: no build timestamps, and an
- * entry order of its own instead of the filesystem's. Without the second, a
- * machine that enumerates differently builds different bytes from the same
- * sources, and nobody can rebuild the published artifact to check it.
- */
-tasks.withType(AbstractArchiveTask).configureEach {
-    reproducibleFileOrder = true
-    preserveFileTimestamps = false
-}
-
 jar {
     manifest {
         attributes(
@@ -133,51 +118,6 @@ jar {
     }
 }
 
-// crate-jdbc declares its dependencies and bundles nothing. The shadow
-// plugin's fat jar would otherwise publish alongside it as a variant, carrying
-// the unrelocated pgJDBC `standaloneJar` goes to lengths to keep out.
-components.java.withVariantsFromConfiguration(configurations.shadowRuntimeElements) { skip() }
-tasks.named('shadowJar') { enabled = false }
-
-// Left out of the standalone jar: pgJDBC reads checkerframework's annotations
-// at compile time alone, so nothing looks for them at runtime.
-ext.standaloneExclusions = ['org.checkerframework:checker-qual']
-
-/**
- * The license and notice files of what the standalone jar bundles, laid out as
- * pgJDBC lays out its own: META-INF/licenses/<artifact>/. Relocating a
- * dependency's classes does not relicense them.
- */
-tasks.register('standaloneLicenses') {
-    description = 'Collects the license files of the bundled dependencies.'
-    def dependencies = configurations.runtimeClasspath
-    def excluded = standaloneExclusions.collect { it.split(':')[1] }
-    def outputDir = layout.buildDirectory.dir('standalone-licenses')
-    inputs.files(dependencies)
-    outputs.dir(outputDir)
-    doLast {
-        def target = outputDir.get().asFile
-        target.deleteDir()
-        dependencies.each { dependency ->
-            def artifact = dependency.name.replaceFirst(/\.jar$/, '')
-            if (excluded.any { artifact.startsWith(it + '-') }) {
-                return
-            }
-            copy {
-                from(zipTree(dependency)) {
-                    include 'META-INF/*LICENSE*'
-                    include 'META-INF/*NOTICE*'
-                    eachFile { it.path = "META-INF/licenses/${artifact}/${it.name}" }
-                }
-                into target
-                includeEmptyDirs = false
-            }
-        }
-    }
-}
-
-// Prints the version being built, for the tooling that holds a release tag to
-// it.
 tasks.register('getVersion') {
     doLast {
         logger.quiet(project.version.toString())
@@ -217,122 +157,6 @@ tasks.register('generateForwardingClasses', Exec) {
     }
 }
 
-/**
- * Self-contained variant for a tool's driver directory (Apache Hop, Pentaho,
- * DBeaver). Every bundled dependency is relocated under io.crate.shade, so the
- * jar cannot clash with another pgjdbc or jackson on the same classpath. That
- * `io.crate.shade.org.postgresql` namespace is published API: configuration
- * values name it, sslfactory among them.
- */
-tasks.register('standaloneJar', ShadowJar) {
-    dependsOn tasks.named('standaloneLicenses')
-    archiveBaseName.set('crate-jdbc-standalone')
-    archiveClassifier.set('')
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    configurations = [project.configurations.runtimeClasspath]
-    from sourceSets.main.output
-    manifest {
-        attributes(
-            "Implementation-Title": "CrateDB JDBC Driver (Standalone)",
-            "Implementation-Version": project.version,
-            "Bundled-PgJdbc-Version": pgjdbcVersion,
-            "Automatic-Module-Name": "io.crate.client.jdbc.standalone",
-        )
-    }
-
-    dependencies {
-        project.standaloneExclusions.each { exclude(dependency(it)) }
-    }
-
-    // The bundled pgjdbc must not self-register with the DriverManager. Only
-    // CrateDriver answers jdbc:crate:// URLs, and jdbc:postgresql:// is left
-    // to a vanilla pgjdbc the application may have installed alongside. The
-    // exclude drops every service entry, matched against source-relative
-    // paths; the child spec below re-adds CrateDriver's alone, whose
-    // source-relative path is just "java.sql.Driver" and so goes unmatched.
-    // The bundled jackson's entries go with the rest: they name classes under
-    // their original package, which relocation has moved away.
-    exclude 'META-INF/services/**'
-    from('driver/main/resources/META-INF/services') {
-        include 'java.sql.Driver'
-        into 'META-INF/services'
-    }
-
-    // A module descriptor from a bundled dependency names packages that
-    // relocation has renamed, so it describes nothing in this jar.
-    exclude '**/module-info.class'
-    // Build and framework metadata of the bundled dependencies, which
-    // describes them rather than this jar.
-    exclude 'META-INF/maven/**'
-    exclude 'META-INF/**/OSGI-INF/**'
-    exclude 'OSGI-INF/**'
-
-    // Licenses are re-added from standaloneLicenses, one directory per
-    // dependency, so that files of the same name do not displace each other.
-    exclude 'META-INF/LICENSE*'
-    exclude 'META-INF/NOTICE*'
-    exclude 'META-INF/*-LICENSE'
-    from(tasks.named('standaloneLicenses'))
-    from('LICENSE') { into 'META-INF' }
-    from('NOTICE') { into 'META-INF' }
-
-    relocate 'org.postgresql', 'io.crate.shade.org.postgresql'
-    relocate 'com.fasterxml.jackson', 'io.crate.shade.com.fasterxml.jackson'
-}
-
-// What each artifact contains and how it behaves on the classpaths it lands
-// on. A JVM per cell, class initialization being what decides it and a JVM
-// deciding that once. devtools/VerifyArtifacts.java describes the scenarios.
-def standaloneJarFile = tasks.named('standaloneJar').flatMap { it.archiveFile }
-def thinJarFile = tasks.named('jar').flatMap { it.archiveFile }
-def shadePrefix = 'io.crate.shade'
-
-def artifactScenarios = [
-    standalone: ['alone', 'data-source-first', 'driver-class-first', 'plugin-classloader', 'alongside-pg'],
-    thin      : ['alone', 'data-source-first', 'driver-class-first', 'plugin-classloader'],
-]
-
-def artifactChecks = artifactScenarios.collectMany { artifact, scenarios ->
-    scenarios.collect { scenario ->
-        tasks.register("verifyArtifact-${artifact}-${scenario}", Exec) {
-            dependsOn tasks.named(artifact == 'thin' ? 'jar' : 'standaloneJar')
-            def dependencies = configurations.runtimeClasspath
-            def pgjdbc = configurations.runtimeClasspath.filter { it.name.startsWith('postgresql-') }
-            doFirst {
-                def classpath = artifact == 'thin'
-                    ? thinJarFile.get().asFile.absolutePath + File.pathSeparator + dependencies.asPath
-                    : standaloneJarFile.get().asFile.absolutePath
-                def runtime = scenario == 'alongside-pg'
-                    ? classpath + File.pathSeparator + pgjdbc.asPath
-                    : classpath
-                commandLine devtoolsJava.get(), '-cp', runtime, 'devtools/VerifyArtifacts.java',
-                    artifact, scenario, shadePrefix, classpath
-            }
-        }
-    }
-}
-
-tasks.register('verifyArtifacts') {
-    description = 'Verifies the contents and classpath behavior of both artifacts.'
-    group = 'verification'
-    dependsOn artifactChecks
-}
-
-check.dependsOn 'verifyArtifacts'
-
-tasks.register('standaloneSourcesJar', Jar) {
-    archiveBaseName.set('crate-jdbc-standalone')
-    archiveClassifier.set('sources')
-    from sourceSets.main.allSource
-}
-
-tasks.register('standaloneJavadocJar', Jar) {
-    dependsOn javadoc
-    archiveBaseName.set('crate-jdbc-standalone')
-    archiveClassifier.set('javadoc')
-    from javadoc.destinationDir
-}
-
 project.ext.url = 'https://crate.io'
 project.ext.scm = {
     url = 'https://github.com/crate/crate-jdbc'
@@ -354,41 +178,14 @@ project.ext.developers = {
     }
 }
 
-// A bill of materials, so consumers can audit the standalone jar's bundled
-// dependencies: relocation hides those from scanners that read a pom.
-cyclonedxBom {
-    includeConfigs = ['runtimeClasspath']
-    outputFormat = 'json'
-    outputName = 'crate-jdbc-sbom'
-    destination = layout.buildDirectory.dir('reports').get().asFile
-}
-
-def sbom = layout.buildDirectory.file('reports/crate-jdbc-sbom.json').get().asFile
-
 publishing {
     publications {
         jdbc(MavenPublication) {
             artifactId = 'crate-jdbc'
             from components.java
-            artifact(sbom) { classifier = 'cyclonedx'; extension = 'json'; builtBy tasks.named('cyclonedxBom') }
             pom {
                 name = "crate-jdbc"
                 description = "CrateDB JDBC Driver"
-                url = project.ext.url
-                licenses project.ext.licenses
-                developers project.ext.developers
-                scm project.ext.scm
-            }
-        }
-        jdbcStandalone(MavenPublication) {
-            artifactId = 'crate-jdbc-standalone'
-            artifact standaloneJar
-            artifact standaloneSourcesJar
-            artifact standaloneJavadocJar
-            artifact(sbom) { classifier = 'cyclonedx'; extension = 'json'; builtBy tasks.named('cyclonedxBom') }
-            pom {
-                name = "crate-jdbc-standalone"
-                description = "CrateDB JDBC Driver (Standalone)"
                 url = project.ext.url
                 licenses project.ext.licenses
                 developers project.ext.developers
@@ -460,27 +257,6 @@ tasks.register('integrationTest', Test) {
     }
     // The server they run against is not an input the build can see, so a
     // previous run against another CrateDB says nothing about this one.
-    outputs.upToDateWhen { false }
-}
-
-// The suites against the standalone artifact, which is what reaches a name
-// that failed to relocate: those fail only once used. The unrelocated pgJDBC
-// and this project's class files are kept off the classpath so the driver comes
-// out of the jar under test. See DEVELOP.rst.
-tasks.register('standaloneTest', Test) {
-    description = 'Runs the integration tests against the standalone artifact.'
-    group = 'verification'
-    dependsOn tasks.named('standaloneJar')
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = files(standaloneJarFile) + sourceSets.test.output +
-        configurations.testRuntimeClasspath.filter { !it.name.startsWith('postgresql-') }
-    useJUnitPlatform {
-        excludeTags 'pgjdbc-types'
-    }
-    // A pattern, not a filter. A filter is applied after the candidates have
-    // been loaded, and the unit tests among them name pgJDBC types that this
-    // classpath has under another name.
-    include '**/*IT.class'
     outputs.upToDateWhen { false }
 }
 

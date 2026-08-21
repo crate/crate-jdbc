@@ -8,11 +8,5 @@ more contributor license agreements.
 Unless otherwise stated, every component of the CrateDB JDBC Driver is
 licensed under the Apache License, Version 2.0.
 
-The crate-jdbc-standalone artifact bundles its dependencies, relocated under
-the io.crate.shade namespace. Their license files are reproduced in that
-artifact under META-INF/licenses/, one directory per dependency, and the
-dependencies themselves are listed in the CycloneDX SBOM published alongside
-both artifacts.
-
 The crate-jdbc artifact bundles nothing; it declares its dependencies in its
 POM, and their licenses are those the dependencies themselves state.

@@ -27,8 +27,8 @@ TEST_TIME_ZONE ?= Europe/Berlin
 
 .DEFAULT_GOAL := help
 .PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned \
-        itest-standalone check verify format docs docs-check forwarding \
-        publish-local sbom version clean
+        check verify format docs docs-check forwarding \
+        publish-local version clean
 
 help:  ## Show this help
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) \
@@ -42,7 +42,7 @@ help:  ## Show this help
 	@echo "    -PtestTimeZone=...      run the JVM in that zone instead of UTC"
 
 build:  ## Build both jars into build/libs
-	$(GRADLE) jar standaloneJar
+	$(GRADLE) jar
 
 test:  ## Run the unit tests (no Docker)
 	$(GRADLE) test
@@ -63,15 +63,12 @@ itest-cluster:  ## Run the integration tests against a CrateDB cluster
 itest-zoned:  ## Run the integration tests in a JVM zone away from UTC
 	$(GRADLE) integrationTest -PtestTimeZone=$(TEST_TIME_ZONE)
 
-itest-standalone:  ## Run the integration tests against the standalone artifact
-	$(GRADLE) standaloneTest
-
 check:  ## Unit tests, code style, generated-code and artifact checks
 	$(GRADLE) check
 
 # Not docs-check: its link checker reaches the open internet and fails on
 # rate limits rather than on anything in the tree.
-verify: check test-baseline itest itest-floor itest-cluster itest-zoned itest-standalone  ## Tests and checks, across the supported ranges
+verify: check test-baseline itest itest-floor itest-cluster itest-zoned  ## Tests and checks, across the supported ranges
 
 format:  ## Apply the code style
 	$(GRADLE) spotlessApply
@@ -87,9 +84,6 @@ forwarding:  ## Regenerate the Forwarding* classes against the pinned pgJDBC
 
 publish-local:  ## Publish both artifacts to the local Maven repository
 	$(GRADLE) publishToMavenLocal
-
-sbom:  ## Write the CycloneDX SBOM to build/reports
-	$(GRADLE) cyclonedxBom
 
 version:  ## Print the version being built
 	@$(GRADLE) -q getVersion

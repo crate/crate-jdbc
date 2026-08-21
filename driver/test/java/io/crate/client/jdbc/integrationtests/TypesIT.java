@@ -4,7 +4,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -57,7 +56,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * array elements read back as {@code Map}, and
  * {@link Connection#createArrayOf} accepts CrateDB type names.
  */
-@Tag("pgjdbc-types")
 public class TypesIT extends BaseIntegrationTest {
 
     private static Connection conn;
