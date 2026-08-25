@@ -96,4 +96,4 @@ The `JDBC tutorial`_ and the `JDBC API documentation`_ cover the API itself.
 .. _PostgreSQL Wire Protocol: https://cratedb.com/docs/crate/reference/en/latest/interfaces/postgres.html
 .. _sample application: https://github.com/crate/crate-sample-apps/tree/main/java-spring
 .. _sample application documentation: https://github.com/crate/crate-sample-apps/blob/main/java-spring/documentation.md
-.. _Spring Data JDBC: https://spring.io/projects/spring-data-jdbc/
+.. _Spring Data JDBC: https://spring.io/projects/spring-data-relational/
