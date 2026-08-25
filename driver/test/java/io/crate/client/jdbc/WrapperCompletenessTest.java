@@ -34,9 +34,9 @@ import static org.hamcrest.Matchers.is;
  * from it: statement, connection, rows.
  *
  * <p>The rule is mechanical, so it is checked mechanically: every method that
- * hands out another JDBC object must be answered by a wrapper rather than left
- * to the generated forwarding. A JDBC release that adds such a method fails
- * here rather than silently leaking.</p>
+ * hands out another JDBC object must carry {@link Adapted}, marking an answer
+ * the driver gives itself rather than one that forwards. A JDBC release that
+ * adds such a method fails here rather than silently leaking.</p>
  */
 public class WrapperCompletenessTest {
 
@@ -52,16 +52,6 @@ public class WrapperCompletenessTest {
         Connection.class, Statement.class, PreparedStatement.class,
         CallableStatement.class, ResultSet.class, DatabaseMetaData.class,
         ResultSetMetaData.class, ParameterMetaData.class, Array.class);
-
-    /**
-     * The generated classes, which forward without converting. A method whose
-     * nearest declaration is one of these hands out what pgJDBC returned.
-     */
-    private static final Set<Class<?>> FORWARDING = Set.of(
-        ForwardingConnection.class, ForwardingStatement.class,
-        ForwardingPreparedStatement.class, ForwardingCallableStatement.class,
-        ForwardingResultSet.class, ForwardingDatabaseMetaData.class,
-        ForwardingResultSetMetaData.class, ForwardingParameterMetaData.class);
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("wrappers")
@@ -90,9 +80,8 @@ public class WrapperCompletenessTest {
     }
 
     /**
-     * The methods of {@code jdbcType} that return another JDBC object and are
-     * left to the generated forwarding, which would hand out pgJDBC's own
-     * instance.
+     * The methods of {@code jdbcType} that return another JDBC object and
+     * forward, which hands out pgJDBC's own instance.
      */
     private static List<String> unwrappedGetters(Class<?> jdbcType, Class<?> wrapper) {
         List<String> unwrapped = new ArrayList<>();
@@ -137,15 +126,16 @@ public class WrapperCompletenessTest {
     }
 
     /**
-     * Whether the nearest declaration of the method belongs to the wrapper
-     * rather than to a generated forwarding class. Wrappers build on one
-     * another, so the search follows the whole chain.
+     * Whether the nearest declaration of the method is one the driver answers
+     * itself. Wrappers build on one another, so the search follows the whole
+     * chain, and stops at the first class declaring the method: a wrapper
+     * further up may forward what this one adapts, or the reverse.
      */
     private static boolean isOverriddenIn(Class<?> wrapper, Method method) {
         for (Class<?> type = wrapper; type != null && type != Object.class; type = type.getSuperclass()) {
             try {
-                type.getDeclaredMethod(method.getName(), method.getParameterTypes());
-                return !FORWARDING.contains(type);
+                return type.getDeclaredMethod(method.getName(), method.getParameterTypes())
+                    .isAnnotationPresent(Adapted.class);
             } catch (NoSuchMethodException expected) {
                 // keep walking up
             }

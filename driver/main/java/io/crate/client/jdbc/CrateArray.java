@@ -63,24 +63,28 @@ public class CrateArray implements Array {
         return delegate;
     }
 
+    @Adapted
     @Override
     public Object getArray() throws SQLException {
         checkUsable();
         return convert(delegate.getArray());
     }
 
+    @Adapted
     @Override
     public Object getArray(Map<String, Class<?>> map) throws SQLException {
         checkUsable();
         return convert(delegate.getArray(map));
     }
 
+    @Adapted
     @Override
     public Object getArray(long index, int count) throws SQLException {
         checkUsable();
         return convert(delegate.getArray(index, count));
     }
 
+    @Adapted
     @Override
     public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
         checkUsable();
@@ -126,12 +130,14 @@ public class CrateArray implements Array {
         return converted == null ? elements : converted;
     }
 
+    @Adapted
     @Override
     public String getBaseTypeName() throws SQLException {
         checkUsable();
         return delegate.getBaseTypeName();
     }
 
+    @Adapted
     @Override
     public int getBaseType() throws SQLException {
         checkUsable();
@@ -139,30 +145,35 @@ public class CrateArray implements Array {
     }
 
     /** The index/value pairs. The rows belong to the array, so report no statement. */
+    @Adapted
     @Override
     public ResultSet getResultSet() throws SQLException {
         checkUsable();
         return new CrateResultSet(delegate.getResultSet(), null);
     }
 
+    @Adapted
     @Override
     public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
         checkUsable();
         return new CrateResultSet(delegate.getResultSet(map), null);
     }
 
+    @Adapted
     @Override
     public ResultSet getResultSet(long index, int count) throws SQLException {
         checkUsable();
         return new CrateResultSet(delegate.getResultSet(index, count), null);
     }
 
+    @Adapted
     @Override
     public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
         checkUsable();
         return new CrateResultSet(delegate.getResultSet(index, count, map), null);
     }
 
+    @Adapted
     @Override
     public void free() throws SQLException {
         freed = true;
@@ -170,6 +181,7 @@ public class CrateArray implements Array {
     }
 
     /** The array literal, as the wrapped array prints one. */
+    @Adapted
     @Override
     public String toString() {
         return delegate.toString();

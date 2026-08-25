@@ -27,7 +27,7 @@ TEST_TIME_ZONE ?= Europe/Berlin
 
 .DEFAULT_GOAL := help
 .PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned \
-        check verify format docs docs-check forwarding \
+        check verify format docs docs-check \
         publish-local version clean
 
 help:  ## Show this help
@@ -63,7 +63,7 @@ itest-cluster:  ## Run the integration tests against a CrateDB cluster
 itest-zoned:  ## Run the integration tests in a JVM zone away from UTC
 	$(GRADLE) integrationTest -PtestTimeZone=$(TEST_TIME_ZONE)
 
-check:  ## Unit tests, code style, generated-code and artifact checks
+check:  ## Unit tests and code style
 	$(GRADLE) check
 
 # Not docs-check: its link checker reaches the open internet and fails on
@@ -78,9 +78,6 @@ docs:  ## Build the documentation
 
 docs-check:  ## Build the documentation and check its links and prose
 	$(MAKE) -C docs check
-
-forwarding:  ## Regenerate the Forwarding* classes against the pinned pgJDBC
-	$(GRADLE) generateForwardingClasses
 
 publish-local:  ## Publish both artifacts to the local Maven repository
 	$(GRADLE) publishToMavenLocal

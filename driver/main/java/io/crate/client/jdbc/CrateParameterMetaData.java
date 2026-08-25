@@ -34,13 +34,16 @@ import java.sql.Types;
  * <p>The reading side, and the caching this shares with it, is described in
  * {@link CrateResultSetMetaData}.</p>
  */
-public class CrateParameterMetaData extends ForwardingParameterMetaData {
+@SuppressWarnings("deprecation")
+public class CrateParameterMetaData implements ParameterMetaData {
+
+    protected final ParameterMetaData delegate;
 
     /** Whether each parameter carries json, filled in on first use. */
     private Boolean[] json;
 
     CrateParameterMetaData(ParameterMetaData delegate) {
-        super(delegate);
+        this.delegate = delegate;
     }
 
     /** Whether a parameter takes json: an OBJECT, a geo_shape, nested arrays. */
@@ -64,8 +67,62 @@ public class CrateParameterMetaData extends ForwardingParameterMetaData {
      * is described as {@link Object}, for the reason
      * {@link CrateResultSetMetaData#getColumnClassName} gives.
      */
+    @Adapted
     @Override
     public String getParameterClassName(int param) throws SQLException {
         return isJson(param) ? Object.class.getName() : delegate.getParameterClassName(param);
     }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        return iface.isInstance(this) ? iface.cast(this) : delegate.unwrap(iface);
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return iface.isInstance(this) || delegate.isWrapperFor(iface);
+    }
+
+    // <editor-fold defaultstate="collapsed" desc="Delegation to pgJDBC (8 methods)">
+
+    @Override
+    public int getParameterCount() throws SQLException {
+        return delegate.getParameterCount();
+    }
+
+    @Override
+    public int getParameterMode(int p0) throws SQLException {
+        return delegate.getParameterMode(p0);
+    }
+
+    @Override
+    public int getParameterType(int p0) throws SQLException {
+        return delegate.getParameterType(p0);
+    }
+
+    @Override
+    public String getParameterTypeName(int p0) throws SQLException {
+        return delegate.getParameterTypeName(p0);
+    }
+
+    @Override
+    public int getPrecision(int p0) throws SQLException {
+        return delegate.getPrecision(p0);
+    }
+
+    @Override
+    public int getScale(int p0) throws SQLException {
+        return delegate.getScale(p0);
+    }
+
+    @Override
+    public int isNullable(int p0) throws SQLException {
+        return delegate.isNullable(p0);
+    }
+
+    @Override
+    public boolean isSigned(int p0) throws SQLException {
+        return delegate.isSigned(p0);
+    }
+    // </editor-fold>
 }

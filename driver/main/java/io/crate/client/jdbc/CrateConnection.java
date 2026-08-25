@@ -21,22 +21,41 @@
  */
 package io.crate.client.jdbc;
 
+import org.postgresql.PGConnection;
+import org.postgresql.PGNotification;
+import org.postgresql.copy.CopyManager;
+import org.postgresql.fastpath.Fastpath;
+import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.replication.PGReplicationConnection;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.sql.Array;
+import java.sql.Blob;
 import java.sql.CallableStatement;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
 import java.sql.Savepoint;
+import java.sql.ShardingKey;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -48,7 +67,11 @@ import java.util.concurrent.TimeUnit;
  * so OBJECT&harr;{@code Map} conversion and the CrateDB metadata answers hold
  * wherever an application reaches them from.</p>
  */
-public class CrateConnection extends ForwardingConnection {
+@SuppressWarnings("deprecation")
+public class CrateConnection implements Connection, PGConnection {
+
+    protected final Connection delegate;
+    protected final PGConnection pgDelegate;
 
     /**
      * CrateDB type names that differ from the {@code pg_catalog.pg_type} name
@@ -132,7 +155,8 @@ public class CrateConnection extends ForwardingConnection {
      * the two reaching different objects.
      */
     CrateConnection(Connection delegate) throws SQLException {
-        super(delegate);
+        this.delegate = delegate;
+        this.pgDelegate = delegate.unwrap(PGConnection.class);
     }
 
     /**
@@ -168,6 +192,7 @@ public class CrateConnection extends ForwardingConnection {
      * error marks the block failed. {@code COMMIT} ends it and CrateDB parses
      * and ignores it; pgJDBC sends nothing when no block is open.</p>
      */
+    @Adapted
     @Override
     public void rollback() throws SQLException {
         checkOpen();
@@ -186,6 +211,7 @@ public class CrateConnection extends ForwardingConnection {
      * alone accepts. A framework asking for one of PostgreSQL's levels is
      * still obliged, since the server does nothing differently either way.
      */
+    @Adapted
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
         checkOpen();
@@ -195,27 +221,32 @@ public class CrateConnection extends ForwardingConnection {
         }
     }
 
+    @Adapted
     @Override
     public int getTransactionIsolation() throws SQLException {
         checkOpen();
         return Connection.TRANSACTION_NONE;
     }
 
+    @Adapted
     @Override
     public void rollback(Savepoint savepoint) throws SQLException {
         throw savepointsUnsupported();
     }
 
+    @Adapted
     @Override
     public Savepoint setSavepoint() throws SQLException {
         throw savepointsUnsupported();
     }
 
+    @Adapted
     @Override
     public Savepoint setSavepoint(String name) throws SQLException {
         throw savepointsUnsupported();
     }
 
+    @Adapted
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         throw savepointsUnsupported();
@@ -239,6 +270,7 @@ public class CrateConnection extends ForwardingConnection {
         }
     }
 
+    @Adapted
     @Override
     public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
         return createArrayOf(typeName, (Object) elements);
@@ -250,6 +282,7 @@ public class CrateConnection extends ForwardingConnection {
      * was named: CrateDB reads a column of nested arrays from json, having no
      * PostgreSQL array form to send it in.
      */
+    @Adapted
     @Override
     public Array createArrayOf(String typeName, Object elements) throws SQLException {
         CrateJsonArray nested = CrateJsonArray.ofNested(elements);
@@ -284,62 +317,74 @@ public class CrateConnection extends ForwardingConnection {
         return json;
     }
 
+    @Adapted
     @Override
     public Statement createStatement() throws SQLException {
         return new CrateStatement(delegate.createStatement(), this);
     }
 
+    @Adapted
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
         return new CrateStatement(delegate.createStatement(resultSetType, resultSetConcurrency), this);
     }
 
+    @Adapted
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
         return new CrateStatement(delegate.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability), this);
     }
 
+    @Adapted
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
         return new CratePreparedStatement(delegate.prepareStatement(sql), this);
     }
 
+    @Adapted
     @Override
     public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
         return new CratePreparedStatement(delegate.prepareStatement(sql, autoGeneratedKeys), this);
     }
 
+    @Adapted
     @Override
     public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
         return new CratePreparedStatement(delegate.prepareStatement(sql, columnIndexes), this);
     }
 
+    @Adapted
     @Override
     public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
         return new CratePreparedStatement(delegate.prepareStatement(sql, columnNames), this);
     }
 
+    @Adapted
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
         return new CratePreparedStatement(delegate.prepareStatement(sql, resultSetType, resultSetConcurrency), this);
     }
 
+    @Adapted
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
         return new CratePreparedStatement(
             delegate.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability), this);
     }
 
+    @Adapted
     @Override
     public CallableStatement prepareCall(String sql) throws SQLException {
         return new CrateCallableStatement(delegate.prepareCall(sql), this);
     }
 
+    @Adapted
     @Override
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
         return new CrateCallableStatement(delegate.prepareCall(sql, resultSetType, resultSetConcurrency), this);
     }
 
+    @Adapted
     @Override
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
         return new CrateCallableStatement(
@@ -376,6 +421,7 @@ public class CrateConnection extends ForwardingConnection {
      * Holding one makes the second call free, and would otherwise also let it
      * answer where the first call could not.</p>
      */
+    @Adapted
     @Override
     public synchronized DatabaseMetaData getMetaData() throws SQLException {
         checkOpen();
@@ -384,4 +430,338 @@ public class CrateConnection extends ForwardingConnection {
         }
         return metaData;
     }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        return iface.isInstance(this) ? iface.cast(this) : delegate.unwrap(iface);
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return iface.isInstance(this) || delegate.isWrapperFor(iface);
+    }
+
+    // The driver compiles for Java 11, where Connection has no enquoteLiteral,
+    // enquoteIdentifier, enquoteNCharLiteral or isSimpleIdentifier: java.sql
+    // gained those in Java 25. They are absent below on purpose, and adding
+    // them fails the --release 11 compile. A connection answers them with the
+    // body the interface gives them, which is all a driver built for Java 11
+    // can do about a method Java 11 does not have.
+    // <editor-fold defaultstate="collapsed" desc="Delegation to pgJDBC (63 methods)">
+
+    @Override
+    public void abort(Executor p0) throws SQLException {
+        delegate.abort(p0);
+    }
+
+    @Override
+    public void addDataType(String type, Class<? extends PGobject> klass) throws SQLException {
+        pgDelegate.addDataType(type, klass);
+    }
+
+    @Override
+    public void addDataType(String type, String className) {
+        pgDelegate.addDataType(type, className);
+    }
+
+    @Override
+    public void alterUserPassword(String user, char[] newPassword, String encryptionType) throws SQLException {
+        pgDelegate.alterUserPassword(user, newPassword, encryptionType);
+    }
+
+    @Override
+    public void beginRequest() throws SQLException {
+        delegate.beginRequest();
+    }
+
+    @Override
+    public void cancelQuery() throws SQLException {
+        pgDelegate.cancelQuery();
+    }
+
+    @Override
+    public void clearWarnings() throws SQLException {
+        delegate.clearWarnings();
+    }
+
+    @Override
+    public void close() throws SQLException {
+        delegate.close();
+    }
+
+    @Override
+    public void commit() throws SQLException {
+        delegate.commit();
+    }
+
+    @Override
+    public Blob createBlob() throws SQLException {
+        return delegate.createBlob();
+    }
+
+    @Override
+    public Clob createClob() throws SQLException {
+        return delegate.createClob();
+    }
+
+    @Override
+    public NClob createNClob() throws SQLException {
+        return delegate.createNClob();
+    }
+
+    @Override
+    public SQLXML createSQLXML() throws SQLException {
+        return delegate.createSQLXML();
+    }
+
+    @Override
+    public Struct createStruct(String p0, Object[] p1) throws SQLException {
+        return delegate.createStruct(p0, p1);
+    }
+
+    @Override
+    public void endRequest() throws SQLException {
+        delegate.endRequest();
+    }
+
+    @Override
+    public String escapeIdentifier(String identifier) throws SQLException {
+        return pgDelegate.escapeIdentifier(identifier);
+    }
+
+    @Override
+    public String escapeLiteral(String literal) throws SQLException {
+        return pgDelegate.escapeLiteral(literal);
+    }
+
+    @Override
+    public boolean getAdaptiveFetch() {
+        return pgDelegate.getAdaptiveFetch();
+    }
+
+    @Override
+    public boolean getAutoCommit() throws SQLException {
+        return delegate.getAutoCommit();
+    }
+
+    @Override
+    public AutoSave getAutosave() {
+        return pgDelegate.getAutosave();
+    }
+
+    @Override
+    public int getBackendPID() {
+        return pgDelegate.getBackendPID();
+    }
+
+    @Override
+    public String getCatalog() throws SQLException {
+        return delegate.getCatalog();
+    }
+
+    @Override
+    public Properties getClientInfo() throws SQLException {
+        return delegate.getClientInfo();
+    }
+
+    @Override
+    public String getClientInfo(String p0) throws SQLException {
+        return delegate.getClientInfo(p0);
+    }
+
+    @Override
+    public CopyManager getCopyAPI() throws SQLException {
+        return pgDelegate.getCopyAPI();
+    }
+
+    @Override
+    public int getDefaultFetchSize() {
+        return pgDelegate.getDefaultFetchSize();
+    }
+
+    @Override
+    public Fastpath getFastpathAPI() throws SQLException {
+        return pgDelegate.getFastpathAPI();
+    }
+
+    @Override
+    public int getHoldability() throws SQLException {
+        return delegate.getHoldability();
+    }
+
+    @Override
+    public LargeObjectManager getLargeObjectAPI() throws SQLException {
+        return pgDelegate.getLargeObjectAPI();
+    }
+
+    @Override
+    public int getNetworkTimeout() throws SQLException {
+        return delegate.getNetworkTimeout();
+    }
+
+    @Override
+    public PGNotification[] getNotifications() throws SQLException {
+        return pgDelegate.getNotifications();
+    }
+
+    @Override
+    public PGNotification[] getNotifications(int timeoutMillis) throws SQLException {
+        return pgDelegate.getNotifications(timeoutMillis);
+    }
+
+    @Override
+    public String getParameterStatus(String parameterName) {
+        return pgDelegate.getParameterStatus(parameterName);
+    }
+
+    @Override
+    public Map<String, String> getParameterStatuses() {
+        return pgDelegate.getParameterStatuses();
+    }
+
+    @Override
+    public PreferQueryMode getPreferQueryMode() {
+        return pgDelegate.getPreferQueryMode();
+    }
+
+    @Override
+    public int getPrepareThreshold() {
+        return pgDelegate.getPrepareThreshold();
+    }
+
+    @Override
+    public int getQueryTimeout() {
+        return pgDelegate.getQueryTimeout();
+    }
+
+    @Override
+    public PGReplicationConnection getReplicationAPI() {
+        return pgDelegate.getReplicationAPI();
+    }
+
+    @Override
+    public String getSchema() throws SQLException {
+        return delegate.getSchema();
+    }
+
+    @Override
+    public Map<String, Class<?>> getTypeMap() throws SQLException {
+        return delegate.getTypeMap();
+    }
+
+    @Override
+    public SQLWarning getWarnings() throws SQLException {
+        return delegate.getWarnings();
+    }
+
+    @Override
+    public boolean isClosed() throws SQLException {
+        return delegate.isClosed();
+    }
+
+    @Override
+    public boolean isReadOnly() throws SQLException {
+        return delegate.isReadOnly();
+    }
+
+    @Override
+    public boolean isValid(int p0) throws SQLException {
+        return delegate.isValid(p0);
+    }
+
+    @Override
+    public String nativeSQL(String p0) throws SQLException {
+        return delegate.nativeSQL(p0);
+    }
+
+    @Override
+    public void setAdaptiveFetch(boolean adaptiveFetch) {
+        pgDelegate.setAdaptiveFetch(adaptiveFetch);
+    }
+
+    @Override
+    public void setAutoCommit(boolean p0) throws SQLException {
+        delegate.setAutoCommit(p0);
+    }
+
+    @Override
+    public void setAutosave(AutoSave autoSave) {
+        pgDelegate.setAutosave(autoSave);
+    }
+
+    @Override
+    public void setCatalog(String p0) throws SQLException {
+        delegate.setCatalog(p0);
+    }
+
+    @Override
+    public void setClientInfo(Properties p0) throws SQLClientInfoException {
+        delegate.setClientInfo(p0);
+    }
+
+    @Override
+    public void setClientInfo(String p0, String p1) throws SQLClientInfoException {
+        delegate.setClientInfo(p0, p1);
+    }
+
+    @Override
+    public void setDefaultFetchSize(int fetchSize) throws SQLException {
+        pgDelegate.setDefaultFetchSize(fetchSize);
+    }
+
+    @Override
+    public void setHoldability(int p0) throws SQLException {
+        delegate.setHoldability(p0);
+    }
+
+    @Override
+    public void setNetworkTimeout(Executor p0, int p1) throws SQLException {
+        delegate.setNetworkTimeout(p0, p1);
+    }
+
+    @Override
+    public void setPrepareThreshold(int threshold) {
+        pgDelegate.setPrepareThreshold(threshold);
+    }
+
+    @Override
+    public void setQueryTimeout(int seconds) throws SQLException {
+        pgDelegate.setQueryTimeout(seconds);
+    }
+
+    @Override
+    public void setReadOnly(boolean p0) throws SQLException {
+        delegate.setReadOnly(p0);
+    }
+
+    @Override
+    public void setSchema(String p0) throws SQLException {
+        delegate.setSchema(p0);
+    }
+
+    @Override
+    public void setShardingKey(ShardingKey p0) throws SQLException {
+        delegate.setShardingKey(p0);
+    }
+
+    @Override
+    public void setShardingKey(ShardingKey p0, ShardingKey p1) throws SQLException {
+        delegate.setShardingKey(p0, p1);
+    }
+
+    @Override
+    public boolean setShardingKeyIfValid(ShardingKey p0, int p1) throws SQLException {
+        return delegate.setShardingKeyIfValid(p0, p1);
+    }
+
+    @Override
+    public boolean setShardingKeyIfValid(ShardingKey p0, ShardingKey p1, int p2) throws SQLException {
+        return delegate.setShardingKeyIfValid(p0, p1, p2);
+    }
+
+    @Override
+    public void setTypeMap(Map<String, Class<?>> p0) throws SQLException {
+        delegate.setTypeMap(p0);
+    }
+    // </editor-fold>
 }

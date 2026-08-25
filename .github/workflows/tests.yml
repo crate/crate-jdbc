@@ -125,9 +125,8 @@ jobs:
       - name: Run integration tests
         run: ./gradlew integrationTest -PtestTimeZone=${{ matrix.time-zone }}
 
-  # Code style, the generated-code check and the artifact checks answer the
-  # same whichever server and JRE the suites ran against, so they run once
-  # rather than in every cell of the matrix above.
+  # The code style answers the same whichever server and JRE the suites ran
+  # against, so it runs once rather than in every cell of the matrix above.
   verify:
 
     name: Verify sources and artifacts

@@ -41,8 +41,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 // Every source file carries the Apache license header, has no unused imports
-// and ends in a newline. The generator emits the same header, so the generated
-// classes are covered too.
+// and ends in a newline.
 spotless {
     // The published sources carry the license header: they travel to Maven
     // Central in a sources jar, and a file read there has no LICENSE beside it.
@@ -54,10 +53,10 @@ spotless {
         trimTrailingWhitespace()
     }
 
-    // Tests and build tooling stay in the repository, where the root LICENSE
-    // and NOTICE state the terms for everything under it.
+    // The tests stay in the repository, where the root LICENSE and NOTICE state
+    // the terms for everything under it.
     format 'javaInternal', com.diffplug.gradle.spotless.JavaExtension, {
-        target 'driver/test/**/*.java', 'devtools/*.java'
+        target 'driver/test/**/*.java'
         removeUnusedImports()
         endWithNewline()
         trimTrailingWhitespace()
@@ -121,39 +120,6 @@ jar {
 tasks.register('getVersion') {
     doLast {
         logger.quiet(project.version.toString())
-    }
-}
-
-/**
- * The `java` the single-file programs under `devtools/` run on. Launched rather
- * than compiled into a source set, they would otherwise take whichever JDK
- * comes first on PATH, and `GenerateForwarding` reflects over `java.sql`, whose
- * interfaces grow from one release to the next.
- */
-def devtoolsJava = javaToolchains.launcherFor {
-    languageVersion = JavaLanguageVersion.of(21)
-}.map { it.executablePath.asFile.absolutePath }
-
-// Where the pinned pgJDBC resolved to, for running GenerateForwarding against
-// that exact version.
-tasks.register('printPgJdbcJar') {
-    def pgjdbc = configurations.runtimeClasspath.filter { it.name.startsWith('postgresql-') }
-    doLast {
-        logger.quiet(pgjdbc.asPath)
-    }
-}
-
-/**
- * Writes the Forwarding* classes over the checked-in ones, running the
- * generator against the pgJDBC and the JDK the build pins. Regenerating any
- * other way produces sources `verifyForwardingClasses` then rejects.
- */
-tasks.register('generateForwardingClasses', Exec) {
-    description = 'Regenerates the Forwarding* classes in place.'
-    group = 'build'
-    def pgjdbc = configurations.runtimeClasspath.filter { it.name.startsWith('postgresql-') }
-    doFirst {
-        commandLine devtoolsJava.get(), '-cp', pgjdbc.asPath, 'devtools/GenerateForwarding.java'
     }
 }
 
@@ -259,35 +225,6 @@ tasks.register('integrationTest', Test) {
     // previous run against another CrateDB says nothing about this one.
     outputs.upToDateWhen { false }
 }
-
-// Regenerating has to leave the checked-in Forwarding* classes untouched.
-// Anything else means they and the interfaces they wrap have drifted apart.
-tasks.register('verifyForwardingClasses', Exec) {
-    description = 'Checks the generated Forwarding* classes against a fresh generation.'
-    group = 'verification'
-    def generated = layout.buildDirectory.dir('generated-forwarding')
-    def pgjdbc = configurations.runtimeClasspath.filter { it.name.startsWith('postgresql-') }
-    doFirst {
-        delete generated
-        commandLine devtoolsJava.get(), '-cp', pgjdbc.asPath,
-            'devtools/GenerateForwarding.java', generated.get().asFile.absolutePath
-    }
-    doLast {
-        def committed = file('driver/main/java/io/crate/client/jdbc')
-        def fresh = (generated.get().asFile.listFiles() ?: [] as File[]).collectEntries { [(it.name): it] }
-        def checkedIn = committed.listFiles().findAll { it.name.startsWith('Forwarding') }
-            .collectEntries { [(it.name): it] }
-
-        (fresh.keySet() + checkedIn.keySet()).each { name ->
-            if (fresh[name]?.text != checkedIn[name]?.text) {
-                throw new GradleException(
-                    "${name} differs from a fresh generation; regenerate with `make forwarding`")
-            }
-        }
-    }
-}
-
-check.dependsOn 'verifyForwardingClasses'
 
 wrapper {
     gradleVersion = '9.4.0'

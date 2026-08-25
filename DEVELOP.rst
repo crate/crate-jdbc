@@ -87,24 +87,23 @@ conversion through the default calendar and one without it disagree::
     $ make itest-cluster   # three nodes instead of one
     $ make itest-zoned     # the suites in Europe/Berlin
 
-``make check`` runs the unit tests together with the code style and the
-generated forwarding classes against a fresh generation. ``make verify`` runs
-the checks and both suites across the supported server and JRE ranges.
-
-Generated sources
-=================
-
-The ``Forwarding*`` classes under ``driver/main/java`` are generated, for the
-reason the `internals documentation`_ gives. Regenerate them against the
-pgJDBC version the build pins with ``make forwarding``; ``make check`` fails
-when the checked-in classes differ from a fresh generation, which is what a
-newer JDBC release adding methods looks like.
+``make check`` runs the unit tests together with the code style. ``make
+verify`` runs the checks and both suites across the supported server and JRE
+ranges.
 
 Upgrading pgJDBC
 ================
 
-Change ``ext.pgjdbcVersion`` in ``build.gradle``, regenerate the forwarding
-classes as above, and run the tests.
+Change ``ext.pgjdbcVersion`` in ``build.gradle`` and run the tests. Each wrapper
+answers its whole interface, as the `internals documentation`_ describes, so a
+release that adds a method leaves the wrapper abstract and the compile names
+what is missing.
+
+A method the new release gives a body in the interface is the case to look for
+by hand. Nothing fails: the wrapper inherits that body and answers with it
+instead of asking pgJDBC, which has an implementation of its own. Compare the
+interface against the wrapper for methods it does not forward, and add them to
+the delegation block.
 
 Preparing a release
 ===================

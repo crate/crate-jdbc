@@ -160,16 +160,19 @@ to bracket, and reaches the session under the same condition. The silence that
 follows a cancel the server accepted is the whole of the answer the protocol
 defines.
 
-The ``Forwarding*`` base classes the wrappers extend are generated from the
-JDBC and pgJDBC interfaces by ``devtools/GenerateForwarding.java``, so that
-they forward everything the wrappers do not override, including whatever a
-later JDBC release adds. ``java.sql`` nests one interface inside another, a
+Each wrapper answers its whole interface: the methods CrateDB needs a different
+answer for, and beneath them a folded block forwarding the rest to pgJDBC
+unchanged. ``java.sql`` nests one interface inside another, a
 ``CallableStatement`` being a ``PreparedStatement`` being a ``Statement``, and
-each generated class picks up where the inner interface's wrapper leaves off.
-Behavior is therefore written once and inherited down the chain: bracketing an
-execution with the query timeout lives in ``CrateStatement`` and holds for
-prepared statements and calls too. The build checks the checked-in classes
-against a fresh generation.
+the wrappers nest the same way, so behavior is written once and inherited down
+the chain: bracketing an execution with the query timeout lives in
+``CrateStatement`` and holds for prepared statements and calls too.
+
+An adapted method carries the ``Adapted`` marker, which is how
+``WrapperCompletenessTest`` holds the wrappers to the rule that every JDBC
+object an application is handed is one of this driver's own. A method that
+hands out another JDBC object and forwards instead of adapting would give the
+application pgJDBC's own instance, and everything reached from it.
 
 
 *********

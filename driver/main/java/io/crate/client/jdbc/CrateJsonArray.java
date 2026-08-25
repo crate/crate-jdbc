@@ -106,22 +106,26 @@ public final class CrateJsonArray implements Array {
     }
 
     /** Sub-arrays as {@code Object[]} and OBJECT values as {@code Map}, as elsewhere. */
+    @Adapted
     @Override
     public Object getArray() {
         return toArray(elements);
     }
 
     /** The type map names Java classes for SQL user types, and json carries none. */
+    @Adapted
     @Override
     public Object getArray(Map<String, Class<?>> map) {
         return getArray();
     }
 
+    @Adapted
     @Override
     public Object getArray(long index, int count) throws SQLException {
         return toArray(slice(index, count));
     }
 
+    @Adapted
     @Override
     public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
         return getArray(index, count);
@@ -169,11 +173,13 @@ public final class CrateJsonArray implements Array {
      * The elements are arrays and reach the driver as json, with no PostgreSQL
      * element type behind them to name.
      */
+    @Adapted
     @Override
     public String getBaseTypeName() {
         return "json";
     }
 
+    @Adapted
     @Override
     public int getBaseType() {
         return Types.OTHER;
@@ -184,21 +190,25 @@ public final class CrateJsonArray implements Array {
      * PostgreSQL protocol has none of. {@link #getArray()} reads the same
      * elements.
      */
+    @Adapted
     @Override
     public ResultSet getResultSet() throws SQLException {
         throw elementsAreArrays();
     }
 
+    @Adapted
     @Override
     public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
         throw elementsAreArrays();
     }
 
+    @Adapted
     @Override
     public ResultSet getResultSet(long index, int count) throws SQLException {
         throw elementsAreArrays();
     }
 
+    @Adapted
     @Override
     public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
         throw elementsAreArrays();
@@ -211,10 +221,12 @@ public final class CrateJsonArray implements Array {
     }
 
     /** Nothing is held open; the value came in with the row. */
+    @Adapted
     @Override
     public void free() {
     }
 
+    @Adapted
     @Override
     public String toString() {
         return json;
