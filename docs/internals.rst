@@ -5,94 +5,213 @@
 Internals
 #########
 
-pgJDBC employs a few behaviours that strictly expect a PostgreSQL
-server on the other end, so that some operations will fail on databases
-offering wire-compatibility with PostgreSQL, but do not provide certain
-features like the `hstore`_ or `jsonb`_ extensions.
-
-The background is that, when using the ``jdbc:postgresql://`` JDBC driver
-prefix, downstream applications and frameworks will implicitly select
-the corresponding dialect implementation for PostgreSQL.
+The CrateDB JDBC driver is a thin adaptation layer over the official
+`PostgreSQL JDBC Driver`_ (pgJDBC). All wire communication, connection
+handling, authentication and TLS is pgJDBC's; the CrateDB layer adjusts only
+the behaviors where CrateDB differs from PostgreSQL.
 
 
-*************
-Compatibility
-*************
+************
+Architecture
+************
 
-While CrateDB is compatible with PostgreSQL on the wire protocol, it needs
-JDBC support for its SQL dialect, provided by the ``jdbc:crate://`` protocol
-identifier.
+``io.crate.client.jdbc.CrateDriver`` registers with the
+``DriverManager`` for the ``crate://`` and ``jdbc:crate://`` URL schemes,
+rewrites them to ``jdbc:postgresql://``, and delegates the connection to
+pgJDBC. The resulting connection is wrapped in delegating classes that
+override a small set of methods:
 
-- IDEs like `DataGrip`_ and `DBeaver`_ need this driver, because they would
-  otherwise emit SQL statements too specific to PostgreSQL.
+:``CrateConnection``:
 
-- The `Apache Flink JDBC Connector`_ needs this driver to not select the
-  PostgreSQL dialect, see also `Apache Kafka, Apache Flink, and CrateDB`_.
+    - ``rollback()`` undoes nothing. CrateDB has no transactions: it accepts
+      ``BEGIN`` and ``COMMIT`` as no-ops, while ``ROLLBACK`` is absent from
+      its SQL grammar, so forwarding it would raise a server error in every
+      framework that calls ``rollback()`` during routine cleanup. It ends the
+      transaction block pgJDBC opens under manual commit mode, sending the
+      ``COMMIT`` CrateDB parses and ignores. A connection whose block is left
+      open refuses to change its read-only flag or its isolation level. It
+      still raises ``SQLException`` on a closed connection and when
+      auto-commit is on, the two states JDBC forbids it in.
+    - ``TRANSACTION_NONE`` is the isolation level, the one
+      ``DatabaseMetaData`` reports as supported. pgJDBC rejects it, having
+      no PostgreSQL equivalent, so the connection answers it itself.
+    - ``createArrayOf()`` accepts CrateDB type names (``string``, ``long``,
+      ``short``, ``byte``, ``float``, ``double``, ``ip``, ``timestamp``,
+      ``object``, ``geo_point``, ``geo_shape`` and ``float_vector`` among
+      them) beside the PostgreSQL names pgJDBC resolves against the server,
+      in any case.
+    - Savepoint methods raise ``SQLFeatureNotSupportedException``, which
+      ``DatabaseMetaData.supportsSavepoints()`` announces.
 
-- Tools like `Dataiku`_ need this driver to implement transaction commands
-  like ``ROLLBACK`` as a no-op.
+:``CratePreparedStatement`` / ``CrateCallableStatement`` / ``CrateResultSet`` / ``CrateArray``:
 
-.. note::
+    CrateDB ``OBJECT`` values travel as json over the wire.
+    ``setObject()`` accepts a ``java.util.Map`` and binds it as json, and a
+    collection of maps as an ``OBJECT`` array; ``getObject()`` on an
+    ``OBJECT`` column returns a ``Map<String, Object>``, and
+    ``getObject(column, type)`` reads it into any requested ``Map`` type;
+    arrays of ``OBJECT`` yield arrays of maps, whether they are read with
+    ``getArray()``, ``getObject()`` or ``Array.getResultSet()``.
 
-    For basic and general purpose use, the official `PostgreSQL JDBC Driver`_
-    can also be used. Sometimes, it is easier because pgJDBC is included
-    into many applications out of the box.
+    ``ResultSetMetaData.getColumnClassName()`` and
+    ``ParameterMetaData.getParameterClassName()`` describe such a column or
+    parameter as ``java.lang.Object``, for the reason :ref:`data-types`
+    gives.
+
+    Columns of ``array(array(...))`` travel as json too, since the
+    PostgreSQL array format cannot hold sub-arrays of differing length.
+    ``CrateJsonArray`` reads them as a ``java.sql.Array`` whose elements are
+    arrays, and binds them back as the json the server types from the column
+    they land in.
+
+:``CrateDatabaseMetaData``:
+
+    - ``getDatabaseProductName()`` reports ``Crate``, so a tool that picks
+      an SQL dialect by product name does not take this for a PostgreSQL
+      server and emit SQL CrateDB has no grammar for. ``getDriverName()`` and
+      ``getDriverVersion()`` likewise report this driver instead of the
+      pgJDBC release underneath, and ``getURL()`` reports the URL in this
+      driver's scheme.
+
+      Configure the dialect explicitly: no framework picks a CrateDB one from
+      this, and none is expected to. Those that dispatch on the URL (Flyway,
+      jOOQ, the `Apache Flink JDBC Connector`_) see a ``jdbc:crate://``
+      scheme they have no entry for, and those that dispatch on the product
+      name (Hibernate, Liquibase) see a name they have no entry for either.
+      ``getDatabaseProductVersion()`` and the major and minor versions stay
+      as pgJDBC reports them, naming the PostgreSQL release CrateDB emulates
+      on the wire, since that is the version a dialect so configured reasons
+      about. ``CrateConnection.getCrateVersion()`` carries the CrateDB
+      version.
+    - An empty-string catalog argument is treated like ``null``. CrateDB
+      has a single catalog named ``crate``; passing ``""`` to metadata
+      methods would otherwise filter every result out.
+    - Transactions and savepoints are reported as unsupported, and the
+      default transaction isolation as ``TRANSACTION_NONE``, matching what
+      the connection does with them. So are the three SQL features CrateDB
+      has no grammar for: foreign keys
+      (``supportsIntegrityEnhancementFacility()``), ``SELECT ... FOR
+      UPDATE``, and cursors returned from functions.
+    - Identifier lengths are reported as unbounded. pgJDBC answers with
+      PostgreSQL's 63-character limit, which CrateDB does not have, so a tool
+      that shortens names to fit it would rename what it touches.
+    - A call CrateDB's catalog cannot answer raises
+      ``SQLFeatureNotSupportedException`` explaining why in CrateDB's terms,
+      instead of naming the PostgreSQL catalog object pgJDBC's query happens
+      to read.
+
+:``CrateDriver``:
+
+    CrateDB defaults are applied to the connection properties pgJDBC gives
+    a PostgreSQL meaning, where the caller sets none: the schema a URL
+    without a path segment connects to is ``doc`` rather than the user name
+    pgJDBC would fill in, ``loadBalanceHosts`` is on, and
+    ``assumeMinServerVersion`` is ``9.5``.
+
+Every JDBC object the driver hands out is one of these wrappers, so navigating
+from a result set to its statement and connection, or from metadata rows and
+array rows, stays inside the driver. The wrappers implement pgJDBC's own
+``PGConnection`` and ``PGStatement`` interfaces, so code that reaches for the
+pgJDBC API by cast or through ``unwrap()`` keeps working. ``CrateDataSource``
+provides the same connections to applications configured with a ``DataSource``
+instead of a URL.
+
+Everything else is stock pgJDBC behavior, and works to the extent that
+CrateDB's PostgreSQL compatibility supports it: cursor-based fetching with
+``setFetchSize()`` under manual commit mode, authentication, SSL, and the rest
+of the metadata API.
+
+``Statement.setQueryTimeout()`` is one place where that extent matters.
+pgJDBC delivers a query timeout as a PostgreSQL cancel request on a second
+connection, opened to the host the session is on. A URL naming the nodes
+themselves reaches that host. A URL naming a load balancer in front of them
+resolves wherever the balancer points, and a cancel arriving at another node
+finds no session to act on. The driver therefore hands the timeout to the
+server directly as well, as ``statement_timeout`` on the connection already
+holding the session, and puts the session's own value back as the execution
+ends. A statement that sets no timeout never touches the setting.
+
+Both mechanisms stay in play, because each covers a case the other does not.
+Neither dependably bounds a query CrateDB answers inline instead of dispatching
+to its execution pool, which is what a query over ``sys`` tables is. The server
+schedules the abort only once ``Plan.execute`` has returned, and an inline
+execution has finished by then, so such a query runs past the setting without
+ever meeting it. A cancel request does usually end one, though not reliably:
+the wire protocol, the inter-node transport and the channel that accepts
+connections share one event loop group, and an inline query holds the loop
+thread serving its connection for its whole duration. A cancel that arrives on
+another thread of that group takes effect, and one assigned to the thread
+already occupied waits for the query it was meant to stop. Bound a query over
+``sys`` tables in its own text, with a ``LIMIT`` or a narrower filter. A query
+over a table function is dispatched like any other and ends on its timeout.
+
+The bracket holds for the execution and not for the reading of its rows. A
+statement with a fetch size leaves a cursor open under manual commit mode, and
+the fetches that bring the remaining batches run after the setting has been
+given back, carrying no timeout of their own.
+
+It holds only for the statements this driver hands out. Queries pgJDBC issues
+on its own connection fall outside it: the mutations an updatable cursor makes
+for ``updateRow()`` and ``insertRow()``, and the queries behind the metadata
+API.
+
+``Statement.cancel()`` sends the cancel request by itself, having no execution
+to bracket, and reaches the session under the same condition. The silence that
+follows a cancel the server accepted is the whole of the answer the protocol
+defines.
+
+Each wrapper answers its whole interface: the methods CrateDB needs a different
+answer for, and beneath them a folded block forwarding the rest to pgJDBC
+unchanged. ``java.sql`` nests one interface inside another, a
+``CallableStatement`` being a ``PreparedStatement`` being a ``Statement``, and
+the wrappers nest the same way, so behavior is written once and inherited down
+the chain: bracketing an execution with the query timeout lives in
+``CrateStatement`` and holds for prepared statements and calls too.
+
+An adapted method carries the ``Adapted`` marker, which is how
+``WrapperCompletenessTest`` holds the wrappers to the rule that every JDBC
+object an application is handed is one of this driver's own. A method that
+hands out another JDBC object and forwards instead of adapting would give the
+application pgJDBC's own instance, and everything reached from it.
 
 
-.. _differences:
-.. _implementations:
-.. _jdbc-implementation:
+*********
+Artifacts
+*********
 
-*********************
-Differences to pgJDBC
-*********************
+:``crate-jdbc``:
 
-The driver is based upon a fork of the `PostgreSQL JDBC Driver`_, see `pgjdbc
-driver fork`_, and adjusts a few details to compensate for behavioral
-differences of CrateDB.
-Please take notice of the corresponding implementation notes:
+    The regular Maven dependency. pgJDBC and jackson-databind come along as
+    ordinary transitive dependencies, where dependency and vulnerability
+    scanners can see them and a build can pin them.
 
-:Supported:
 
-    - A few metadata functions have been adjusted to better support CrateDB's type system.
-    - The CrateDB JDBC driver deserializes objects to a Map, pgJDBC treats them as JSON.
-    - DDL and DML statements are supported through adjustments to the
-      `PgPreparedStatement`_ and `PgStatement`_ interfaces.
+**********************
+Supported server range
+**********************
 
-:Unsupported:
+The driver requires **CrateDB 6.0 or later**: pgJDBC's metadata queries rely
+on server support (``current_catalog`` among it) that CrateDB gained in the
+6.x line. For older servers, use crate-jdbc 2.7.0.
 
-    - `CallableStatement`_ is not supported, as CrateDB itself does not support
-      stored procedures.
-    - `DataSource`_ is not supported.
-    - `ParameterMetaData`_, e.g. as returned by `PreparedStatement`_, is not
-      supported.
-    - `ResultSet`_ objects are read only (``TYPE_FORWARD_ONLY``, ``CONCUR_READ_ONLY``),
-      so changes to a ``ResultSet`` are not supported.
+Queries and writes work against older servers, and so do the metadata calls
+that read none of the catalog columns those servers lack. The ones that do
+raise ``SQLFeatureNotSupportedException`` naming the version found, instead of
+reporting a missing column. Which calls those are is not a contract: treat 6.0
+as the floor.
 
-To learn further details about the compatibility with JDBC and PostgreSQL
-features, see the specific code changes to the `PgConnection`_,
-`PgDatabaseMetaData`_, and `PgResultSet`_ classes.
++----------------+---------------------+-------------------+
+| Driver         | CrateDB             | JRE               |
++================+=====================+===================+
+| 3.0.x          | 6.0 and later       | 11 and later      |
++----------------+---------------------+-------------------+
+| 2.7.0          | 2.0 and later       | 8 and later       |
++----------------+---------------------+-------------------+
 
+``CrateConnection.getCrateVersion()`` reports the server's CrateDB version to
+applications that need to branch on it. The JDBC API reports the PostgreSQL
+release CrateDB emulates, that being what PostgreSQL tooling reasons about.
 
 
 .. _Apache Flink JDBC Connector: https://github.com/apache/flink-connector-jdbc
-.. _Apache Kafka, Apache Flink, and CrateDB: https://github.com/crate/cratedb-examples/tree/main/framework/flink
-.. _CallableStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html
-.. _Dataiku: https://www.dataiku.com/
-.. _DataGrip: https://www.jetbrains.com/datagrip/
-.. _DataSource: https://docs.oracle.com/javase/8/docs/api/javax/sql/DataSource.html
-.. _DBeaver: https://dbeaver.io/about/
-.. _hstore: https://www.postgresql.org/docs/current/hstore.html
-.. _jsonb: https://www.postgresql.org/docs/current/datatype-json.html
-.. _ParameterMetaData: https://docs.oracle.com/javase/8/docs/api/java/sql/ParameterMetaData.html
-.. _pgjdbc driver fork: https://github.com/crate/pgjdbc
 .. _PostgreSQL JDBC Driver: https://jdbc.postgresql.org/
-.. _PreparedStatement: https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html
-.. _ResultSet: https://docs.oracle.com/javase/8/docs/api/java/sql/ResultSet.html
-
-
-.. _PgConnection: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-8ee30bec696495ec5763a3e1c1b216776efc124729f72e18dbaa35064af0aef0
-.. _PgDatabaseMetaData: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-0571f8ac3385a7f7bb34e5c77f8afd24810311506989379c2e85c6c16eea6ce4
-.. _PgResultSet: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-7e93771092eab9084402e3c7c81319a1f037febdc7614264329bd29f11d39ef2
-.. _PgPreparedStatement: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-d4946409bd7c59e525f34b4c974a3df76638dc84adc060cc5d13d5409c6aeb21
-.. _PgStatement: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-2abcc60e1b1ef8eeadd6372bf7afd0c0ebae0ebd691b0965fc914fea794eb6d0
