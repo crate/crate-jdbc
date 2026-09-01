@@ -19,32 +19,59 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
-
 package io.crate.client.jdbc;
 
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.sql.Connection;
-import java.sql.Driver;
 import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
+/**
+ * JDBC driver for CrateDB: accepts {@code crate://} and
+ * {@code jdbc:crate://} URLs, connects through stock pgjdbc over the
+ * PostgreSQL wire protocol, and hands out {@link CrateConnection}s that
+ * adapt the few behaviors where CrateDB differs from PostgreSQL.
+ *
+ * <p>{@code jdbc:postgresql://} URLs are deliberately left to a PostgreSQL
+ * driver, which an application may well have installed alongside this one.</p>
+ */
 public class CrateDriver extends org.postgresql.Driver {
 
-    private static final String PROTOCOL = "jdbc";
-
-    private static final String CRATE_PROTOCOL = "crate";
-    private static final String CRATE_PREFIX = CRATE_PROTOCOL + ":" + "//";
-    private static final String CRATE_PREFIX_LONG = PROTOCOL + ":" + CRATE_PREFIX;
-
-    private static final String PSQL_PROTOCOL = "postgresql";
-    private static final String PSQL_PREFIX = PSQL_PROTOCOL + ":" + "//";
-    private static final String PSQL_PREFIX_LONG = PROTOCOL + ":" + PSQL_PREFIX;
-
-    private static Driver registeredDriver;
+    static final String CRATE_PREFIX = "crate://";
+    static final String CRATE_PREFIX_LONG = "jdbc:" + CRATE_PREFIX;
+    static final String PSQL_PREFIX_LONG = "jdbc:postgresql://";
 
     /**
-     * Taken from {@link org.postgresql.Driver}
+     * CrateDB defaults for connection properties pgJDBC gives a PostgreSQL
+     * meaning. pgJDBC resolves URL parameters ahead of the properties a
+     * connection is opened with, so a value the caller sets in either place
+     * wins over these.
+     *
+     * <ul>
+     * <li>{@code PGDBNAME} is what a URL's path segment sets, and CrateDB reads
+     *     it as the schema to resolve unqualified names in. Left out, pgJDBC
+     *     fills in the user name, following the PostgreSQL convention of naming
+     *     a database after its owner. CrateDB's default schema is
+     *     {@code doc}.</li>
+     * <li>{@code loadBalanceHosts} spreads connections over the hosts of a URL
+     *     naming several, which for a CrateDB cluster is every node.</li>
+     * <li>{@code assumeMinServerVersion} lets pgJDBC send the application name
+     *     in the startup packet instead of in a round trip of its own.</li>
+     * </ul>
      */
+    private static final Map<String, String> DEFAULT_PROPERTIES = Map.of(
+        "PGDBNAME", "doc",
+        "loadBalanceHosts", "true",
+        "assumeMinServerVersion", "9.5");
+
+    private static volatile CrateDriver registeredDriver;
+
     static {
         try {
             register();
@@ -55,32 +82,65 @@ public class CrateDriver extends org.postgresql.Driver {
 
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
-        if (!acceptsURL(url)) {
-            return null;
-        }
         String psqlUrl = processURL(url);
         if (psqlUrl == null) {
             return null;
         }
-        return super.connect(psqlUrl, info);
+        // pgJDBC reports an unreadable URL as the jdbc:postgresql:// form
+        // this driver rewrote it to, which the caller never wrote. Its own
+        // URL is what it can act on.
+        if (!super.acceptsURL(psqlUrl)) {
+            throw new PSQLException(
+                "Cannot read the connection URL " + url + ". A CrateDB URL names one or more "
+                + "hosts, closes the host list with a '/', and may name a schema after it: "
+                + CRATE_PREFIX_LONG + "localhost:5432/doc",
+                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+        }
+        return new CrateConnection(super.connect(psqlUrl, withDefaults(info)));
     }
 
-    /*
-     * Convert crate:// or jdbc:crate:// URL to jdbc:postgresql:// URL
-     * Returns null if URL is invalid.
+    /** The caller's connection properties, with the CrateDB defaults filled in. */
+    static Properties withDefaults(Properties info) {
+        Properties properties = new Properties();
+        if (info != null) {
+            properties.putAll(info);
+        }
+        DEFAULT_PROPERTIES.forEach(properties::putIfAbsent);
+        return properties;
+    }
+
+    /**
+     * Rewrites the leading {@code crate://} or {@code jdbc:crate://} scheme to
+     * {@code jdbc:postgresql://}, and returns null for any other URL. Only the
+     * leading scheme is rewritten, so a parameter value holding the scheme
+     * string passes through untouched.
      */
     static String processURL(String url) {
-        if (url.startsWith(CRATE_PREFIX)) {
-            url = String.format("%s:%s", PROTOCOL, url);
-        } else if (!url.startsWith(CRATE_PREFIX_LONG)) {
+        if (url == null) {
             return null;
         }
-        return url.replace(CRATE_PREFIX_LONG, PSQL_PREFIX_LONG);
+        String lowerCased = url.toLowerCase(Locale.ENGLISH);
+        if (lowerCased.startsWith(CRATE_PREFIX)) {
+            return PSQL_PREFIX_LONG + url.substring(CRATE_PREFIX.length());
+        }
+        if (lowerCased.startsWith(CRATE_PREFIX_LONG)) {
+            return PSQL_PREFIX_LONG + url.substring(CRATE_PREFIX_LONG.length());
+        }
+        return null;
+    }
+
+    /** The properties this URL can be opened with, or nothing for a URL not ours. */
+    @Override
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
+        String psqlUrl = processURL(url);
+        return psqlUrl == null
+            ? new DriverPropertyInfo[0]
+            : super.getPropertyInfo(psqlUrl, withDefaults(info));
     }
 
     @Override
     public boolean acceptsURL(String url) {
-        return url.startsWith(CRATE_PREFIX) || url.startsWith(CRATE_PREFIX_LONG);
+        return processURL(url) != null;
     }
 
     @Override
@@ -99,33 +159,28 @@ public class CrateDriver extends org.postgresql.Driver {
     }
 
     /**
-     * Copied from {@link org.postgresql.Driver#register()}.
+     * Registers this driver with the {@link DriverManager}, for the crate URL
+     * schemes alone. The pgjdbc superclass registers itself through its own
+     * service entry.
      */
     public static void register() throws SQLException {
         if (isRegistered()) {
             throw new IllegalStateException(
-                    "Driver is already registered. It can only be registered once.");
+                "Driver is already registered. It can only be registered once.");
         }
-        Driver crateDriver = new CrateDriver();
-        DriverManager.registerDriver(crateDriver);
-        registeredDriver = crateDriver;
+        registeredDriver = new CrateDriver();
+        DriverManager.registerDriver(registeredDriver);
     }
 
-    /**
-     * Copied from {@link org.postgresql.Driver#deregister()}.
-     */
     public static void deregister() throws SQLException {
         if (!isRegistered()) {
             throw new IllegalStateException(
-                    "Driver is not registered (or it has not been registered using Driver.register() method)");
+                "Driver is not registered (or it has not been registered using Driver.register() method)");
         }
         DriverManager.deregisterDriver(registeredDriver);
         registeredDriver = null;
     }
 
-    /**
-     * Copied from {@link org.postgresql.Driver#isRegistered()}.
-     */
     public static boolean isRegistered() {
         return registeredDriver != null;
     }

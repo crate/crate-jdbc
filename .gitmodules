@@ -1,3 +1,0 @@
-[submodule "pg/upstream"]
-	path = pg/upstream
-	url = https://github.com/crate/pgjdbc

@@ -1,11 +1,15 @@
-==================================
-Changes for Crate Data JDBC Client
-==================================
+===================================
+Changes for the CrateDB JDBC driver
+===================================
 
 Unreleased
 ==========
 
-- Bumped the required JRE version to 11
+The driver is now a thin adaptation layer over the stock PostgreSQL JDBC
+driver, consumed as a regular dependency and declared in the published pom, in
+place of the fork of pgJDBC 42.2.5 it used to vendor. It requires CrateDB 6.0
+and Java 11; for an older server or JRE, use crate-jdbc 2.7.0. That layer is
+described in ``docs/internals.rst``.
 
 2023/04/18 2.7.0
 ================
