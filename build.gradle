@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'jacoco'
     id 'com.gradleup.shadow' version '9.6.1'
     id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
     id 'org.cyclonedx.bom' version '2.4.1'
@@ -15,6 +16,10 @@ repositories {
 }
 
 ext.pgjdbcVersion = '42.7.13'
+
+configurations {
+    mutation
+}
 
 dependencies {
     api "org.postgresql:postgresql:${pgjdbcVersion}"
@@ -41,6 +46,11 @@ dependencies {
     // pool exercises the corners the JDBC API leaves to a driver.
     testImplementation 'com.zaxxer:HikariCP:7.0.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Runs `mutationTest`. Held apart from the test classpath, being a tool
+    // the build launches rather than something the suites compile against.
+    mutation 'org.pitest:pitest-command-line:1.25.9'
+    mutation 'org.pitest:pitest-junit5-plugin:1.2.3'
 }
 
 java {
@@ -495,6 +505,99 @@ tasks.register('standaloneTest', Test) {
     outputs.upToDateWhen { false }
 }
 
+jacoco {
+    toolVersion = '0.8.15'
+}
+
+// Off unless `-Pcoverage` asks for it: the agent would otherwise attach to
+// every run, including CI cells on JREs a coverage tool may not support yet.
+def coverage = providers.gradleProperty('coverage')
+
+tasks.withType(Test).configureEach {
+    jacoco {
+        enabled = coverage.present
+    }
+}
+
+// What the suites reach of the driver, delegation included: a wrapper answers
+// its whole interface, and a method that forwards is as much a line an
+// application runs as one that adapts. Execution data comes from every suite
+// that ran, most of the driver needing a server behind it.
+tasks.named('jacocoTestReport', JacocoReport) {
+    dependsOn tasks.named('test'), tasks.named('integrationTest')
+    executionData.setFrom(fileTree(layout.buildDirectory.dir('jacoco')).include('*.exec'))
+    classDirectories.setFrom(sourceSets.main.output)
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// Whether the suites would notice if the driver were wrong: it changes a line
+// and reruns the tests that covered it, reporting the changes nothing failed
+// on. The server comes from outside through CRATE_URL, a JVM per batch of
+// changes being too many to boot containers for. See DEVELOP.rst.
+tasks.register('mutationTest', JavaExec) {
+    description = 'Changes the hand-written classes and reports what no test objects to.'
+    group = 'verification'
+    dependsOn tasks.named('testClasses')
+
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(
+            providers.gradleProperty('testJavaVersion').getOrElse('21') as Integer)
+    }
+    mainClass = 'org.pitest.mutationtest.commandline.MutationCoverageReport'
+    classpath = configurations.mutation
+
+    def report = layout.buildDirectory.dir('reports/pitest')
+    def underTest = sourceSets.test.runtimeClasspath
+    def mainClasses = sourceSets.main.output.classesDirs
+    def server = providers.environmentVariable('CRATE_URL')
+
+    doFirst {
+        if (!server.present) {
+            throw new GradleException(
+                'Set CRATE_URL to a CrateDB this run may use, e.g.\n'
+                + '  CRATE_URL=crate://localhost:5432/doc?user=crate make mutation\n'
+                + 'Every JVM this starts would otherwise boot a container of its own.')
+        }
+        environment 'CRATE_URL', server.get()
+        args '--classPath', underTest.files.join(','),
+            '--sourceDirs', 'driver/main/java',
+            // The driver, and nothing else on that classpath. The suites sit
+            // under the same root, so a package glob would take them in, and
+            // changing a test to see whether anything notices asks about the
+            // suite instead of about the driver.
+            '--mutableCodePaths', mainClasses.files.join(','),
+            // Narrowed with -PmutationClasses / -PmutationTests, to ask one
+            // class again once a gap the report found is closed.
+            '--targetClasses', providers.gradleProperty('mutationClasses')
+                .getOrElse('io.crate.client.jdbc.*'),
+            '--targetTests', providers.gradleProperty('mutationTests')
+                .getOrElse('io.crate.client.jdbc.*'),
+            // The two suites that bring up a server whatever CRATE_URL says,
+            // the server being what they are about: a cluster, and one that
+            // asks who is connecting. Either would be started again for every
+            // change tried against a line it covers.
+            '--excludedTestClasses', 'io.crate.client.jdbc.integrationtests.ClusterIT,' +
+                'io.crate.client.jdbc.integrationtests.AuthenticationIT',
+            '--testPlugin', 'junit5',
+            '--reportDir', report.get().asFile.absolutePath,
+            '--outputFormats', 'HTML,XML',
+            '--timestampedReports', 'false',
+            '--threads', '1',
+            // A statement under test may be waiting out a query timeout of its
+            // own, measured in seconds where a local server answers in
+            // milliseconds.
+            '--timeoutConst', '30000',
+            '--jvmArgs', [
+                "-Dproject.version=${project.version}",
+                '-Duser.timezone=UTC',
+                "-Dapi.version=${System.getProperty('api.version', '1.44')}",
+                '-Djunit.jupiter.execution.parallel.enabled=false',
+            ].join(',')
+    }
+}
 
 wrapper {
     gradleVersion = '9.4.0'

@@ -89,6 +89,26 @@ conversion through the default calendar and one without it disagree::
     $ make itest-cluster   # three nodes instead of one
     $ make itest-zoned     # the suites in Europe/Berlin
 
+Coverage is measured over the driver, the delegation each wrapper carries
+included. It runs off by default, so no other run carries the agent::
+
+    $ make coverage
+
+The report lands in ``build/reports/jacoco/test``.
+
+Coverage counts the lines a run reached and says nothing about whether a test
+would object to one of them being wrong. That is a separate run. It changes a
+line (an operator, a constant, a returned value) and reruns the tests that
+covered it, reporting the changes nothing failed on::
+
+    $ CRATE_URL=crate://localhost:5432/doc?user=crate make mutation
+
+The server has to come from outside. Each batch of changes is tried in a JVM of
+its own, and a run booting a container per JVM would spend its time on
+containers. Narrow it to one class with ``-PmutationClasses`` and
+``-PmutationTests``, to ask that class again once a gap the report found is
+closed. The report lands in ``build/reports/pitest``.
+
 The published artifacts come in two shapes, and the suites run against the
 plain one. The standalone artifact carries pgJDBC and Jackson relocated under
 ``io.crate.shade``, where a name that failed to relocate fails only once used,

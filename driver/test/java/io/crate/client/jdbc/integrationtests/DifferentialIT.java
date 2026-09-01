@@ -238,9 +238,9 @@ public class DifferentialIT extends BaseIntegrationTest {
         } catch (ClassNotFoundException notThisOne) {
             return null;
         }
-        // Up the wrappers as well: a method the driver settles is as often
-        // declared on the forwarding class it extends as on the class named
-        // after the interface.
+        // Up the wrappers as well: a statement is a prepared statement is a
+        // call, and a method the driver settles is as often declared on the
+        // wrapper below as on the one named after the interface.
         for (Class<?> layer = implementation; layer != null && layer != Object.class;
                 layer = layer.getSuperclass()) {
             for (Method method : layer.getDeclaredMethods()) {

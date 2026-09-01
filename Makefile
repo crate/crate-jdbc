@@ -30,9 +30,14 @@ TEST_TIME_ZONE ?= Europe/Berlin
 # which is the assumption most of its conversions rest on.
 TEST_CONNECTION_PROPERTIES ?= binaryTransfer=false
 
+# The JRE `make coverage` measures on. Pinned rather than left to the JVM
+# running the build, because the coverage agent supports a narrower range of
+# JDKs than the driver does, and a number from one JRE answers for all of them.
+COVERAGE_JAVA_VERSION ?= 21
+
 .DEFAULT_GOAL := help
 .PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned \
-        itest-standalone itest-wire itest-faults itest-control \
+        itest-standalone itest-wire itest-faults itest-control coverage mutation \
         check verify format docs docs-check \
         publish-local sbom version tag clean
 
@@ -82,6 +87,12 @@ itest-faults:  ## Run the suite that breaks the network under the driver
 
 itest-control:  ## Hold the faults inherited from pgJDBC against stock PostgreSQL
 	$(GRADLE) integrationTest -PtestControl=true --tests '*DifferentialIT'
+
+mutation:  ## Report the lines no test objects to being changed (needs CRATE_URL)
+	$(GRADLE) mutationTest
+
+coverage:  ## Measure what the suites reach of the hand-written classes
+	$(GRADLE) jacocoTestReport -Pcoverage -PtestJavaVersion=$(COVERAGE_JAVA_VERSION)
 
 check:  ## Unit tests, code style and artifact checks
 	$(GRADLE) check
