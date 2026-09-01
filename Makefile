@@ -25,9 +25,15 @@ CLUSTER_NODES ?= 3
 # does not give the same answer.
 TEST_TIME_ZONE ?= Europe/Berlin
 
+# How `make itest-wire` has pgJDBC send statements and decode values. Text
+# rather than binary is the arrangement the driver reads json arrays under,
+# which is the assumption most of its conversions rest on.
+TEST_CONNECTION_PROPERTIES ?= binaryTransfer=false
+
 .DEFAULT_GOAL := help
 .PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned \
-        itest-standalone check verify format docs docs-check \
+        itest-standalone itest-wire itest-faults itest-control \
+        check verify format docs docs-check \
         publish-local sbom version tag clean
 
 help:  ## Show this help
@@ -40,6 +46,8 @@ help:  ## Show this help
 	@echo "    CRATE_URL=crate://...   use a running server, start no container"
 	@echo "    CRATEDB_NODES=3         run against a cluster of that many nodes"
 	@echo "    -PtestTimeZone=...      run the JVM in that zone instead of UTC"
+	@echo "    -PtestConnectionProperties=...  add them to the JDBC URL"
+	@echo "    -PtestSeed=...          draw other generated values and programs"
 
 build:  ## Build both jars into build/libs
 	$(GRADLE) jar standaloneJar
@@ -66,12 +74,21 @@ itest-zoned:  ## Run the integration tests in a JVM zone away from UTC
 itest-standalone:  ## Run the integration tests against the standalone artifact
 	$(GRADLE) standaloneTest
 
+itest-wire:  ## Run the integration tests over a different arrangement of the wire
+	$(GRADLE) integrationTest -PtestConnectionProperties=$(TEST_CONNECTION_PROPERTIES)
+
+itest-faults:  ## Run the suite that breaks the network under the driver
+	$(GRADLE) integrationTest -PtestFaults=true --tests '*FaultIT'
+
+itest-control:  ## Hold the faults inherited from pgJDBC against stock PostgreSQL
+	$(GRADLE) integrationTest -PtestControl=true --tests '*DifferentialIT'
+
 check:  ## Unit tests, code style and artifact checks
 	$(GRADLE) check
 
 # Not docs-check: its link checker reaches the open internet and fails on
 # rate limits rather than on anything in the tree.
-verify: check test-baseline itest itest-floor itest-cluster itest-zoned itest-standalone  ## Tests and checks, across the supported ranges
+verify: check test-baseline itest itest-floor itest-cluster itest-zoned itest-standalone itest-wire itest-faults itest-control  ## Tests and checks, across the supported ranges
 
 format:  ## Apply the code style
 	$(GRADLE) spotlessApply

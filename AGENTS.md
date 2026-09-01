@@ -99,6 +99,176 @@ protocol behavior the driver forwards untouched can only change with pgJDBC,
 so a test holding it fails the suite for reasons that have nothing to do with
 CrateDB.
 
+### The derived suites
+
+Five integration suites assert nothing anyone wrote down in advance. Each
+computes the answer it expects, which is how they cover a surface — hundreds
+of methods across eight JDBC interfaces plus pgJDBC's three — that no amount
+of hand-written cases would reach. They are a layer of their own: `JdbcSurface`,
+`Invocation`, `Fixture`, `Posture`, `Sweep`, `Outcome`, `Verb`, `Program`,
+`ProgramRun`, `ValueCatalogue`, `DeviceSeed`, `PgJdbcDelta`, `Disposition`,
+`Refusals` and `ControlCell` serve nothing else, and no suite outside the five
+reaches into them.
+
+- `DifferentialIT` points **both** drivers at the same CrateDB and asks each of
+  them every method of every interface an application reaches, then compares
+  the answers. The expected answer is whatever stock pgJDBC gave; the driver's
+  own claim — pgJDBC, plus a small set of deliberate differences — is what
+  makes that an oracle. `JdbcSurface` enumerates the calls and generates their
+  arguments, `Fixture` builds the objects to call them on, and `Outcome`
+  renders what came back so two drivers can be compared on it. Each driver is
+  swept twice, so an answer that merely changes from moment to moment is told
+  apart from one that differs between drivers.
+
+  Every call is made in each state of `Posture` that its interface has one for
+  — closed, executed, exhausted, carrying a batch — because a JDBC object is a
+  state machine and most of what a driver owes its caller is what a method
+  answers in a state that is not the first one. The state is part of a call's
+  name, `ResultSet.getString(int)@closed`, and a delta entry naming no state
+  covers a call in every state it answers alike in.
+
+  A reading call taking a column index is pointed at every column of the probe
+  table rather than only the first, which holds an integer — asked only about
+  that one, the sweep asks thirty-odd getters what they make of an integer and
+  never asks any of them what they make of a timestamp, a json object or an
+  array. Reading one type through the getter for another is where a driver
+  layered over another driver's conversions has somewhere to go wrong, and it
+  is the whole of what `CrateResultSet` and the json gate in
+  `CrateResultSetMetaData` do. The column is part of the name too,
+  `ResultSet.getString(int)#stamp`, with the first column left unsuffixed so
+  that a call reading it is named the way every delta entry names it. A sweep
+  is some 3,458 calls; each run prints how many it reached and which methods it
+  left out for want of an argument to pass.
+
+  It also carries the rules a comparison cannot reach, where two drivers can
+  agree and both be wrong: `ClosedObjectContract` for what a closed object owes
+  (JDBC has one refuse everything but the few methods about its closedness),
+  and `SqlStateContract` for the part of an error a program branches on — five
+  characters, a defined condition class, and agreeing with the `SQLException`
+  subclass carrying it.
+
+- `SelfConsistencyIT` holds the driver against itself: a column read as the
+  class its metadata names, `wasNull` agreeing with the value, an array read
+  whole and by range describing one value, a setting in effect being the one
+  the metadata claims, a metadata result set carrying the columns JDBC
+  specifies. None of these needs a reference implementation, which is why they
+  catch what the differential cannot — a driver can be wrong in exactly the way
+  the one it is compared against is wrong.
+
+- `ValueRoundTripIT` writes each value of a catalogue by every route a value
+  reaches a column through — a column of its own, an element of a series, a
+  member of an object, an array nested in one — and holds the readings of one
+  value against each other rather than against a stored expectation. Routes of
+  a kind have to agree: what a typed column gives back and what json gives
+  back are different answers to different questions, and only the second is
+  allowed to widen.
+
+  A value no route can carry is the server's decision rather than a gap in the
+  driver, and the catalogue reaches for that edge on purpose, so those are
+  written down in `refusals.txt` and checked both ways: a value the server
+  starts refusing fails the build until it is listed, and one it stops refusing
+  fails until its entry goes. Stepping over them silently is what would leave
+  CrateDB's narrowing of `bigint` by two — both endpoints spent as null
+  sentinels in doc values — unremarked in a suite that stores `Long.MIN_VALUE`
+  on every run.
+
+- `SequenceIT` generates programs — orders of calls drawn from a seed — runs
+  each against both drivers and compares them step for step. The sweep asks
+  every method once, on an object built for that one call; this asks what
+  happens next, which is where a wrapper that keeps something is caught
+  handing it back after the thing it describes has gone. A divergence is
+  shrunk to the shortest program that still shows it and filed under the chain
+  of calls that produced the object it happened on, so an entry outlives the
+  seed that found it. Generation never executes: a program is text, and a
+  failure is reproducible from the report rather than from the seed alone.
+
+- `RoundTripCostIT` counts what reaches the server, from `sys.jobs_log`, for
+  each of a set of ordinary operations. It is a ratchet rather than a
+  measurement: a call that starts asking the server one more question than it
+  used to fails, whether the question came from this driver or from a pgJDBC
+  upgrade underneath it.
+
+`SequenceIT` keeps its own `sequence-delta.txt`, because what it names is a
+chain of calls rather than a single one.
+
+`driver/test/resources/.../pgjdbc-delta.txt` is where the first two write their
+findings down. It is the executable specification of the delta: every call
+that answers differently is named there with a reason, and a call named there
+must still answer that way. A new difference fails the build, and so does one
+that quietly went away. Adding an entry is a decision that the difference is
+meant — a failing run prints the line to add, along with what each driver
+answered, so the choice between "deliberate" and "bug" needs nothing but the
+output.
+
+An entry reads `<kind> {disposition} [scope] <call> :: <why>`. The kind says
+what the machine saw — `differs`, `unstable`, `unchecked`, `permissive`,
+`malformed`, `inconsistent`. The disposition says what is to be done about it,
+which is what separates a difference this driver chose from a fault it
+inherited and has not reported: `by-design` is this driver's own choice,
+`for-crate` an accommodation of something CrateDB does, `spec` a reading JDBC
+leaves open where neither driver is wrong, `inherent` a property of what is
+being measured rather than anyone's decision, `wont-file` a fault of pgJDBC's
+recorded rather than reported, `jdk` a default method `java.sql` supplies to
+every driver that does not override it, so the behavior is the platform's and
+there is nobody to report it to. The open ones name a project and either nothing
+yet — `pgjdbc-todo`, `crate-todo` — or the ticket, `pgjdbc#3141`. So
+`grep -- '-todo'` is the queue of what upstream has not been told, and a
+ticketed entry going stale is upstream shipping the fix, which is the one thing
+a driver bump should announce rather than leave reading as drift. A scope in
+square brackets holds an entry to the runs it belongs to: a connection property
+the suite is running under, `[!property]` for its absence, or `[>=6.4]` for the
+CrateDB releases that have the behavior, checked against `serverAtLeast`.
+`sequence-delta.txt` and `refusals.txt` are written in the same grammar.
+
+Findings are reported worst first, and within `differs` by which way the
+difference runs. `laxer` — this driver answered where pgJDBC refused — comes
+first: it is the one direction that can hide a fault of this driver's, and the
+one no contract covers, since `ClosedObjectContract` governs the objects an
+application closes rather than `DatabaseMetaData`. Then two answers that merely
+differ, which a caller acts on either way; then a refusal where pgJDBC
+answered, which stops an application rather than misleading it; then two
+refusals differing only in their wording.
+
+A run that passes prints a census of the ledger instead — entries by kind, by
+disposition, what is owed to whom, and the pgJDBC version it was measured
+against — so that a file of decisions teaches something on the runs where none
+of them breaks. It also names any `by-design` entry whose method this driver
+does not override: a call pgJDBC reaches through untouched cannot answer
+differently because of a decision made here, so the disposition is describing
+the server or a layer below. That one is said rather than failed, the mapping
+from an interface to the class implementing it being a convention.
+
+`ControlCell` sweeps the same surface with stock pgJDBC against a stock
+PostgreSQL, and `everyInheritedFaultReproducesAgainstStockPostgres` is the one
+question it is there to answer. Handing a fault to pgJDBC is a claim about a
+driver the rest of the suite only ever watches through a server it was not
+written for; what makes the claim
+reportable upstream is that the fault is still there against the database it
+was written for. Both directions are checked: a fault reaching the control and
+named nowhere is one this driver has not noticed inheriting, and an entry
+claiming a fault the control no longer meets has outlived it. Renderings are
+never compared — two servers differ in their catalogs, their column types and
+their name for json in ways that say nothing about either driver — so the only
+questions put to it are the two rules a change of substrate cannot move:
+`ClosedObjectContract` and `SqlStateContract`. It runs under
+`-PtestControl=true`, for the second server it starts.
+
+`FaultIT` is the one suite that does not assume a server which answers. It
+puts a Toxiproxy between the driver and a CrateDB of its own and breaks it —
+a connection cut mid-query, a socket that stops carrying bytes, writes split
+across packets — and holds the driver to what it owes then: a `SQLException`
+in class 08, a return inside the socket timeout the URL asked for, a
+connection that reports itself invalid and refuses everything afterwards, and
+values that read back whole however the bytes arrived. It starts a server of
+its own because a killed connection leaves jobs behind and `RoundTripCostIT`
+counts what reaches the shared one, and it runs only under `-PtestFaults=true`
+because that pair of containers costs more than the rest of the suite.
+
+The delta hangs off `integrationTest` rather than `check`, which keeps `check`
+Docker-free and runs the comparison against every server in the CI matrix —
+where it belongs, since some of the delta is the server's doing rather than
+the driver's.
+
 When you fix a defect, pin it with a test that states the invariant
 ("rejects an expired token"), not the defect. Prefer extending a table-driven
 test over adding a near-duplicate one.

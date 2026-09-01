@@ -1,0 +1,336 @@
+# Where the CrateDB JDBC driver answers differently from stock pgJDBC.
+#
+# DifferentialIT points both drivers at the same CrateDB, asks each of them
+# every method of every JDBC interface an application reaches, and compares the
+# answers. This file is the expected result of that comparison, and the only
+# place the delta is written down as something a machine can check.
+#
+#   <kind> {disposition} [scope] <call> :: <why>
+#
+# The kind says what the machine saw:
+#
+#   differs    the two drivers answer differently, on purpose
+#   unstable   the answer changes from one sweep to the next, so there is
+#              nothing to compare — a session id, a backend pid, a clock
+#   unchecked  the call raises something other than a SQLException
+#   permissive the call answers on a closed object where JDBC has one refuse
+#   malformed  the SQLState is not one, or not the one its class implies
+#   inconsistent  the driver reports a setting it did not apply, having
+#              inherited the behavior from pgJDBC (SelfConsistencyIT)
+#
+# The disposition says what is to be done about it, and is what separates a
+# difference this driver chose from a fault it inherited and has not reported:
+#
+#   by-design    this driver's own choice; there is nothing to report
+#   for-crate    an accommodation of something CrateDB does
+#   spec         a reading JDBC leaves open, where neither driver is wrong
+#   inherent     a property of what is being measured rather than a decision,
+#                which is what a value differing per connection is
+#   wont-file    a fault of pgJDBC's, recorded rather than reported
+#   jdk          a default method java.sql supplies to every driver that does
+#                not override it, so the behavior is the platform's and there is
+#                nobody to report it to
+#   pgjdbc-todo  a fault of pgJDBC's that should be reported and has not been
+#   crate-todo   a fault of CrateDB's that should be reported and has not been
+#   pgjdbc#3141  reported, and where the conversation is; likewise crate#123
+#
+# `grep -- '-todo'` is therefore the queue of what upstream has not been told,
+# and an entry carrying a ticket that goes stale is upstream shipping the fix.
+#
+# A scope in square brackets holds an entry to the runs it belongs to: a
+# connection property the suite is running under, `[!property]` for its absence,
+# or `[>=6.4]` for the CrateDB releases that have the behavior. An entry may
+# carry both a disposition and a scope, in either order.
+#
+# A call is named as the sweep names it, with the state the object was in
+# appended where the sweep put it in one — ResultSet.getString(int)@closed. An
+# entry naming no state covers that call in every state it answers the same way
+# in, so a fact about what the driver is rather than what it is doing is said
+# once. A state that changes either driver's answer needs an entry of its own.
+#
+# A call that answers differently and is not listed here fails the build, and
+# so does a listed call that stopped doing what it says. Adding an entry is a
+# decision that the difference is meant; it is not a way to quiet the sweep.
+
+
+# Which product this is, and which driver.
+
+differs {for-crate} DatabaseMetaData.getDatabaseProductName() :: Crate, where pgJDBC says PostgreSQL.
+differs {by-design} DatabaseMetaData.getDriverName() :: this driver's name, not the one it is built on.
+differs {by-design} DatabaseMetaData.getDriverVersion() :: this driver's version, not pgJDBC's.
+differs {by-design} DatabaseMetaData.getDriverMajorVersion() :: this driver's version, not pgJDBC's.
+differs {by-design} DatabaseMetaData.getDriverMinorVersion() :: this driver's version, not pgJDBC's.
+differs {by-design} DatabaseMetaData.getURL() :: the URL is given back in the crate:// scheme the caller wrote, not the jdbc:postgresql:// form the driver rewrites it to.
+
+
+# CrateDB has no transactions. BEGIN and COMMIT are accepted and do nothing,
+# there is no ROLLBACK, and there are no savepoints.
+
+differs {for-crate} Connection.getTransactionIsolation() :: TRANSACTION_NONE, where pgJDBC reports what the server answers for a level CrateDB does not act on.
+differs {for-crate} Connection.setSavepoint() :: refused as unsupported, rather than left to the server to reject the statement.
+differs {for-crate} Connection.setSavepoint(String) :: refused as unsupported, rather than left to the server to reject the statement.
+differs {for-crate} DatabaseMetaData.getDefaultTransactionIsolation() :: TRANSACTION_NONE, where pgJDBC's catalog query for the default fails on CrateDB.
+differs {for-crate} DatabaseMetaData.supportsTransactions() :: no transactions.
+differs {for-crate} DatabaseMetaData.supportsMultipleTransactions() :: no transactions.
+differs {for-crate} DatabaseMetaData.supportsSavepoints() :: no savepoints.
+differs {for-crate} DatabaseMetaData.supportsTransactionIsolationLevel(int) :: only TRANSACTION_NONE is accepted, and the sweep asks about READ_COMMITTED.
+differs {for-crate} DatabaseMetaData.supportsDataDefinitionAndDataManipulationTransactions() :: no transactions.
+
+
+# SQL CrateDB has no grammar for, and objects it has no kind of.
+
+differs {for-crate} DatabaseMetaData.supportsSelectForUpdate() :: FOR UPDATE is not part of CrateDB's grammar.
+differs {for-crate} DatabaseMetaData.supportsIntegrityEnhancementFacility() :: no foreign keys, so no referential integrity to enforce.
+differs {for-crate} DatabaseMetaData.supportsStoredProcedures() :: PROCEDURE is not part of CrateDB's grammar, which is why getProcedures lists none.
+differs {for-crate} DatabaseMetaData.allProceduresAreCallable() :: there are no procedures to call.
+differs {for-crate} DatabaseMetaData.supportsRefCursors() :: no refcursor type for a function to hand back.
+
+
+# Limits. CrateDB puts no length limit on identifiers, where PostgreSQL cuts
+# them off at 63 characters, and its column limit is the mapping's field limit
+# rather than what fits in a page.
+
+differs {for-crate} DatabaseMetaData.getMaxColumnsInTable() :: the default field limit of a CrateDB table.
+differs {for-crate} DatabaseMetaData.getMaxCatalogNameLength() :: no length limit, which JDBC spells as zero.
+differs {for-crate} DatabaseMetaData.getMaxColumnNameLength() :: no length limit, which JDBC spells as zero.
+differs {for-crate} DatabaseMetaData.getMaxCursorNameLength() :: no length limit, which JDBC spells as zero.
+differs {for-crate} DatabaseMetaData.getMaxProcedureNameLength() :: no length limit, which JDBC spells as zero.
+differs {for-crate} DatabaseMetaData.getMaxSchemaNameLength() :: no length limit, which JDBC spells as zero.
+differs {for-crate} DatabaseMetaData.getMaxTableNameLength() :: no length limit, which JDBC spells as zero.
+differs {for-crate} DatabaseMetaData.getMaxUserNameLength() :: no length limit, which JDBC spells as zero.
+
+
+# The catalog, which CrateDB carries only part of.
+
+differs {crate#17049} DatabaseMetaData.getIndexInfo(String,String,String,boolean,boolean) :: no rows, where pgJDBC's query fails on a pg_catalog missing pg_get_indexdef, carrying pg_am and pg_indexes with no rows in them, and describing a primary key's own index as indisunique=false over indnatts=0 — so supplying the function alone would answer wrongly rather than answer; a tool introspecting every table would stop rather than skip its indexes.
+
+
+# Values, and the metadata that has to describe them.
+
+differs {by-design} ResultSet.getMetaData() :: getColumnClassName names Object for a json column, because this driver reads one as a Map or a List rather than handing over pgJDBC's PGobject.
+differs {by-design} [!preferQueryMode=simple] PreparedStatement.getMetaData() :: getColumnClassName names Object for a json column, because this driver reads one as a Map or a List rather than handing over pgJDBC's PGobject.
+differs {by-design} [!preferQueryMode=simple] CallableStatement.getMetaData() :: getColumnClassName names Object for a json column, because this driver reads one as a Map or a List rather than handing over pgJDBC's PGobject.
+
+# The same decision, seen through the columns that carry a json value: an
+# OBJECT column and a column of nested arrays. Reading one gives a Map or a
+# List where pgJDBC gives its own PGobject, and the metadata says so.
+
+differs {by-design} ResultSet.getObject(int)#details :: an OBJECT column reads as a Map, where pgJDBC hands over the json text in a PGobject.
+differs {by-design} ResultSet.getObject(int,Map)#details :: an OBJECT column reads as a Map, where pgJDBC hands over the json text in a PGobject.
+differs {by-design} ResultSetMetaData.getColumnClassName(int)#details :: Object for a json column, because this driver reads one as a Map or a List rather than handing over pgJDBC's PGobject.
+differs {by-design} ResultSetMetaData.getColumnClassName(int)#matrix :: Object for a json column, because this driver reads one as a Map or a List rather than handing over pgJDBC's PGobject.
+differs {by-design} ResultSet.getArray(int)#details :: an OBJECT column holds no array, and is refused as one; pgJDBC hands back an array whose every read fails instead.
+
+
+# Answers that are a different one every time, and so cannot be compared.
+
+unstable {inherent} PGConnection.getBackendPID() :: the server's process id for the connection, and every call in the sweep opens its own.
+unstable {wont-file} DatabaseMetaData.getTypeInfo() :: pgJDBC reads pg_type without an ORDER BY and sorts the rows by DATA_TYPE alone, so types sharing one keep whatever order the scan returned; several nodes answering that scan is what makes it visible.
+
+
+# Faults inherited from pgJDBC: a JDBC method reports failure as a
+# SQLException, and these do not. Both drivers are affected, so listing them
+# records them rather than excusing this driver.
+
+unchecked {pgjdbc-todo} ResultSet.getDate(int) :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(String) :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(int,Calendar) :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(String,Calendar) :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(int)#name :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(int)#amount :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(int)#tags :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(int,Calendar)#name :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(int,Calendar)#amount :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} ResultSet.getDate(int,Calendar)#tags :: pgJDBC's date parser walks off text that is not a date (TimestampUtils.parseDate) instead of raising a SQLException — off the end for text, float8 and text[], and off the front at index -1 for int4, and the guard added for empty input reaches only the timestamp path.
+unchecked {pgjdbc-todo} PGConnection.addDataType(String,String) :: pgJDBC wraps the ClassNotFoundException for a class name it cannot load in a RuntimeException.
+
+inconsistent {pgjdbc-todo} createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_READ_ONLY) :: pgJDBC hands back a statement reporting the cursor type it was asked for, without a warning, while supportsResultSetType denies that type; JDBC has a driver grant the closest type it has and say so. The constant is admitted on purpose — pgjdbc#3171 lists it among the three it validates against — so what is owed is the downgrade and the warning, not the refusal.
+
+
+# Objects that have been closed.
+#
+# The driver asks whether a statement is still open before it does anything
+# else, because bracketing an execution with the query timeout starts by
+# reaching for the connection. pgJDBC reaches the same conclusion by whichever
+# objection its code path meets first — the wrong kind of statement for the
+# call, an argument it does not implement, a parameter it cannot read — so the
+# two refuse for different stated reasons. This driver's is the one that says
+# what is actually wrong.
+
+differs {by-design} Statement.execute(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} Statement.executeUpdate(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} Statement.executeLargeUpdate(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} PreparedStatement.execute(String)@closed :: refused for being closed, where pgJDBC refuses a SQL string on a prepared statement.
+differs {by-design} PreparedStatement.executeQuery(String)@closed :: refused for being closed, where pgJDBC refuses a SQL string on a prepared statement.
+differs {by-design} PreparedStatement.executeUpdate(String)@closed :: refused for being closed, where pgJDBC refuses a SQL string on a prepared statement.
+differs {by-design} PreparedStatement.execute(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} PreparedStatement.executeUpdate(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} PreparedStatement.executeLargeUpdate(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} CallableStatement.execute(String)@closed :: refused for being closed, where pgJDBC refuses a SQL string on a prepared statement.
+differs {by-design} CallableStatement.executeQuery(String)@closed :: refused for being closed, where pgJDBC refuses a SQL string on a prepared statement.
+differs {by-design} CallableStatement.executeUpdate(String)@closed :: refused for being closed, where pgJDBC refuses a SQL string on a prepared statement.
+differs {by-design} CallableStatement.execute(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} CallableStatement.executeUpdate(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} CallableStatement.executeLargeUpdate(String,int[])@closed :: refused for being closed, where pgJDBC refuses the generated-key columns it does not implement.
+differs {by-design} PreparedStatement.setObject(int,Object,SQLType)@closed :: refused for being closed, where pgJDBC refuses the SQLType overload it does not implement.
+differs {by-design} PreparedStatement.setObject(int,Object,SQLType,int)@closed :: refused for being closed, where pgJDBC refuses the SQLType overload it does not implement.
+differs {by-design} CallableStatement.setObject(int,Object,SQLType)@closed :: refused for being closed, where pgJDBC refuses the SQLType overload it does not implement.
+differs {by-design} CallableStatement.setObject(int,Object,SQLType,int)@closed :: refused for being closed, where pgJDBC refuses the SQLType overload it does not implement.
+differs {by-design} ResultSet.getObject(int,Class)@closed :: refused for being closed, where pgJDBC refuses the column for not being one it converts.
+
+# Navigating back from a closed object. JDBC has a closed statement raise on
+# every method that is not about its closedness, and getConnection is one of
+# them; pgJDBC hands the connection over regardless.
+
+differs {pgjdbc-todo} Statement.getConnection()@closed :: refused, where pgJDBC hands out the connection of a statement that is closed.
+differs {pgjdbc-todo} PreparedStatement.getConnection()@closed :: refused, where pgJDBC hands out the connection of a statement that is closed.
+differs {pgjdbc-todo} CallableStatement.getConnection()@closed :: refused, where pgJDBC hands out the connection of a statement that is closed.
+differs {pgjdbc-todo} DatabaseMetaData.getConnection()@closed :: refused, where pgJDBC hands out the connection that is closed.
+
+# What the metadata knows without asking. These answers are CrateDB's own and
+# take no round trip, so closing the connection does not take them away;
+# pgJDBC's come from the connection and go with it.
+
+differs {by-design} DatabaseMetaData.getDefaultTransactionIsolation()@closed :: answered from what CrateDB is, where pgJDBC needs the connection it no longer has.
+differs {by-design} DatabaseMetaData.getMaxCatalogNameLength()@closed :: answered from what CrateDB is, where pgJDBC needs the connection it no longer has.
+differs {by-design} DatabaseMetaData.getMaxColumnNameLength()@closed :: answered from what CrateDB is, where pgJDBC needs the connection it no longer has.
+differs {by-design} DatabaseMetaData.getMaxCursorNameLength()@closed :: answered from what CrateDB is, where pgJDBC needs the connection it no longer has.
+differs {by-design} DatabaseMetaData.getMaxProcedureNameLength()@closed :: answered from what CrateDB is, where pgJDBC needs the connection it no longer has.
+differs {by-design} DatabaseMetaData.getMaxSchemaNameLength()@closed :: answered from what CrateDB is, where pgJDBC needs the connection it no longer has.
+differs {by-design} DatabaseMetaData.getMaxTableNameLength()@closed :: answered from what CrateDB is, where pgJDBC needs the connection it no longer has.
+differs {by-design} DatabaseMetaData.getMaxUserNameLength()@closed :: answered from what CrateDB is, where pgJDBC needs the connection it no longer has.
+
+# Savepoints are refused before the connection is consulted, so the refusal
+# reads the same on a connection that is closed. pgJDBC gets as far as the
+# connection and reports that instead.
+
+differs {by-design} Connection.setSavepoint()@closed :: refused as unsupported without consulting the connection, where pgJDBC reports the connection closed.
+differs {by-design} Connection.setSavepoint(String)@closed :: refused as unsupported without consulting the connection, where pgJDBC reports the connection closed.
+
+# Arrays that have been freed. JDBC has every method of one raise afterwards.
+# pgJDBC drops what it read the elements from and what its methods then do
+# depends on which is called: reading answers null, and anything needing the
+# connection reaches for one it has given up.
+
+differs {pgjdbc-todo} Array.getArray()@closed :: refused as freed, where pgJDBC answers null for an array it can no longer read.
+differs {pgjdbc-todo} Array.getArray(Map)@closed :: refused as freed, where pgJDBC answers null for an array it can no longer read.
+differs {pgjdbc-todo} Array.getArray(long,int)@closed :: refused as freed, where pgJDBC answers null for an array it can no longer read.
+differs {pgjdbc-todo} Array.getArray(long,int,Map)@closed :: refused as freed, where pgJDBC answers null for an array it can no longer read.
+differs {pgjdbc-todo} Array.getBaseType()@closed :: refused as freed, where pgJDBC reaches for the connection it gave up and fails an assertion.
+differs {pgjdbc-todo} Array.getBaseTypeName()@closed :: refused as freed, where pgJDBC reaches for the connection it gave up and fails an assertion.
+differs {pgjdbc-todo} Array.getResultSet()@closed :: refused as freed, where pgJDBC reaches for the connection it gave up and fails an assertion.
+differs {pgjdbc-todo} Array.getResultSet(Map)@closed :: refused as freed, where pgJDBC reaches for the connection it gave up and fails an assertion.
+differs {pgjdbc-todo} Array.getResultSet(long,int)@closed :: refused as freed, where pgJDBC reaches for the connection it gave up and fails an assertion.
+differs {pgjdbc-todo} Array.getResultSet(long,int,Map)@closed :: refused as freed, where pgJDBC reaches for the connection it gave up and fails an assertion.
+
+unstable {inherent} PGConnection.getBackendPID()@closed :: the server's process id is still reported by a closed connection, and every call in the sweep opens its own.
+
+
+# Calls a closed object answers instead of refusing. JDBC allows a closed
+# object only the methods that are about its being closed — the obligation is a
+# per-method @throws clause rather than one blanket sentence, and isClosed() is
+# deliberately exempt from it. Both drivers answer these, because both are
+# pgJDBC underneath — listing them records the gap rather than excusing it, and
+# closing it would mean overriding a method this driver otherwise has no reason
+# to touch. The two request boundaries below are the exception: java.sql
+# supplies those itself.
+
+permissive {pgjdbc-todo} Statement.cancel()@closed :: pgJDBC cancels a statement that has nothing left to cancel.
+permissive {pgjdbc-todo} PreparedStatement.cancel()@closed :: pgJDBC cancels a statement that has nothing left to cancel.
+permissive {pgjdbc-todo} CallableStatement.cancel()@closed :: pgJDBC cancels a statement that has nothing left to cancel.
+permissive {pgjdbc-todo} Statement.clearBatch()@closed :: pgJDBC clears the batch of a statement that has none.
+permissive {pgjdbc-todo} PreparedStatement.clearBatch()@closed :: pgJDBC clears the batch of a statement that has none.
+permissive {pgjdbc-todo} CallableStatement.clearBatch()@closed :: pgJDBC clears the batch of a statement that has none.
+permissive {pgjdbc-todo} PreparedStatement.clearParameters()@closed :: pgJDBC clears the parameters of a statement that has none.
+permissive {pgjdbc-todo} CallableStatement.clearParameters()@closed :: pgJDBC clears the parameters of a statement that has none.
+permissive {pgjdbc-todo} Statement.clearWarnings()@closed :: pgJDBC clears the warnings of a statement that can raise no more.
+permissive {pgjdbc-todo} PreparedStatement.clearWarnings()@closed :: pgJDBC clears the warnings of a statement that can raise no more.
+permissive {pgjdbc-todo} CallableStatement.clearWarnings()@closed :: pgJDBC clears the warnings of a statement that can raise no more.
+permissive {pgjdbc-todo} Statement.closeOnCompletion()@closed :: pgJDBC arranges the closing of a statement already closed.
+permissive {pgjdbc-todo} PreparedStatement.closeOnCompletion()@closed :: pgJDBC arranges the closing of a statement already closed.
+permissive {pgjdbc-todo} CallableStatement.closeOnCompletion()@closed :: pgJDBC arranges the closing of a statement already closed.
+permissive {pgjdbc-todo} Statement.isCloseOnCompletion()@closed :: pgJDBC reports the arrangement of a statement already closed.
+permissive {pgjdbc-todo} PreparedStatement.isCloseOnCompletion()@closed :: pgJDBC reports the arrangement of a statement already closed.
+permissive {pgjdbc-todo} CallableStatement.isCloseOnCompletion()@closed :: pgJDBC reports the arrangement of a statement already closed.
+permissive {pgjdbc-todo} Statement.getFetchDirection()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} PreparedStatement.getFetchDirection()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} CallableStatement.getFetchDirection()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} Statement.setFetchDirection(int)@closed :: pgJDBC keeps the setting in a field and takes a new one.
+permissive {pgjdbc-todo} PreparedStatement.setFetchDirection(int)@closed :: pgJDBC keeps the setting in a field and takes a new one.
+permissive {pgjdbc-todo} CallableStatement.setFetchDirection(int)@closed :: pgJDBC keeps the setting in a field and takes a new one.
+permissive {pgjdbc-todo} Statement.getFetchSize()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} PreparedStatement.getFetchSize()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} CallableStatement.getFetchSize()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} Statement.getMaxFieldSize()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} PreparedStatement.getMaxFieldSize()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} CallableStatement.getMaxFieldSize()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} Statement.getResultSetType()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} PreparedStatement.getResultSetType()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} CallableStatement.getResultSetType()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} Statement.getResultSetConcurrency()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} PreparedStatement.getResultSetConcurrency()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} CallableStatement.getResultSetConcurrency()@closed :: pgJDBC keeps the setting in a field and answers from it.
+permissive {pgjdbc-todo} Statement.getResultSetHoldability()@closed :: pgJDBC answers the one holdability it has, which needs nothing of the statement.
+permissive {pgjdbc-todo} PreparedStatement.getResultSetHoldability()@closed :: pgJDBC answers the one holdability it has, which needs nothing of the statement.
+permissive {pgjdbc-todo} CallableStatement.getResultSetHoldability()@closed :: pgJDBC answers the one holdability it has, which needs nothing of the statement.
+permissive {pgjdbc-todo} [!preferQueryMode=simple] PreparedStatement.getParameterMetaData()@closed :: pgJDBC describes the parameters of a statement that can take none.
+permissive {pgjdbc-todo} [!preferQueryMode=simple] CallableStatement.getParameterMetaData()@closed :: pgJDBC describes the parameters of a statement that can take none.
+permissive {jdk} Connection.beginRequest()@closed :: the request boundaries are java.sql.Connection's own default methods, documented to take no action; pgJDBC does not implement them, so a closed connection answering is the platform's behavior.
+permissive {jdk} Connection.endRequest()@closed :: the request boundaries are java.sql.Connection's own default methods, documented to take no action; pgJDBC does not implement them, so a closed connection answering is the platform's behavior.
+permissive {pgjdbc-todo} Connection.setTypeMap(Map)@closed :: pgJDBC keeps the type map in a field and takes a new one.
+
+
+# SQLStates a caller cannot act on, reached unchanged through this driver.
+# Most are pgJDBC's own construction and are owed a report; the sharding four
+# are java.sql's, and telling them apart is the difference between a report an
+# upstream maintainer can act on and one they close on sight.
+
+malformed {pgjdbc-todo} Connection.unwrap(Class) :: pgJDBC builds the "cannot unwrap" failure with no SQLState.
+malformed {pgjdbc-todo} Statement.unwrap(Class) :: pgJDBC builds the "cannot unwrap" failure with no SQLState.
+malformed {pgjdbc-todo} PreparedStatement.unwrap(Class) :: pgJDBC builds the "cannot unwrap" failure with no SQLState.
+malformed {pgjdbc-todo} CallableStatement.unwrap(Class) :: pgJDBC builds the "cannot unwrap" failure with no SQLState.
+malformed {pgjdbc-todo} ResultSet.unwrap(Class) :: pgJDBC builds the "cannot unwrap" failure with no SQLState.
+malformed {pgjdbc-todo} ResultSetMetaData.unwrap(Class) :: pgJDBC builds the "cannot unwrap" failure with no SQLState.
+malformed {pgjdbc-todo} DatabaseMetaData.unwrap(Class) :: pgJDBC builds the "cannot unwrap" failure with no SQLState.
+malformed {pgjdbc-todo} Connection.setClientInfo(Properties)@closed :: pgJDBC reports the closed connection as a SQLClientInfoException with no SQLState.
+malformed {pgjdbc-todo} Connection.setClientInfo(String,String)@closed :: pgJDBC reports the closed connection as a SQLClientInfoException with no SQLState.
+malformed {jdk} Connection.setShardingKey(ShardingKey) :: java.sql.Connection's own default method refuses the JDBC 4.3 sharding methods with no SQLState; ShardingKey appears nowhere in pgJDBC, so no driver wrote this.
+malformed {jdk} Connection.setShardingKey(ShardingKey,ShardingKey) :: java.sql.Connection's own default method refuses the JDBC 4.3 sharding methods with no SQLState; ShardingKey appears nowhere in pgJDBC, so no driver wrote this.
+malformed {jdk} Connection.setShardingKeyIfValid(ShardingKey,int) :: java.sql.Connection's own default method refuses the JDBC 4.3 sharding methods with no SQLState; ShardingKey appears nowhere in pgJDBC, so no driver wrote this.
+malformed {jdk} Connection.setShardingKeyIfValid(ShardingKey,ShardingKey,int) :: java.sql.Connection's own default method refuses the JDBC 4.3 sharding methods with no SQLState; ShardingKey appears nowhere in pgJDBC, so no driver wrote this.
+malformed {pgjdbc-todo} PGConnection.alterUserPassword(String,char[],String) :: pgJDBC reports a password rule with SQLState 60000, which names no defined condition.
+
+
+# The simple protocol. A statement sent this way is never parsed on its own,
+# so nothing describes it and there is nothing for pgJDBC to answer a
+# description from — it reaches for what a describe would have left and fails
+# an assertion instead of saying it has none. Both drivers are affected.
+#
+# The assertion is what the sweep sees, because the suite runs with them on.
+# It is not what an application sees: with assertions off the same request
+# falls through into the simple-query path and the statement is executed, so a
+# metadata call on an unexecuted INSERT performs the insert and answers null.
+# The kind below records the throw; the worse half of this is the write.
+
+unchecked {pgjdbc-todo} [preferQueryMode=simple] PreparedStatement.getMetaData() :: pgJDBC reaches for a description the simple protocol never asked for and fails an assertion, and with assertions off executes the statement instead.
+unchecked {pgjdbc-todo} [preferQueryMode=simple] CallableStatement.getMetaData() :: pgJDBC reaches for a description the simple protocol never asked for and fails an assertion, and with assertions off executes the statement instead.
+unchecked {pgjdbc-todo} [preferQueryMode=simple] PreparedStatement.getParameterMetaData() :: pgJDBC reaches for a description the simple protocol never asked for and fails an assertion, and with assertions off executes the statement instead.
+unchecked {pgjdbc-todo} [preferQueryMode=simple] CallableStatement.getParameterMetaData() :: pgJDBC reaches for a description the simple protocol never asked for and fails an assertion, and with assertions off executes the statement instead.
+
+# A batch of statements that return rows is refused, and the simple protocol
+# refuses it partway: which entries were counted before it gave up depends on
+# how much of the batch went out in one message.
+
+unstable {wont-file} [preferQueryMode=simple] Statement.executeBatch()@batched :: the counts a refused batch reports depend on how much of it was sent before the refusal.
+unstable {wont-file} [preferQueryMode=simple] Statement.executeLargeBatch()@batched :: the counts a refused batch reports depend on how much of it was sent before the refusal.
+unstable {wont-file} [preferQueryMode=simple] PreparedStatement.executeBatch()@batched :: the counts a refused batch reports depend on how much of it was sent before the refusal.
+unstable {wont-file} [preferQueryMode=simple] PreparedStatement.executeLargeBatch()@batched :: the counts a refused batch reports depend on how much of it was sent before the refusal.
+unstable {wont-file} [preferQueryMode=simple] CallableStatement.executeBatch()@batched :: the counts a refused batch reports depend on how much of it was sent before the refusal.
+unstable {wont-file} [preferQueryMode=simple] CallableStatement.executeLargeBatch()@batched :: the counts a refused batch reports depend on how much of it was sent before the refusal.
+
+# A statement that has run has a description whether or not it was ever
+# parsed, so under the simple protocol the json column's class is a difference
+# only once there is a result to describe.
+
+differs {by-design} [preferQueryMode=simple] PreparedStatement.getMetaData()@executed :: getColumnClassName names Object for a json column, because this driver reads one as a Map or a List rather than handing over pgJDBC's PGobject.
+differs {by-design} [preferQueryMode=simple] CallableStatement.getMetaData()@executed :: getColumnClassName names Object for a json column, because this driver reads one as a Map or a List rather than handing over pgJDBC's PGobject.

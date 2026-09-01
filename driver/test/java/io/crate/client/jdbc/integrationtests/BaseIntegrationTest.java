@@ -75,8 +75,28 @@ public abstract class BaseIntegrationTest {
                 connectionUrl = String.format(
                     "crate://%s:%d/doc?user=crate", container.getHost(), container.getMappedPort(5432));
             }
+            connectionUrl = withConnectionProperties(connectionUrl);
         }
         return connectionUrl;
+    }
+
+    /**
+     * The URL with whatever {@code -PtestConnectionProperties} asked for on
+     * the end of it.
+     *
+     * <p>The third axis of the substrate, after the server and the JVM's zone.
+     * The driver is a layer over pgJDBC, and how pgJDBC sends a statement and
+     * decodes a value — the extended protocol or the simple one, binary or
+     * text — decides which of its paths this driver's own conversions sit on
+     * top of. Every one of those is a default an application can change, and
+     * the suite otherwise only ever sees one of them.</p>
+     */
+    private static String withConnectionProperties(String url) {
+        String properties = System.getProperty("test.connection.properties", "");
+        if (properties.trim().isEmpty()) {
+            return url;
+        }
+        return url + (url.indexOf('?') < 0 ? '?' : '&') + properties.trim();
     }
 
     protected static Connection connect() throws SQLException {

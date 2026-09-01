@@ -154,6 +154,154 @@ jobs:
       - name: Run integration tests against the standalone jar
         run: ./gradlew standaloneTest
 
+  # The whole suite over a different arrangement of the wire. The driver is a
+  # layer over pgJDBC, so how pgJDBC sends a statement and decodes a value
+  # decides which of its paths the driver's own conversions sit on top of, and
+  # every one of those is a default an application can change.
+  wire:
+
+    name: "Test with ${{ matrix.properties }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        properties:
+          - 'binaryTransfer=false'
+          - 'prepareThreshold=1&defaultRowFetchSize=2'
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest -PtestConnectionProperties='${{ matrix.properties }}'
+
+  # The simple protocol, over the suites that compute what they expect. It
+  # sends a statement with its parameters written into the text, which is a
+  # different path through pgJDBC for every value — and one the driver cannot
+  # bind a nested or empty array through, since those are sent untyped for the
+  # server to type from the column. `docs/limitations.rst` says so; what runs
+  # here is the surface, which holds either way.
+  simple-protocol:
+
+    name: Test the surface over the simple protocol
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run the derived surface suites
+        run: >
+          ./gradlew integrationTest -PtestConnectionProperties='preferQueryMode=simple'
+          --tests '*DifferentialIT' --tests '*SelfConsistencyIT'
+
+  # Programs the pull-request runs never draw. The suites that generate their
+  # own questions ask the same ones every time so that a failure is the change
+  # rather than the draw; this is where new ones get asked, from a seed the run
+  # prints so that whatever it finds can be asked again.
+  deep:
+
+    name: Draw new values and programs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run integration tests from a seed of this run's own
+        run: >
+          ./gradlew integrationTest
+          -PtestSeed=${{ github.run_id }} -PtestSequencePrograms=600
+
+  # What the driver does when the network under it misbehaves. It starts a
+  # server and a proxy of its own, so it is asked for rather than run with
+  # everything else.
+  faults:
+
+    name: Test against a network that misbehaves
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run the fault injection suite
+        run: ./gradlew integrationTest -PtestFaults=true --tests '*FaultIT'
+
+  # The faults the delta lays at pgJDBC's door, held against the database
+  # pgJDBC was written for. A fault that reproduces there is one a maintainer
+  # of that driver can be shown without CrateDB in the picture, and one that
+  # stops reproducing is an entry that has outlived what it describes. Another
+  # server, so it runs on its own rather than in every cell above.
+  control:
+
+    name: Test the inherited faults against stock PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run the differential with the control cell
+        run: ./gradlew integrationTest -PtestControl=true --tests '*DifferentialIT'
+
   # Code style and the artifact checks answer the same whichever server and JRE
   # the suites ran against, so they run once rather than in every cell of the
   # matrix above.

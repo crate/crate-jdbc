@@ -1,0 +1,40 @@
+# The values CrateDB will not hold, by any route.
+#
+# ValueRoundTripIT writes each value in the catalogue into a column of its own,
+# an array element, an OBJECT member and an element of a nested array. A value
+# no route can carry is the server's decision rather than a gap in the driver —
+# and the catalogue reaches for that edge deliberately, so what the server
+# refuses is worth knowing rather than stepping over.
+#
+#   {disposition} [scope] <type>, <value> :: <why>
+#
+# The dispositions are the ones pgjdbc-delta.txt spells out. A value the server
+# starts refusing fails the build until it is written down here, and one it
+# stops refusing fails until its entry goes. That second direction is the point:
+# a limit the server lifts should be news rather than something the suite goes
+# on stepping around.
+
+
+# The ends of bigint. CrateDB narrows the type by two and spends both endpoints
+# as null sentinels in doc values, so what it holds is -2^63+1 to 2^63-2 rather
+# than the full signed 64 bits a PostgreSQL bigint carries. Deliberate since
+# 5.9, and stated in the CrateDB data-type documentation.
+
+{for-crate} a long, -9223372036854775808 :: the low endpoint is a null sentinel in doc values, so bigint starts one above it.
+{for-crate} a long, 9223372036854775807 :: the high endpoint is a null sentinel in doc values, so bigint stops one below it.
+
+
+# Text longer than one index term. A text column is both indexed and kept in a
+# column store, and each of those holds at most 32766 bytes, so a longer value
+# is refused rather than stored. Turning off one leaves the other refusing it:
+# a column takes a longer value only when declared
+# `text index off storage with (columnstore = false)`.
+#
+# The limit and both settings are documented, which is why this is settled here
+# rather than reported. What is not documented is the refusal itself: it is
+# Lucene's, naming an internal field id rather than the column, advising the
+# correction of an analyzer a plain text column cannot name, and mentioning
+# neither setting. That message is filed as crate#17376, open with
+# `contributions welcome`, so nothing here is owed upstream any more.
+
+{for-crate} a string, longer than a wire buffer :: a text column is indexed and column-stored, and each holds at most 32766 bytes; only `index off storage with (columnstore = false)` takes a longer value.

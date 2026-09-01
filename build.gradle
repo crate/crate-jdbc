@@ -28,6 +28,15 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
     testImplementation 'org.testcontainers:cratedb:1.21.4'
 
+    // A proxy the tests can break on purpose: a connection cut mid-result, a
+    // socket that answers too slowly to wait for, writes split across packets.
+    testImplementation 'org.testcontainers:toxiproxy:1.21.4'
+
+    // A PostgreSQL to hold the faults inherited from pgJDBC against, so that
+    // one still reproducing where CrateDB is not involved is something the
+    // suite knows rather than something a reader takes on trust.
+    testImplementation 'org.testcontainers:postgresql:1.21.4'
+
     // Most applications reach the driver through a connection pool, and a
     // pool exercises the corners the JDBC API leaves to a driver.
     testImplementation 'com.zaxxer:HikariCP:7.0.2'
@@ -96,6 +105,9 @@ sourceSets {
     test {
         java {
             srcDir 'driver/test/java'
+        }
+        resources {
+            srcDir 'driver/test/resources'
         }
     }
 }
@@ -407,6 +419,30 @@ tasks.withType(Test).configureEach {
     // Nothing else exercises the paths that go through the default calendar:
     // at UTC a conversion that uses it and one that does not agree.
     systemProperty 'user.timezone', providers.gradleProperty('testTimeZone').getOrElse('UTC')
+    // `-PtestConnectionProperties=preferQueryMode=simple` runs every suite
+    // over a different arrangement of the wire. What the driver does with a
+    // value depends on how pgJDBC sent and typed it, and the defaults are one
+    // arrangement out of several an application can ask for.
+    systemProperty 'test.connection.properties',
+        providers.gradleProperty('testConnectionProperties').getOrElse('')
+    // `-PtestSeed` draws different values and different programs; the pinned
+    // default keeps a run on a pull request asking what the last one asked.
+    systemProperty 'test.seed', providers.gradleProperty('testSeed').getOrElse('')
+    // How many programs the sequence suite draws. The default is what a run
+    // on a pull request can afford; a run looking for new faults asks for
+    // more, and for a seed of its own to draw them from.
+    systemProperty 'test.sequence.programs',
+        providers.gradleProperty('testSequencePrograms').getOrElse('')
+    // `-PtestFaults=true` runs the suite that breaks the network under the
+    // driver. It starts a server and a proxy of its own, which costs more
+    // than everything else put together, so it is asked for rather than
+    // assumed.
+    systemProperty 'test.faults', providers.gradleProperty('testFaults').getOrElse('false')
+    // `-PtestControl=true` starts a stock PostgreSQL beside the CrateDB one and
+    // asks it the same questions, to confirm that a fault the delta lays at
+    // pgJDBC's door is still there where CrateDB is not. Another server, so
+    // likewise asked for.
+    systemProperty 'test.control', providers.gradleProperty('testControl').getOrElse('false')
     // The docker-java bundled with testcontainers speaks Docker API 1.32 by
     // default, which Docker Engine 29+ rejects (its minimum is 1.44).
     // Pin a version every current engine accepts; -Dapi.version overrides.

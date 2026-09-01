@@ -1,0 +1,28 @@
+# Where a sequence of JDBC calls answers differently on this driver than on
+# stock pgJDBC.
+#
+# SequenceIT generates programs — orders of calls, drawn from a seed — runs
+# each against both drivers and compares them step for step. An entry names
+# the chain of calls that produced the object a divergence happened on, with
+# the receiver names and the drawn arguments taken out:
+#
+#   differs {disposition} EXECUTE_QUERY -> CLOSE_STATEMENT -> READ_STRING :: <why>
+#
+# The kinds and the dispositions are the ones pgjdbc-delta.txt spells out; that
+# file's header is where they are written down.
+#
+# A program is one of many that reach the same state, so what is written down
+# is the state rather than the program. An entry that no program from the
+# pinned seed reaches any more fails the build, and so does a divergence that
+# is not listed. The failing run prints the shrunk program, what each driver
+# answered, the line to add and the command to run it again.
+
+
+# An array that has been freed. JDBC has every method of one raise afterwards;
+# pgJDBC drops what it read the elements from and answers whatever that leaves,
+# which is null for a read and a failed assertion for anything that needs the
+# connection it gave up. The same difference the sweep records for a freed
+# array, reached here by freeing one rather than by being handed one.
+
+differs {pgjdbc-todo} OPEN -> CREATE_ARRAY -> ARRAY_ELEMENTS :: refused as freed, where pgJDBC answers null for an array it can no longer read.
+differs {pgjdbc-todo} OPEN -> CREATE_ARRAY -> ARRAY_TYPE :: refused as freed, where pgJDBC reaches for the connection it gave up and fails an assertion.
