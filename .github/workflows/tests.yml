@@ -5,6 +5,13 @@ on:
   push:
     branches:
       - master
+      # Maintenance branches of a released minor, named after it.
+      - '[0-9]+.[0-9]+'
+
+  # Regressions in CrateDB or dependency releases should surface without
+  # waiting for the next push.
+  schedule:
+    - cron: '0 5 * * 1'
 
   # Allow job to be triggered manually.
   workflow_dispatch:
@@ -17,39 +24,128 @@ concurrency:
 jobs:
   test:
 
-    name: "Test Java: ${{ matrix.java-version }}
-     CrateDB: ${{ matrix.cratedb-version }}
-     on ${{ matrix.os }}"
-    runs-on: ${{ matrix.os }}
+    name: "Test Java: ${{ matrix.java-version }} CrateDB: ${{ matrix.cratedb-image }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest']
-        java-version: ['11']
-        cratedb-version: [
-          '5.10.16',
-          '6.2.2',
+        java-version: ['11', '17', '21', '25']
+        cratedb-image: [
+          'crate:6.0.8',
+          'crate:latest',
         ]
+        include:
+          - java-version: '21'
+            cratedb-image: 'crate/crate:nightly'
 
     env:
-      JAVA_VERSION: ${{ matrix.java-version }}
-      CRATE_VERSION: ${{ matrix.cratedb-version }}
+      CRATEDB_IMAGE: ${{ matrix.cratedb-image }}
 
     steps:
 
       - name: Acquire sources
         uses: actions/checkout@v6
+
+      # Gradle needs a JDK of its own: it runs on 17 and later, while the
+      # driver is built for, and here tested on, Java 11.
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
-          submodules: 'recursive'
+          distribution: 'temurin'
+          java-version: |
+            ${{ matrix.java-version }}
+            21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests
+        run: ./gradlew test -PtestJavaVersion=${{ matrix.java-version }}
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest -PtestJavaVersion=${{ matrix.java-version }}
+
+  # The whole suite against a cluster. Load balancing and the routing a cancel
+  # request has to survive are driver defaults that one node leaves inert, so
+  # the topology is an axis of its own rather than a cell of the matrix above.
+  cluster:
+
+    name: Test against a CrateDB cluster
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CRATEDB_NODES: 3
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
 
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '${{ matrix.java-version }}'
-          cache: 'gradle'
+          java-version: '21'
 
-      - name: Run gradle test
-        uses: eskatos/gradle-command-action@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest
+
+  # The whole suite at an offset from UTC. Every conversion that goes through
+  # the JVM's default calendar agrees with one that does not for as long as
+  # the two are the same, so at UTC a whole class of fault is unreachable.
+  time-zone:
+
+    name: "Test in ${{ matrix.time-zone }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        time-zone: ['Europe/Berlin', 'America/Los_Angeles']
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
-          arguments: test
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest -PtestTimeZone=${{ matrix.time-zone }}
+
+  # The code style answers the same whichever server and JRE the suites ran
+  # against, so it runs once rather than in every cell of the matrix above.
+  verify:
+
+    name: Verify sources and artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run the checks
+        run: ./gradlew check -x test
