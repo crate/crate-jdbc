@@ -28,7 +28,7 @@ TEST_TIME_ZONE ?= Europe/Berlin
 .DEFAULT_GOAL := help
 .PHONY: help build test test-baseline itest itest-floor itest-cluster itest-zoned \
         itest-standalone check verify format docs docs-check \
-        publish-local sbom version clean
+        publish-local sbom version tag clean
 
 help:  ## Show this help
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) \
@@ -90,6 +90,9 @@ sbom:  ## Write the CycloneDX SBOM to build/reports
 
 version:  ## Print the version being built
 	@$(GRADLE) -q getVersion
+
+tag:  ## Tag the current version and push it, which starts the release
+	./devtools/create_tag.sh
 
 clean:  ## Remove the build directory
 	$(GRADLE) clean
