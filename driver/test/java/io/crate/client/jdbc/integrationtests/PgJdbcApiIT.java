@@ -4,6 +4,7 @@ import io.crate.client.jdbc.CrateConnection;
 import io.crate.client.jdbc.CrateDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.postgresql.PGConnection;
 import org.postgresql.PGStatement;
@@ -30,6 +31,7 @@ import static org.hamcrest.core.Is.is;
  * connections obtained from a {@link CrateDataSource} carry the same
  * CrateDB behavior as those from a {@code crate://} URL.
  */
+@Tag("pgjdbc-types")
 public class PgJdbcApiIT extends BaseIntegrationTest {
 
     @BeforeEach

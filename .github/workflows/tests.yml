@@ -125,8 +125,38 @@ jobs:
       - name: Run integration tests
         run: ./gradlew integrationTest -PtestTimeZone=${{ matrix.time-zone }}
 
-  # The code style answers the same whichever server and JRE the suites ran
-  # against, so it runs once rather than in every cell of the matrix above.
+  # The suites against the standalone artifact, whose pgJDBC and Jackson are
+  # relocated under io.crate.shade. A name that failed to relocate is invisible
+  # to a check that reads the jar: it fails when it is used, and only a run
+  # that carries values to a server uses it. The ordinary pgJDBC is kept off
+  # that classpath, so a missed name finds nothing rather than finding the copy
+  # every other job here supplies.
+  standalone:
+
+    name: Test the standalone artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run integration tests against the standalone jar
+        run: ./gradlew standaloneTest
+
+  # Code style and the artifact checks answer the same whichever server and JRE
+  # the suites ran against, so they run once rather than in every cell of the
+  # matrix above.
   verify:
 
     name: Verify sources and artifacts

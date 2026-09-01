@@ -2,6 +2,7 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * would want its own {@code PGobject} for them, names that class; the class an
  * application here actually binds is what the driver names instead.</p>
  */
+@Tag("pgjdbc-types")
 public class ParameterMetaDataIT extends BaseIntegrationTest {
 
     private static Connection conn;

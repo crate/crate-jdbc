@@ -11,6 +11,127 @@ place of the fork of pgJDBC 42.2.5 it used to vendor. It requires CrateDB 6.0
 and Java 11; for an older server or JRE, use crate-jdbc 2.7.0. That layer is
 described in ``docs/internals.rst``.
 
+Artifacts
+---------
+
+- ``crate-jdbc`` no longer relocates its dependencies, so pgJDBC classes live
+  under ``org.postgresql`` where scanners can see them.
+  ``crate-jdbc-standalone`` keeps the ``io.crate.shade`` relocation and
+  carries what it bundles as ``docs/internals.rst`` describes.
+
+- Both artifacts declare an ``Automatic-Module-Name``, publish a CycloneDX
+  SBOM, and are built reproducibly: the same sources produce the same bytes,
+  whichever machine builds them.
+
+Connections
+-----------
+
+- Added ``io.crate.client.jdbc.CrateDataSource`` for applications configured
+  with a ``DataSource`` instead of a JDBC URL. It applies the driver's
+  connection defaults, survives being bound into JNDI, and works in both
+  artifacts, including from a plugin class loader of its own.
+
+- A URL that names no schema connects to ``doc``, CrateDB's default schema,
+  where pgJDBC would fill in the user name. A URL the driver answers but
+  cannot read is reported in the scheme the caller wrote it in.
+
+- Added ``CrateConnection.getCrateVersion()``, reporting the CrateDB version
+  behind a connection, where ``DatabaseMetaData`` keeps reporting the
+  PostgreSQL release CrateDB emulates on the wire. A connection reads that
+  metadata once and hands the same answer to every caller, on any thread, and
+  ``getMetaData()`` raises on one that has been closed.
+
+Transactions
+------------
+
+- Removed the ``strict`` connection property together with the
+  ``SQLFeatureNotSupportedException`` raised for transactional API calls.
+
+- ``rollback()`` undoes nothing, CrateDB having nothing to undo, but ends the
+  transaction block pgJDBC opens under manual commit mode, so a pool that
+  resets a connection does not strand it. Savepoints raise
+  ``SQLFeatureNotSupportedException`` instead of reaching the server as a
+  syntax error, and ``DatabaseMetaData`` reports transactions and savepoints
+  as unsupported with ``TRANSACTION_NONE`` as the only isolation level.
+
+Statements
+----------
+
+- ``setQueryTimeout()`` reaches the server as ``statement_timeout`` beside the
+  cancel request pgJDBC sends on a second connection, so that a timeout
+  survives a load balancer in front of the cluster. ``docs/internals.rst``
+  gives what it bounds and what it does not.
+
+- Cursor-based fetching with ``setFetchSize()`` also works for
+  ``PreparedStatement`` under manual commit mode, and
+  ``Statement.getGeneratedKeys()`` returns the same result set across calls,
+  as ``getResultSet()`` does.
+
+- ``prepareCall()`` returns a CrateDB-aware ``CallableStatement``: ``Map``
+  parameters bind as ``OBJECT``, and results carry the OBJECT-to-``Map``
+  conversion.
+
+Results
+-------
+
+- ``ResultSet.getStatement()`` raises on a result set that has been closed,
+  and every method of an ``Array`` raises once it has been freed, where some
+  answered null and others failed an assertion. ``getArray()`` on an OBJECT
+  column is refused with a SQLState naming a data exception, matching the
+  ``SQLDataException`` carrying it.
+
+Types
+-----
+
+- ``OBJECT`` values bind from a ``java.util.Map`` and read back as one,
+  through ``getObject()``, ``getObject(column, type)`` and the array forms
+  alike. ``java.time`` values nested in one are written as ISO-8601 text, a
+  whole number reads back as the ``Long`` such a nested column holds, and one
+  past a ``bigint``'s range as the ``BigInteger`` its ``numeric`` column does.
+
+- Columns of ``array(array(...))``, which CrateDB sends as json rather than in
+  the PostgreSQL array format, read through ``getArray()`` and ``getObject()``
+  and bind through ``setObject()`` and ``createArrayOf()``.
+
+- ``setObject()`` binds a collection as the array of the same values, and
+  ``createArrayOf()`` matches a type name as SQL does, accepting CrateDB's own
+  names beside PostgreSQL's. An array whose element type cannot be settled is
+  left for the server to type; one mixing unrelated types is refused by name.
+
+- A series of moments binds as the instants it names, so it stores the same
+  moments whatever zone the JVM runs in, and a type naming a time zone binds
+  instants where one without it binds wall clocks.
+
+- ``docs/data-types.rst`` carries the table of what each type binds and reads
+  as. Timestamps, update counts for unknown row counts and reported SQL type
+  codes follow stock pgJDBC semantics.
+
+Metadata
+--------
+
+- ``DatabaseMetaData`` describes CrateDB where the two differ, as
+  ``docs/internals.rst`` lists: unsupported SQL features, unbounded identifier
+  lengths, CrateDB's field limit, and this driver's own name, version and URL.
+
+- ``getIndexInfo()`` answers with no rows instead of passing on the server's
+  complaint about a PostgreSQL function the caller never used, which every
+  tool that introspects a schema would meet on every table.
+
+- A metadata call a CrateDB older than 6.0 cannot answer names the version it
+  found instead of the catalog column that server is missing.
+
+Wrappers
+--------
+
+- Every JDBC object the driver hands out is one of its own wrappers, metadata
+  result sets, ``Array.getResultSet()`` and column and parameter metadata
+  included, so an ``OBJECT`` converts the same way wherever it is read and is
+  described as ``java.lang.Object``. Asking twice gives the same wrapper.
+
+- Connections and statements implement ``org.postgresql.PGConnection`` and
+  ``org.postgresql.PGStatement``, keeping the pgJDBC-specific API reachable by
+  cast as well as through ``unwrap()``.
+
 2023/04/18 2.7.0
 ================
 

@@ -185,6 +185,22 @@ Artifacts
     ordinary transitive dependencies, where dependency and vulnerability
     scanners can see them and a build can pin them.
 
+:``crate-jdbc-standalone``:
+
+    A self-contained jar for dropping into the driver directory of tools
+    like `Apache Hop`_, Pentaho, DBeaver, or SQuirreL. Everything it bundles
+    is relocated under ``io.crate.shade``, so the jar cannot clash with
+    another pgJDBC or jackson on the same classpath, and each bundled
+    dependency's license travels with it under ``META-INF/licenses/``. The
+    jar manifest declares the bundled pgJDBC version as
+    ``Bundled-PgJdbc-Version``, and that pgJDBC does not register itself with
+    the ``DriverManager``: ``jdbc:postgresql://`` URLs stay with a real
+    PostgreSQL driver.
+
+Both artifacts publish a `CycloneDX`_ SBOM under the ``cyclonedx``
+classifier, listing what the standalone jar bundles. Relocation hides those
+dependencies from scanners that read a pom.
+
 
 **********************
 Supported server range
@@ -214,4 +230,6 @@ release CrateDB emulates, that being what PostgreSQL tooling reasons about.
 
 
 .. _Apache Flink JDBC Connector: https://github.com/apache/flink-connector-jdbc
+.. _Apache Hop: https://hop.apache.org/
+.. _CycloneDX: https://cyclonedx.org/
 .. _PostgreSQL JDBC Driver: https://jdbc.postgresql.org/
