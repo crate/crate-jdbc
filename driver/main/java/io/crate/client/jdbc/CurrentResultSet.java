@@ -19,32 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
-
 package io.crate.client.jdbc;
 
-import org.junit.Test;
-import org.postgresql.jdbc.CrateVersion;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+/**
+ * One wrapper per result set a statement is holding. Asking a statement for
+ * its rows twice gives back the same object, the way it does on a pgJDBC
+ * statement and the way callers that compare result sets expect.
+ */
+final class CurrentResultSet {
 
-public class PgCrateVersionTest {
+    private final Statement statement;
 
-    @Test
-    public void testAfterCrateVersion() {
-        assertThat(new CrateVersion("1.0").after("1.0"), is(false));
-        assertThat(new CrateVersion("1.0").after("0.57.1"), is(true));
-        assertThat(new CrateVersion("1.0.0").after("0.57"), is(true));
-        assertThat(new CrateVersion("1.0.0").after("0.57.1"), is(true));
-        assertThat(new CrateVersion("1.0.0").after("1.1.1"), is(false));
+    private ResultSet delegate;
+    private CrateResultSet wrapper;
+
+    CurrentResultSet(Statement statement) {
+        this.statement = statement;
     }
 
-    @Test
-    public void testBeforeCrateVersion() {
-        assertThat(new CrateVersion("1.0").before("1.1"), is(true));
-        assertThat(new CrateVersion("1.0").before("0.57.1"), is(false));
-        assertThat(new CrateVersion("1.0.0").before("0.57.1"), is(false));
-        assertThat(new CrateVersion("0.57.0").before("0.57"), is(false));
-        assertThat(new CrateVersion("1.0.0").before("1.1.1"), is(true));
+    CrateResultSet of(ResultSet resultSet) {
+        if (resultSet == null) {
+            return null;
+        }
+        if (resultSet != delegate) {
+            delegate = resultSet;
+            wrapper = new CrateResultSet(resultSet, statement);
+        }
+        return wrapper;
     }
 }

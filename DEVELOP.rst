@@ -12,7 +12,7 @@ Acquire source
 
 Clone the repository::
 
-    $ git clone --recursive https://github.com/crate/crate-jdbc
+    $ git clone https://github.com/crate/crate-jdbc
 
 Change directory into the repository::
 
@@ -21,145 +21,153 @@ Change directory into the repository::
 Building
 ========
 
-This project uses Gradle_ as build tool.
+This project builds with Gradle_, which the ``Makefile`` in the repository
+root wraps: every workflow below has a target, and ``make`` on its own lists
+them all. Gradle downloads and bootstraps itself the first time a target
+runs it.
 
-Gradle can be invoked like so::
+Build both JAR files into ``build/libs``::
 
-    $ ./gradlew
+    $ make build
 
-The first time this command is executed, Gradle is downloaded and bootstrapped
-for you automatically.
+Building requires the environment locale set to ``UTF-8``.
 
-Build a regular JAR file::
+Publish both artifacts to the local Maven repository, to try the packaging
+an application will resolve::
 
-    $ ./gradlew jar
+    $ make publish-local
 
-Or, build a JAR file that includes dependencies::
+The bare ``./gradlew publish`` task does something else. The Sonatype plugin
+registers Maven Central as a publishing repository, so ``publish`` targets
+it.
 
-    $ ./gradlew standaloneJar
+Signing is skipped unless a key is configured, through two environment
+variables:
 
-Afterwards you can find the JAR file in the ``build/lib`` directory.
-
-Note that building the JAR files requires your environment locale set to
-``UTF-8``.
-
-Build, sign and publish the JAR files locally
----------------------------------------------
-
-To test the build and publishing process, you can build, sign and publish the
-JAR files locally::
-
-    $ ./gradlew publishJdbcPublicationToMavenLocal
-
-or for the standalong version which includes dependencies::
-
-    $ ./gradlew publishJdbcStandalonePublicationToMavenLocal
-
-For the signing to work, you need to have the required (ascii) key and password
-configured under the following ENVIRONMENT variables:
-
- - `ORG_GRADLE_PROJECT_signingKey`          <- the private key in ascii format
- - `ORG_GRADLE_PROJECT_signingPassword`     <- the password for the private key
+ - ``ORG_GRADLE_PROJECT_signingKey``       — the private key, in ascii format
+ - ``ORG_GRADLE_PROJECT_signingPassword``  — the password for that key
 
 
 Testing
 =======
 
-Run the unit tests like so::
+The unit tests need no server and no Docker::
 
-    $ ./gradlew test
+    $ make test
 
-Integration tests use a randomized CrateDB version. If you want to run the
-tests against a specific version you can either use the ``CRATE_VERSION`` or
-``CRATE_URL`` environment variable, e.g.::
+Gradle runs on JDK 17 or later while the driver is built for Java 11, so the
+baseline is exercised by launching a suite on a Java 11 toolchain instead of on
+the JVM running the build. Gradle resolves that toolchain, downloading one if
+the machine has none::
 
-    $ CRATE_VERSION=2.3.4 ./gradlew test
+    $ make test-baseline
 
-or::
+Integration tests boot a CrateDB server in Docker via Testcontainers_, so a
+running Docker daemon is required::
 
-    $ CRATE_URL=https://cdn.crate.io/downloads/releases/nightly/crate-0.58.0-201611210301-7d469f8.tar.gz ./gradlew test
+    $ make itest
+    $ make itest-floor   # on the oldest supported CrateDB and JRE
 
-If you are using MacOS, you have to specify the URL to download the server, e.g.::
+Select another server with the ``CRATEDB_VERSION`` (a tag of the ``crate``
+image) or ``CRATEDB_IMAGE`` (a full image reference) environment variable::
 
-    $ CRATE_URL=https://cdn2.crate.io/downloads/releases/cratedb/x64_mac/crate-5.9.0.tar.gz ./gradlew test
+    $ CRATEDB_VERSION=6.2.2 make itest
+    $ CRATEDB_IMAGE=crate/crate:nightly make itest
 
-For debugging purposes, integration tests can be run against any CrateDB build.
-Build tar.gz file by running ./gradlew distTar from crate repository and set
-path to the generated file to the ``CRATE_PATH`` environment variable, e.g.::
+To run against an externally managed server instead, point ``CRATE_URL``
+at a full JDBC URL; no container is started then::
 
-    $ CRATE_PATH=../crate/app/build/distributions/crate-4.7.0-SNAPSHOT-3edf1b4f2f2.tar.gz ./gradlew test
+    $ CRATE_URL=crate://localhost:5432/doc?user=crate make itest
 
-Preparing a Release
+Two axes of the substrate change what the suites can see, and both have a
+target of their own. A cluster is where the driver's load balancing and its
+cancel routing stop being inert, and a JVM away from UTC is the only place a
+conversion through the default calendar and one without it disagree::
+
+    $ make itest-cluster   # three nodes instead of one
+    $ make itest-zoned     # the suites in Europe/Berlin
+
+``make check`` runs the unit tests together with the code style. ``make
+verify`` runs the checks and both suites across the supported server and JRE
+ranges.
+
+Upgrading pgJDBC
+================
+
+Change ``ext.pgjdbcVersion`` in ``build.gradle`` and run the tests. Each wrapper
+answers its whole interface, as the `internals documentation`_ describes, so a
+release that adds a method leaves the wrapper abstract and the compile names
+what is missing.
+
+A method the new release gives a body in the interface is the case to look for
+by hand. Nothing fails: the wrapper inherits that body and answers with it
+instead of asking pgJDBC, which has an implementation of its own. Compare the
+interface against the wrapper for methods it does not forward, and add them to
+the delegation block.
+
+Preparing a release
 ===================
 
-To create a new release, you must:
+To cut a release:
 
-- Add a new version to the ``io.crate.client.jdbc.CrateDriverVersion`` class
+- Set the release version in ``gradle.properties``; it is the one place the
+  version lives, and the driver reports it through ``DatabaseMetaData``
 
-- Point the ``CURRENT`` version in that class to the newly added version
-
-- Add a note for the new version at the ``CHANGES.txt`` file
+- Move the ``Unreleased`` notes in ``CHANGES.txt`` under a heading for the
+  new version, dated (``YYYY/MM/DD x.y.z``)
 
 - Commit your changes with a message like "prepare release x.x.x"
 
-- Push to origin
+- Push to origin, and tag that commit ``x.y.z``
 
-- Create a tag by running ``./devtools/create_tag.sh``
+- Cut the ``x.y`` branch from the tag, which is where fixes for that minor
+  land and which CI builds like ``master``
+
+- Set the version in ``gradle.properties`` to the next ``x.y.z-SNAPSHOT``, so
+  that what follows is not built as a released version
 
 - Archive docs for old releases (see section below)
 
-At this point, Jenkins will take care of building and uploading the release to
-the Maven repository.
+Publish to Maven Central with::
 
-However, if you'd like to do this manually, you can run::
+    $ ./gradlew clean publishToSonatype closeAndReleaseSonatypeStagingRepository
 
-    $ ./gradlew clean ublishToSonatype closeAndReleaseSonatypeStagingRepository
+That needs the signing key and password from Building_, plus the Sonatype
+token as ``-PsonatypeTokenUsername`` and ``-PsonatypeTokenPassword`` (or the
+matching ``ORG_GRADLE_PROJECT_`` environment variables).
 
-This requires you to have the required (ascii) key and password configured,
-see `Build, sign and publish the JAR files locally`_.
-
-Archiving Docs Versions
+Archiving docs versions
 -----------------------
 
 Check the `versions hosted on ReadTheDocs`_.
 
-We should only be hosting the docs for `latest`, the last three minor release
-branches of the last major release, and the last minor release branch
-corresponding to the last two major releases.
+Only three kinds of version stay hosted: ``latest``, the minor release branches
+of the current major release, and the last minor release branch of the previous
+one. Today that is ``latest``, ``3.0`` and ``2.7``.
 
-For example:
+Activating or deactivating a version is an RTD configuration change: ask the
+`@crate/docs`_ team.
 
-- ``latest``
-- ``2.2``
-- ``2.1``
-- ``2.0``
-- ``1.14``
-
-Because this project has not any releases with major version of ``0``, we stop
-at ``1.14``.
-
-To make changes to the RTD configuration (e.g., to activate or deactivate a
-release version), please contact the `@crate/docs`_ team.
-
-Writing Documentation
+Writing documentation
 =====================
 
-The docs live under the docs directory.
-
-The docs are written written with ReStructuredText_ and processed with Sphinx_.
-
-Build the docs by running::
+The docs live under the ``docs`` directory, written in ReStructuredText_ and
+processed with Sphinx_. Build them with::
 
     cd docs
     make html
     open .crate-docs/.build/index.html
 
-The docs are automatically built from Git by `Read the Docs`_ and there is
-nothing special you need to do to get the live docs to update.
+``make check`` there runs the same build the CI does, together with the link
+and prose checks.
+
+`Read the Docs`_ builds the published docs from Git on every push.
 
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
 .. _Gradle: https://gradle.org/
-.. _installation documentation: https://crate.io/docs/jdbc/en/latest/getting-started.html
+.. _Testcontainers: https://java.testcontainers.org/
+.. _internals documentation: https://cratedb.com/docs/jdbc/en/latest/internals.html
+.. _installation documentation: https://cratedb.com/docs/jdbc/en/latest/getting-started.html
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Sphinx: http://sphinx-doc.org/
 .. _Read the Docs: http://readthedocs.org/

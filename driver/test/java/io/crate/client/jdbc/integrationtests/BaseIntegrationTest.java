@@ -1,123 +1,167 @@
-/*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
- *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
- */
-
 package io.crate.client.jdbc.integrationtests;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.crate.testing.CrateTestCluster;
-import io.crate.testing.CrateTestServer;
-import org.junit.*;
-import org.junit.rules.ExpectedException;
+import io.crate.client.jdbc.CrateConnection;
+import io.crate.client.jdbc.CrateVersion;
+import org.testcontainers.cratedb.CrateDBContainer;
+import org.testcontainers.utility.DockerImageName;
 
-import java.sql.*;
+import java.net.URI;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.Properties;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
-public abstract class BaseIntegrationTest extends RandomizedTest {
+/**
+ * Boots one CrateDB per test JVM and connects to it through the crate://
+ * scheme, i.e. through {@link io.crate.client.jdbc.CrateDriver}.
+ *
+ * <p>The server version comes from the {@code CRATEDB_VERSION} environment
+ * variable (a tag of the {@code crate} Docker image), defaulting to a
+ * recent release. {@code CRATEDB_NODES} runs the suite against a cluster of
+ * that many nodes instead of one, where the driver's load balancing
+ * and its cancel routing stop being inert. An externally managed server can
+ * be used instead by setting {@code CRATE_URL} to a full JDBC URL, in which
+ * case no container is started.</p>
+ */
+public abstract class BaseIntegrationTest {
 
-    private static final String[] CRATE_VERSIONS = new String[] {
-            "4.8.4",
-            "5.10.16",
-            "6.2.2",
-    };
+    private static final String DEFAULT_CRATEDB_VERSION = "6.4.1";
+    private static final Duration SHARD_ALLOCATION_TIMEOUT = Duration.ofMinutes(2);
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    private static CrateDBContainer container;
+    private static CrateDBCluster cluster;
+    private static String connectionUrl;
+    private static CrateVersion serverVersion;
 
-    static CrateTestCluster TEST_CLUSTER;
-
-    private static String getRandomServerVersion() {
-        String version = System.getenv().get("CRATE_VERSION");
-        if (version != null) {
-            return version;
+    /** The image the suite boots, as the environment selects it. */
+    static DockerImageName serverImage() {
+        String imageName = System.getenv("CRATEDB_IMAGE");
+        if (imageName == null) {
+            imageName = "crate:" + System.getenv().getOrDefault("CRATEDB_VERSION", DEFAULT_CRATEDB_VERSION);
         }
-        Random random = getRandom();
-        return CRATE_VERSIONS[random.nextInt(CRATE_VERSIONS.length)];
+        return DockerImageName.parse(imageName).asCompatibleSubstituteFor("crate");
     }
 
-    @BeforeClass
-    public static void setUpCluster() throws Throwable {
-        String downloadUrl = System.getenv().get("CRATE_URL");
-        CrateTestCluster.Builder builder;
-        if (downloadUrl != null) {
-            builder = CrateTestCluster.fromURL(downloadUrl);
-        } else {
-            String filePath = System.getenv().get("CRATE_PATH");
-            if (filePath != null) {
-                builder = CrateTestCluster.fromFile(filePath);
+    /**
+     * How many nodes the suite runs against, one unless asked for more. A CI
+     * matrix leaves the variable set and empty for the cells that do not name
+     * it, meaning the same as not naming it.
+     */
+    protected static int nodeCount() {
+        String nodes = System.getenv("CRATEDB_NODES");
+        return nodes == null || nodes.trim().isEmpty() ? 1 : Integer.parseInt(nodes.trim());
+    }
+
+    static synchronized String connectionUrl() {
+        if (connectionUrl == null) {
+            String externalUrl = System.getenv("CRATE_URL");
+            if (externalUrl != null) {
+                connectionUrl = externalUrl;
+            } else if (nodeCount() > 1) {
+                cluster = CrateDBCluster.start(serverImage(), nodeCount());
+                connectionUrl = cluster.url();
             } else {
-                String versionNumber = System.getenv().get("CRATE_VERSION");
-                if (versionNumber != null) {
-                    builder = CrateTestCluster.fromVersion(versionNumber);
-                } else {
-                    builder = CrateTestCluster.fromVersion(getRandomServerVersion());
+                container = new CrateDBContainer(serverImage());
+                container.start();
+                connectionUrl = String.format(
+                    "crate://%s:%d/doc?user=crate", container.getHost(), container.getMappedPort(5432));
+            }
+        }
+        return connectionUrl;
+    }
+
+    protected static Connection connect() throws SQLException {
+        return DriverManager.getConnection(connectionUrl());
+    }
+
+    /**
+     * A connection carrying extra pgJDBC connection properties, given as
+     * alternating names and values. They travel beside the URL rather than in
+     * it, which already carries a user and a schema of its own.
+     */
+    protected static Connection connectWith(String... properties) throws SQLException {
+        if (properties.length % 2 != 0) {
+            throw new IllegalArgumentException("Connection properties come in name and value pairs");
+        }
+        Properties props = new Properties();
+        for (int i = 0; i < properties.length; i += 2) {
+            props.setProperty(properties[i], properties[i + 1]);
+        }
+        return DriverManager.getConnection(connectionUrl(), props);
+    }
+
+    /**
+     * Address of one node of the server under test, for APIs that take host
+     * and port separately instead of a JDBC URL.
+     *
+     * <p>A CrateDB URL names as many hosts as the cluster has, and that is not an
+     * authority {@link URI} can parse, so the first of them is read off the
+     * URL directly.</p>
+     */
+    protected static URI serverAddress() {
+        String url = connectionUrl();
+        String withoutScheme = url.substring(url.indexOf("://") + "://".length());
+        int schemaSeparator = withoutScheme.indexOf('/');
+        String hosts = withoutScheme.substring(0, schemaSeparator);
+        int nextHost = hosts.indexOf(',');
+        return URI.create("crate://" + (nextHost < 0 ? hosts : hosts.substring(0, nextHost))
+            + withoutScheme.substring(schemaSeparator));
+    }
+
+    /**
+     * Whether the server under test is at least the given CrateDB release.
+     * The driver serves a range of servers, so behavior a later release
+     * introduced is pinned only where it exists rather than making the
+     * suite describe the newest release alone.
+     */
+    protected static synchronized boolean serverAtLeast(int major, int minor) {
+        if (serverVersion == null) {
+            try (Connection conn = connect()) {
+                serverVersion = conn.unwrap(CrateConnection.class).getCrateVersion();
+            } catch (SQLException e) {
+                throw new IllegalStateException("Cannot read the CrateDB version under test", e);
+            }
+        }
+        return serverVersion.atLeast(major, minor);
+    }
+
+    protected static void dropAllUserTables() {
+        try (Connection conn = connect()) {
+            List<String> tables = new ArrayList<>();
+            try (ResultSet rs = conn.createStatement().executeQuery(
+                "SELECT table_schema, table_name FROM information_schema.tables " +
+                "WHERE table_schema NOT IN ('pg_catalog', 'sys', 'information_schema', 'blob')")) {
+                while (rs.next()) {
+                    tables.add(String.format("\"%s\".\"%s\"", rs.getString(1), rs.getString(2)));
                 }
             }
-        }
-        TEST_CLUSTER = builder.keepWorkingDir(false).build();
-        TEST_CLUSTER.before();
-    }
-
-    @AfterClass
-    public static void tearDownCluster() {
-        TEST_CLUSTER.after();
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        setUpTestTable();
-    }
-
-    @After
-    public void tearDown() {
-        tearDownTables();
-    }
-
-    static String getConnectionString() {
-        CrateTestServer server = TEST_CLUSTER.randomServer();
-        return String.format("crate://%s:%s/doc?user=crate", server.crateHost(), server.psqlPort());
-    }
-
-    private static void tearDownTables() {
-        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
-            ResultSet rs = conn.createStatement().executeQuery(
-                    "SELECT table_schema, table_name " +
-                    "FROM information_schema.tables " +
-                    "WHERE table_schema not in ('pg_catalog', 'sys', 'information_schema', 'blob')"
-                );
-            while (rs.next()) {
-                conn.createStatement().execute(String.format(
-                    "DROP TABLE IF EXISTS \"%s\".\"%s\"", rs.getString("table_schema"), rs.getString("table_name")
-                ));
+            try (Statement statement = conn.createStatement()) {
+                for (String table : tables) {
+                    statement.execute("DROP TABLE IF EXISTS " + table);
+                }
             }
-        } catch (Exception ignore) {
+        } catch (SQLException e) {
+            // A test starting on leftover tables fails in ways that point
+            // anywhere but here, so say what actually went wrong.
+            throw new IllegalStateException("Cannot drop the tables left by a previous test", e);
         }
     }
 
-    private static void setUpTestTable() throws SQLException, InterruptedException {
-        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
+    /**
+     * Creates the shared {@code test} table covering every scalar CrateDB
+     * data type plus OBJECT, geo_point and geo_shape.
+     */
+    protected static void setUpTestTable() throws SQLException, InterruptedException {
+        try (Connection conn = connect()) {
             conn.createStatement().execute(
                 "create table if not exists test (" +
                 " id integer primary key," +
@@ -139,11 +183,10 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
         ensureYellow();
     }
 
-    static void insertIntoTestTable() throws SQLException {
-        Map<String, Object> objectField = new HashMap<String, Object>() {{
-            put("inner", "Zoon");
-        }};
-        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
+    protected static void insertIntoTestTable() throws SQLException {
+        Map<String, Object> objectField = new HashMap<>();
+        objectField.put("inner", "Zoon");
+        try (Connection conn = connect()) {
             PreparedStatement preparedStatement =
                 conn.prepareStatement("insert into test (id, string_field, boolean_field, byte_field, " +
                                       "short_field, integer_field, long_field, float_field, double_field, object_field, " +
@@ -168,16 +211,28 @@ public abstract class BaseIntegrationTest extends RandomizedTest {
         }
     }
 
-    static void ensureYellow() throws SQLException, InterruptedException {
-        while (countUnassigned() > 0) {
-            Thread.sleep(100);
+    /**
+     * Waits until every shard has started, so that a query right after a
+     * {@code CREATE TABLE} sees the table rather than a partially allocated
+     * one.
+     */
+    protected static void ensureYellow() throws SQLException, InterruptedException {
+        long deadline = System.nanoTime() + SHARD_ALLOCATION_TIMEOUT.toNanos();
+        try (Connection conn = connect();
+             Statement statement = conn.createStatement()) {
+            while (countUnassignedShards(statement) > 0) {
+                if (System.nanoTime() > deadline) {
+                    throw new IllegalStateException(
+                        "Shards were still unassigned after " + SHARD_ALLOCATION_TIMEOUT);
+                }
+                Thread.sleep(100);
+            }
         }
     }
 
-    private static Long countUnassigned() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
-            ResultSet rs = conn.createStatement()
-                .executeQuery("SELECT count(*) FROM sys.shards WHERE state != 'STARTED'");
+    private static long countUnassignedShards(Statement statement) throws SQLException {
+        try (ResultSet rs = statement.executeQuery(
+            "SELECT count(*) FROM sys.shards WHERE state != 'STARTED'")) {
             rs.next();
             return rs.getLong(1);
         }
