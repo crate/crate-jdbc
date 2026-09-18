@@ -26,6 +26,8 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest:3.0'
     // JUnit 6 needs Java 17, and the suites run on the oldest JRE the driver supports.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
+    testImplementation 'org.testcontainers:cratedb:1.21.4'
+    testImplementation 'com.zaxxer:HikariCP:7.1.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
@@ -267,8 +269,29 @@ tasks.withType(Test).configureEach {
             languageVersion = JavaLanguageVersion.of(testJavaVersion.get())
         }
     }
+    // Calendar conversions agree under UTC and diverge only at an offset, so the
+    // zone is pinned, and `-PtestTimeZone=Europe/Berlin` moves it.
+    systemProperty 'user.timezone', providers.gradleProperty('testTimeZone').getOrElse('UTC')
+    // Docker Engine 29 rejects the API version testcontainers asks for by default.
+    systemProperty 'api.version', System.getProperty('api.version', '1.44')
     testLogging.showStandardStreams = true
     outputs.upToDateWhen { false }
+}
+
+test {
+    filter {
+        excludeTestsMatching '*ITest'
+    }
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs the integration tests against a CrateDB container.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching '*ITest'
+    }
 }
 
 idea {

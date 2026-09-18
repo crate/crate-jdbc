@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - master
+  schedule:
+    - cron: '0 5 * * 1'
 
   # Allow job to be triggered manually.
   workflow_dispatch:
@@ -17,13 +19,20 @@ concurrency:
 jobs:
   test:
 
-    name: "Test Java: ${{ matrix.java-version }}"
+    name: "Test Java: ${{ matrix.java-version }} CrateDB: ${{ matrix.cratedb-image }}"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         java-version: ['11', '21']
+        cratedb-image: [
+          'crate:6.0.8',
+          'crate:latest',
+        ]
+
+    env:
+      CRATEDB_IMAGE: ${{ matrix.cratedb-image }}
 
     steps:
 
@@ -46,3 +55,64 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew test -PtestJavaVersion=${{ matrix.java-version }}
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest -PtestJavaVersion=${{ matrix.java-version }}
+
+  nightly:
+
+    name: Test against CrateDB nightly
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CRATEDB_IMAGE: 'crate/crate:nightly'
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest
+
+  time-zone:
+
+    name: "Test in ${{ matrix.time-zone }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        time-zone: ['Europe/Berlin', 'America/Los_Angeles']
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest -PtestTimeZone=${{ matrix.time-zone }}

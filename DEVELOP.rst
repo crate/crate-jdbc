@@ -69,6 +69,20 @@ Run the unit tests like so::
 
     $ ./gradlew test
 
+The integration tests start CrateDB in Docker and need a running Docker
+daemon::
+
+    $ ./gradlew integrationTest
+
+Select the CrateDB release with ``CRATEDB_VERSION``, or any image with
+``CRATEDB_IMAGE``, e.g.::
+
+    $ CRATEDB_VERSION=6.0.8 ./gradlew integrationTest
+    $ CRATEDB_IMAGE=crate/crate:nightly ./gradlew integrationTest
+
+``CRATE_URL`` runs them against a server that is already running, e.g.
+``CRATE_URL=crate://localhost:5432/doc?user=crate``.
+
 Updating pgJDBC
 ===============
 
@@ -81,7 +95,7 @@ The driver is built from `crate/pgjdbc`_, a fork of pgJDBC checked out as the
   ``pg/version.properties`` and the dependency versions in ``pg/build.gradle``
   to match the fork's own build
 
-- Run the tests, and fix what they report
+- Run the unit and integration tests, and fix what they report
 
 Preparing a Release
 ===================
