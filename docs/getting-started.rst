@@ -8,8 +8,8 @@ Learn how to install and get started with the :ref:`CrateDB JDBC driver
 Prerequisites
 =============
 
-The CrateDB JDBC driver requires Java 8, preferably update 20 or later. We
-recommend using `Oracle’s Java`_ on macOS and `OpenJDK`_ on Linux Systems.
+The CrateDB JDBC driver requires Java 11 or later, and CrateDB 6.0 or later.
+We recommend using `Oracle’s Java`_ on macOS and `OpenJDK`_ on Linux Systems.
 
 Install
 =======
