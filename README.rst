@@ -64,7 +64,7 @@ GitHub`_. We appreciate contributions of any kind.
 
 .. |tests| image:: https://github.com/crate/crate-jdbc/actions/workflows/tests.yml/badge.svg?branch=master
     :alt: Build status
-    :target: https://github.com/crate/crate-jdbc/actions/workflows/tests.yml?query=branch=master
+    :target: https://github.com/crate/crate-jdbc/actions/workflows/tests.yml?query=branch%3Amaster
 
 .. |docs| image:: https://github.com/crate/crate-jdbc/actions/workflows/docs.yml/badge.svg
     :alt: Documentation: Link checker
@@ -74,6 +74,6 @@ GitHub`_. We appreciate contributions of any kind.
     :alt: Read the Docs status
     :target: https://readthedocs.org/projects/crate-jdbc/
 
-.. |maven-central| image:: https://maven-badges.herokuapp.com/maven-central/io.crate/crate-jdbc/badge.svg
+.. |maven-central| image:: https://img.shields.io/maven-central/v/io.crate/crate-jdbc
     :alt: Latest release on Maven Central
     :target: https://repo1.maven.org/maven2/io/crate/crate-jdbc/
