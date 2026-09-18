@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - master
+  schedule:
+    - cron: '0 5 * * 1'
 
   # Allow job to be triggered manually.
   workflow_dispatch:
@@ -17,39 +19,100 @@ concurrency:
 jobs:
   test:
 
-    name: "Test Java: ${{ matrix.java-version }}
-     CrateDB: ${{ matrix.cratedb-version }}
-     on ${{ matrix.os }}"
-    runs-on: ${{ matrix.os }}
+    name: "Test Java: ${{ matrix.java-version }} CrateDB: ${{ matrix.cratedb-image }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest']
-        java-version: ['11']
-        cratedb-version: [
-          '5.10.16',
-          '6.2.2',
+        java-version: ['11', '21']
+        cratedb-image: [
+          'crate:6.0.8',
+          'crate:latest',
         ]
 
     env:
-      JAVA_VERSION: ${{ matrix.java-version }}
-      CRATE_VERSION: ${{ matrix.cratedb-version }}
+      CRATEDB_IMAGE: ${{ matrix.cratedb-image }}
 
     steps:
 
       - name: Acquire sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      # Gradle runs on 17, and the suites run on the matrix JDK.
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: |
+            ${{ matrix.java-version }}
+            17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run unit tests
+        run: ./gradlew test -PtestJavaVersion=${{ matrix.java-version }}
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest -PtestJavaVersion=${{ matrix.java-version }}
+
+  nightly:
+
+    name: Test against CrateDB nightly
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CRATEDB_IMAGE: 'crate/crate:nightly'
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '${{ matrix.java-version }}'
-          cache: 'gradle'
+          java-version: '17'
 
-      - name: Run gradle test
-        uses: eskatos/gradle-command-action@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest
+
+  time-zone:
+
+    name: "Test in ${{ matrix.time-zone }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        time-zone: ['Europe/Berlin', 'America/Los_Angeles']
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v7
         with:
-          arguments: test
+          submodules: 'recursive'
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest -PtestTimeZone=${{ matrix.time-zone }}

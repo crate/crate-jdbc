@@ -92,4 +92,4 @@ For general help about `JDBC`_, please consult the `JDBC tutorial`_ and the `JDB
 .. _PostgreSQL Wire Protocol: https://www.postgresql.org/docs/current/protocol.html
 .. _sample application: https://github.com/crate/crate-sample-apps/tree/main/java-spring
 .. _sample application documentation: https://github.com/crate/crate-sample-apps/blob/main/java-spring/documentation.md
-.. _Spring Data JDBC: https://spring.io/projects/spring-data-jdbc/
+.. _Spring Data JDBC: https://spring.io/projects/spring-data-jdbc

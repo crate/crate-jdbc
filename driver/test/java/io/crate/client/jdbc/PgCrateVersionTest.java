@@ -22,7 +22,7 @@
 
 package io.crate.client.jdbc;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.postgresql.jdbc.CrateVersion;
 
 import static org.hamcrest.MatcherAssert.assertThat;

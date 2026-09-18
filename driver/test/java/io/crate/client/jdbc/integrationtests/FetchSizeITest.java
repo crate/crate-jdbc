@@ -21,62 +21,85 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.Test;
-import org.postgresql.core.*;
+import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
-import java.sql.*;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
-
-/**
- * We are allowed to disable autoCommit (= manual commit) if strict mode is not enabled.
- * Manual commit is required for {@link org.postgresql.jdbc.PgStatement#setFetchSize(int)} to work correctly!
- * If autoCommit is true {@link org.postgresql.jdbc.PgStatement#executeInternal(CachedQuery, ParameterList, int)}
- * will never set the QueryExecutor.QUERY_FORWARD_CURSOR flag and therefore fetch all results at once instead of
- * batching them.
- */
 public class FetchSizeITest extends BaseIntegrationTest {
 
-    /**
-     * fetch size and execution flag is correctly appied if autoCommit == false
-     */
+    private static final int FETCH_SIZE = 10;
+
+    private static final String SUMMITS = "select * from sys.summits";
+
     @Test
-    public void testFetchSizeNotIgnoredIfManualCommit() throws Exception {
-        try (Connection connection = DriverManager.getConnection(getConnectionString())) {
+    public void testFetchSizeWithQueryTimeout() throws Exception {
+        int summits;
+        try (Connection counting = connect()) {
+            summits = countSummits(counting);
+        }
+        try (Connection connection = connect();
+             Statement statement = connection.createStatement()) {
             connection.setAutoCommit(false);
-            try (Statement statement = connection.createStatement()) {
-                statement.setFetchSize(10);
-                statement.execute("select * from sys.summits");
-                ResultSet rs = statement.getResultSet();
-                assertEquals(10, rs.getFetchSize());
-                Field rowsField = rs.getClass().getDeclaredField("rows");
-                rowsField.setAccessible(true);
-                List rows = (List) rowsField.get(rs);
-                assertEquals(10, rows.size());
+            statement.setFetchSize(FETCH_SIZE);
+            statement.setQueryTimeout(30);
+            try (ResultSet rs = statement.executeQuery(SUMMITS)) {
+                int rows = 0;
+                while (rs.next()) {
+                    rows++;
+                }
+                assertThat(rows, is(summits));
             }
         }
     }
 
-    /*
-     * fetch size is ignored if autoCommit == true
-     */
     @Test
-    public void testFetchSizeIgnoredIfAutocommit() throws Exception {
-        try (Connection connection = DriverManager.getConnection(getConnectionString())) {
-            connection.setAutoCommit(true);
-            try (Statement statement = connection.createStatement()) {
-                statement.setFetchSize(10);
-                statement.execute("select * from sys.summits");
-                ResultSet rs = statement.getResultSet();
-                assertEquals(10, rs.getFetchSize());
-                Field rowsField = rs.getClass().getDeclaredField("rows");
-                rowsField.setAccessible(true);
-                List rows = (List) rowsField.get(rs);
-                assertEquals(1605, rows.size());
+    public void testCursorFetchesOutsideQueryTimeout() throws Exception {
+        try (Connection connection = connect();
+             Statement statement = connection.createStatement()) {
+            connection.setAutoCommit(false);
+            statement.setFetchSize(FETCH_SIZE);
+            statement.setQueryTimeout(30);
+            String ownTimeout = sessionStatementTimeout(connection);
+            try (ResultSet rs = statement.executeQuery(SUMMITS)) {
+                assertThat(rs.getFetchSize(), is(FETCH_SIZE));
+                assertThat(sessionStatementTimeout(connection), is(ownTimeout));
+                assertThat(countBufferedRows(connection, rs), is(FETCH_SIZE));
             }
         }
+    }
+
+    private static String sessionStatementTimeout(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery(
+                 "select setting from pg_settings where name = 'statement_timeout'")) {
+            rs.next();
+            return rs.getString(1);
+        }
+    }
+
+    // With the connection aborted, only the rows already fetched can still be read.
+    private static int countBufferedRows(Connection connection, ResultSet rs) throws SQLException {
+        connection.abort(Runnable::run);
+        int rows = 0;
+        try {
+            while (rs.next()) {
+                rows++;
+            }
+        } catch (SQLException endOfWhatWasBuffered) {
+            return rows;
+        }
+        return rows;
+    }
+
+    private static int countSummits(Connection connection) throws SQLException {
+        ResultSet rs = connection.createStatement().executeQuery("select count(*) from sys.summits");
+        rs.next();
+        return rs.getInt(1);
     }
 }
