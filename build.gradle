@@ -17,6 +17,8 @@ allprojects {
     }
     sourceCompatibility = "11"
     targetCompatibility = "11"
+    // sourceCompatibility alone still compiles against the class library of the JDK running Gradle.
+    tasks.withType(JavaCompile).configureEach { options.release = 11 }
 }
 
 group = "io.crate"
@@ -240,8 +242,15 @@ signing {
     sign(publishing.publications)
 }
 
-test {
-    // show standard out and standard error of the test JVM(s) on the console
+// `-PtestJavaVersion=11` runs the suites on that JDK instead of the build's own.
+def testJavaVersion = providers.gradleProperty('testJavaVersion')
+
+tasks.withType(Test).configureEach {
+    if (testJavaVersion.present) {
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(testJavaVersion.get())
+        }
+    }
     testLogging.showStandardStreams = true
     outputs.upToDateWhen { false }
 }
