@@ -69,25 +69,33 @@ Run the unit tests like so::
 
     $ ./gradlew test
 
-Integration tests use a randomized CrateDB version. If you want to run the
-tests against a specific version you can either use the ``CRATE_VERSION`` or
-``CRATE_URL`` environment variable, e.g.::
+The integration tests start CrateDB in Docker and need a running Docker
+daemon::
 
-    $ CRATE_VERSION=2.3.4 ./gradlew test
+    $ ./gradlew integrationTest
 
-or::
+Select the CrateDB release with ``CRATEDB_VERSION``, or any image with
+``CRATEDB_IMAGE``, e.g.::
 
-    $ CRATE_URL=https://cdn.crate.io/downloads/releases/nightly/crate-0.58.0-201611210301-7d469f8.tar.gz ./gradlew test
+    $ CRATEDB_VERSION=6.0.8 ./gradlew integrationTest
+    $ CRATEDB_IMAGE=crate/crate:nightly ./gradlew integrationTest
 
-If you are using MacOS, you have to specify the URL to download the server, e.g.::
+``CRATE_URL`` runs them against a server that is already running, e.g.
+``CRATE_URL=crate://localhost:5432/doc?user=crate``.
 
-    $ CRATE_URL=https://cdn2.crate.io/downloads/releases/cratedb/x64_mac/crate-5.9.0.tar.gz ./gradlew test
+Updating pgJDBC
+===============
 
-For debugging purposes, integration tests can be run against any CrateDB build.
-Build tar.gz file by running ./gradlew distTar from crate repository and set
-path to the generated file to the ``CRATE_PATH`` environment variable, e.g.::
+The driver is built from `crate/pgjdbc`_, a fork of pgJDBC checked out as the
+``pg/upstream`` submodule. To move it to a new pgJDBC release:
 
-    $ CRATE_PATH=../crate/app/build/distributions/crate-4.7.0-SNAPSHOT-3edf1b4f2f2.tar.gz ./gradlew test
+- In the fork, rebase the CrateDB branch onto the pgJDBC release tag
+
+- Point the ``pg/upstream`` submodule at the rebased commit, and update
+  ``pg/version.properties`` and the dependency versions in ``pg/build.gradle``
+  to match the fork's own build
+
+- Run the unit and integration tests, and fix what they report
 
 Preparing a Release
 ===================
@@ -158,6 +166,7 @@ The docs are automatically built from Git by `Read the Docs`_ and there is
 nothing special you need to do to get the live docs to update.
 
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
+.. _crate/pgjdbc: https://github.com/crate/pgjdbc
 .. _Gradle: https://gradle.org/
 .. _installation documentation: https://crate.io/docs/jdbc/en/latest/getting-started.html
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html

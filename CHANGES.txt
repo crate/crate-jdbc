@@ -7,6 +7,25 @@ Unreleased
 
 - Bumped the required JRE version to 11
 
+- Updated pgJDBC from 42.2.5 to 42.7.13. CrateDB 6.0 or newer is required.
+
+- ``DatabaseMetaData`` is answered from ``pg_catalog``, so some values changed:
+  column type names are the PostgreSQL ones (``_int4`` rather than
+  ``integer_array``), system tables report the table type ``TABLE``, and
+  ``getSchemas()`` names its catalog column ``TABLE_CATALOG``, as the JDBC
+  specification requires.
+
+- Fixed ``commit()`` and ``rollback()`` leaving the connection in a transaction,
+  which made connection pools fail to reset returned connections.
+
+- Fixed reading ``ARRAY(OBJECT)`` elements, which returned JSON text instead of
+  maps, and nested arrays, which raised an error.
+
+- Added the ``float_vector``, ``geo_point``, ``geo_shape`` and ``character``
+  type names to ``createArrayOf()``.
+
+- Set the SQLState ``0A000`` on errors raised for unsupported features.
+
 2023/04/18 2.7.0
 ================
 
