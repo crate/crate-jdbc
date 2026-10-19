@@ -21,43 +21,68 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class UnsupportedFeaturesITest extends BaseIntegrationTest {
 
-    private static Connection connection;
+    private static final String INSERT = "insert into nowhere (id) values (1)";
 
-    @BeforeClass
-    public static void beforeClass() throws SQLException, InterruptedException {
-        connection = DriverManager.getConnection(getConnectionString());
+    private static Connection conn;
+
+    @BeforeAll
+    static void openConnection() throws SQLException {
+        conn = connect();
+    }
+
+    @AfterAll
+    static void closeConnection() throws SQLException {
+        if (conn != null) {
+            conn.close();
+        }
     }
 
     @Test
-    public void testPrepareCall() throws SQLException {
-        expectUnsupportedFeature("Connection: prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) not supported");
-        connection.prepareCall("select *", 0, 0);
+    public void testPrepareCall() {
+        expectUnsupportedFeature(
+            () -> conn.prepareCall("select 1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY));
     }
 
     @Test
-    public void testPrepareStatementWithColumnNames() throws SQLException {
-        expectUnsupportedFeature("Connection: prepareStatement(String sql, String[] columnNames) not supported");
-        connection.prepareStatement("select *", new String[]{"id"});
+    public void testPrepareStatementWithColumnNames() {
+        expectUnsupportedFeature(() -> conn.prepareStatement(INSERT, Statement.RETURN_GENERATED_KEYS));
+        expectUnsupportedFeature(() -> conn.prepareStatement(INSERT, new int[]{1}));
+        expectUnsupportedFeature(() -> conn.prepareStatement(INSERT, new String[]{"id"}));
     }
 
     @Test
     public void testExecuteUpdateNotSupported() throws SQLException {
-        expectUnsupportedFeature("Statement: executeUpdate(String sql, String[] columnNames) not supported");
-        connection.createStatement().executeUpdate("insert into test (id, name) values (3, 'hello')", new String[]{"id", "name"});
+        try (Statement stmt = conn.createStatement()) {
+            expectUnsupportedFeature(() -> stmt.execute(INSERT, Statement.RETURN_GENERATED_KEYS));
+            expectUnsupportedFeature(() -> stmt.execute(INSERT, new int[]{1}));
+            expectUnsupportedFeature(() -> stmt.execute(INSERT, new String[]{"id"}));
+            expectUnsupportedFeature(() -> stmt.executeUpdate(INSERT, Statement.RETURN_GENERATED_KEYS));
+            expectUnsupportedFeature(() -> stmt.executeUpdate(INSERT, new int[]{1}));
+            expectUnsupportedFeature(() -> stmt.executeUpdate(INSERT, new String[]{"id"}));
+            expectUnsupportedFeature(stmt::getGeneratedKeys);
+        }
     }
 
-    private void expectUnsupportedFeature(String errorMessage) {
-        expectedException.expect(SQLFeatureNotSupportedException.class);
-        expectedException.expectMessage(errorMessage);
+    private static void expectUnsupportedFeature(Executable call) {
+        SQLFeatureNotSupportedException refused =
+            assertThrows(SQLFeatureNotSupportedException.class, call);
+        assertThat(refused.getSQLState(), is("0A000"));
     }
 }

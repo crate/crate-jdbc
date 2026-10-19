@@ -22,219 +22,164 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.postgresql.util.PSQLException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.sql.*;
-import java.util.Properties;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.util.List;
+import java.util.stream.Stream;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * CrateDB has no transactions: BEGIN and COMMIT are accepted and ignored, and
+ * ROLLBACK is not in its grammar.
+ */
 public class ByPassSpecSettingITest extends BaseIntegrationTest {
 
-    private static Properties strictProperties = new Properties();
-    private static String connectionString;
+    @BeforeEach
+    void setUpTables() throws Exception {
+        dropAllUserTables();
+        setUpTestTable();
+    }
 
-    @BeforeClass
-    public static void beforeClass() {
-        strictProperties.put("strict", "true");
-        connectionString = getConnectionString();
+    @AfterEach
+    void tearDownTables() {
+        dropAllUserTables();
     }
 
     @Test
-    public void testSetAutoCommitStrictFalse() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString);
-
-        connection.setAutoCommit(false);
-        assertThat(connection.getAutoCommit(), is(false));
-
-        connection.setAutoCommit(true);
-        assertThat(connection.getAutoCommit(), is(true));
-        connection.close();
-    }
-
-    @Test
-    public void testCommitStrictFalse() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString);
-        connection.commit();
-        assertThat(connection.getAutoCommit(), is(true));
-        connection.close();
-    }
-
-    @Test
-    public void testSavepointStrictFalse() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString);
-        Savepoint savepoint = connection.setSavepoint("savepoint");
-        connection.releaseSavepoint(savepoint);
-        connection.close();
-    }
-
-    @Test
-    public void testRollbackStrictFalse() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString);
-        connection.rollback();
-        connection.rollback(null);
-        connection.close();
-    }
-
-    @Test
-    public void testSetAutoToTrueCommitStrictTrue() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
-        connection.setAutoCommit(true);
-        assertThat(connection.getAutoCommit(), is(true));
-        connection.close();
-    }
-
-    @Test
-    public void testSetAutoCommitToFalseStrictTrue() throws SQLException {
-        try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("The auto-commit mode cannot be disabled in strict mode. The Crate JDBC driver does not support manual commit.");
-            connection.setAutoCommit(false);
+    public void testRollbackStrictFalse() throws Exception {
+        try (Connection conn = connect()) {
+            conn.setAutoCommit(false);
+            Statement stmt = conn.createStatement();
+            stmt.execute("insert into test (id, string_field) values (50, 'committed')");
+            conn.commit();
+            stmt.execute("insert into test (id, string_field) values (51, 'rolled-back')");
+            conn.rollback();
+            conn.setAutoCommit(true);
+            conn.createStatement().execute("refresh table test");
+            ResultSet rs = conn.createStatement().executeQuery(
+                "select count(*) from test where id in (50, 51)");
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getLong(1), is(2L));
         }
     }
 
     @Test
-    public void testCommitWhenAutoCommitIsTrueStrictTrue() throws SQLException {
-        try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            connection.setAutoCommit(true);
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("The commit operation is not allowed. The Crate JDBC driver does not support manual commit.");
-            connection.commit(); // cannot commit in a strict mode if auto-commit is set to true
+    public void testSavepointStrictFalse() throws Exception {
+        try (Connection conn = connect()) {
+            conn.setAutoCommit(false);
+            Savepoint savepoint = conn.setSavepoint("savepoint");
+            conn.releaseSavepoint(savepoint);
+            conn.setAutoCommit(true);
+
+            ResultSet rs = conn.createStatement().executeQuery("select 1");
+            assertThat(rs.next(), is(true));
+        }
+    }
+
+    @ParameterizedTest(name = "{0} after {1}")
+    @MethodSource("blockEnds")
+    public void testConnectionReusableAfterBlockEnds(String end, String description, String sql)
+            throws Exception {
+        try (Connection conn = connect()) {
+            conn.setAutoCommit(false);
+            Statement stmt = conn.createStatement();
+            try {
+                stmt.execute(sql);
+            } catch (SQLException refused) {
+                // A refused statement leaves the block failed, which is one of the cases.
+            }
+            if (end.equals("commit")) {
+                conn.commit();
+            } else {
+                conn.rollback();
+            }
+
+            conn.setReadOnly(true);
+            conn.setReadOnly(false);
+            ResultSet rs = conn.createStatement().executeQuery("select 1");
+            assertThat(rs.next(), is(true));
+        }
+    }
+
+    static Stream<Arguments> blockEnds() {
+        return Stream.of("commit", "rollback").flatMap(end -> Stream.of(
+            Arguments.of(end, "a write", "insert into test (id, string_field) values (70, 'written')"),
+            Arguments.of(end, "a statement the server refused", "select * from no_such_table")));
+    }
+
+    @Test
+    public void testRollbackOnClosedConnection() throws Exception {
+        Connection conn = connect();
+        conn.setAutoCommit(false);
+        conn.close();
+
+        SQLException rejected = assertThrows(SQLException.class, conn::rollback);
+        assertThat(rejected.getSQLState(), is("08003"));
+    }
+
+    @Test
+    public void testTransactionMetaDataStrictFalse() throws Exception {
+        try (Connection conn = connect()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            assertThat(metaData.supportsTransactions(), is(true));
+            assertThat(metaData.supportsDataDefinitionAndDataManipulationTransactions(), is(true));
+            assertThat(metaData.getDefaultTransactionIsolation(), is(Connection.TRANSACTION_READ_COMMITTED));
+            assertThat(metaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE), is(false));
+            assertThat(metaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED), is(true));
         }
     }
 
     @Test
-    public void testSetSavepointStrictTrue() throws SQLException {
-        try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("Savepoint is not supported.");
-            connection.setSavepoint("savepoint");
+    public void testTransactionMetaDataStrictTrue() throws Exception {
+        try (Connection conn = connectWith("strict", "true")) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            assertThat(metaData.supportsTransactions(), is(false));
+            assertThat(metaData.supportsDataDefinitionAndDataManipulationTransactions(), is(false));
+            assertThat(metaData.getDefaultTransactionIsolation(), is(Connection.TRANSACTION_NONE));
+            assertThat(metaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE), is(true));
+            assertThat(metaData.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED), is(false));
         }
     }
 
     @Test
-    public void testRollbackSavepointStrictTrue() throws SQLException {
-        try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("Rollback is not supported.");
-            connection.rollback(null);
+    public void testTransactionCallsStrictTrue() throws Exception {
+        try (Connection conn = connectWith("strict", "true")) {
+            List<Executable> calls = List.of(
+                () -> conn.setAutoCommit(false),
+                conn::commit,
+                conn::rollback,
+                () -> conn.rollback((Savepoint) null),
+                () -> conn.setSavepoint("sp"),
+                () -> conn.releaseSavepoint(null),
+                () -> conn.setReadOnly(true));
+            for (Executable call : calls) {
+                SQLFeatureNotSupportedException refused =
+                    assertThrows(SQLFeatureNotSupportedException.class, call);
+                assertThat(refused.getSQLState(), is("0A000"));
+            }
+            conn.setAutoCommit(true);
+            assertThat(conn.getAutoCommit(), is(true));
         }
     }
 
     @Test
-    public void testReleaseSavepointStrictTrue() throws SQLException {
-        try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("Savepoint is not supported.");
-            connection.releaseSavepoint(null);
-        }
+    public void testGetConnectionStrictTrueReadOnlyTrue() {
+        assertThrows(SQLException.class, () -> connectWith("strict", "true", "readOnly", "true").close());
     }
-
-    @Test
-    public void testRollbackStrictTrue() throws SQLException {
-        try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("Rollback is not supported.");
-            connection.rollback();
-        }
-    }
-
-    @Test
-    public void testSupportsTransactionsStrictFalse() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString);
-        DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.supportsTransactions(), is (true));
-        connection.close();
-    }
-
-    @Test
-    public void testSupportsTransactionsStrictTrue() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
-        DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.supportsTransactions(), is (false));
-        connection.close();
-    }
-
-    @Test
-    public void testGetDefaultTransactionIsolationReadCommittedStrictFalse() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString);
-        DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.getDefaultTransactionIsolation(), is (Connection.TRANSACTION_READ_COMMITTED));
-        connection.close();
-    }
-
-    @Test
-    public void testGetDefaultTransactionIsolationStrictTrue() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
-        DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.getDefaultTransactionIsolation(), is (Connection.TRANSACTION_NONE));
-        connection.close();
-    }
-
-    @Test
-    public void testSupportsTransactionIsolationLevelStrictFalse() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString);
-        DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE), is (false));
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED), is (true));
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED), is (true));
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ), is (true));
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE), is (true));
-        connection.close();
-    }
-
-    @Test
-    public void testSupportsTransactionIsolationLevelStrictTrue() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
-        DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE), is (true));
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED), is (false));
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED), is (false));
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ), is (false));
-        assertThat(metadata.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE), is (false));
-        connection.close();
-    }
-
-    @Test
-    public void testSupportsDataDefinitionAndDataManipulationTransactionsStrictFalse() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString);
-        DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.supportsDataDefinitionAndDataManipulationTransactions(), is (true));
-        connection.close();
-    }
-
-    @Test
-    public void testSupportsDataDefinitionAndDataManipulationTransactionsStrictTrue() throws SQLException {
-        Connection connection = DriverManager.getConnection(connectionString, strictProperties);
-        DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.supportsDataDefinitionAndDataManipulationTransactions(), is (false));
-        connection.close();
-    }
-
-    @Test
-    public void testSetReadOnlyStrictTrue() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString,
-            strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage(
-                "Setting transaction isolation READ ONLY not supported.");
-            connection.setReadOnly(true);
-        }
-    }
-
-    @Test
-    public void testGetConnectionStrictTrueReadOnlyTrue() throws Exception {
-        Properties readOnlyStrictProperties = new Properties();
-        readOnlyStrictProperties.setProperty("strict", "true");
-        readOnlyStrictProperties.setProperty("readOnly", "true");
-
-        expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("Read-only connections are not supported.");
-        DriverManager.getConnection(connectionString, readOnlyStrictProperties);
-    }
-
 }
-
