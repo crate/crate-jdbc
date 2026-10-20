@@ -378,29 +378,39 @@ public class TypesITest extends BaseIntegrationTest {
         assertThat(objArray.getArray().getClass().isArray(), is(true));
         assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
 
-        PgDatabaseMetaData metaData = (PgDatabaseMetaData) CONNECTION.getMetaData();
-        // CrateDB >= 4.1.0 maps the `array(object)` data type to
-        // the `PGArray(JSON)` instead of `JSON` Postgres type.
-        if (metaData.getCrateVersion().before("4.1.0")) {
-            Object[] expectedArray = new Object[]{
-                    new HashMap<String, Object>() {{
-                        put("element1", "testing");
-                    }},
-                    new HashMap<String, Object>() {{
-                        put("element2", "testing2");
-                    }}};
+        Object[] expectedArray = new Object[]{
+                new HashMap<String, Object>() {{
+                    put("element1", "testing");
+                }},
+                new HashMap<String, Object>() {{
+                    put("element2", "testing2");
+                }}};
 
-            assertThat(objArray.getArray(), is(expectedArray));
-        } else {
-            PGobject firstObj = new PGobject();
-            firstObj.setType("json");
-            firstObj.setValue("{\"element1\":\"testing\"}");
-            PGobject secondObj = new PGobject();
-            secondObj.setType("json");
-            secondObj.setValue("{\"element2\":\"testing2\"}");
+        assertThat(objArray.getArray(), is(expectedArray));
+    }
 
-            assertThat(objArray.getArray(), is(new Object[]{firstObj, secondObj}));
-        }
+    @Test
+    public void testSelectNestedArrayType() throws Exception {
+        CONNECTION.createStatement().executeUpdate("create table test_nested_array (rows_ array(array(integer)))");
+        CONNECTION.createStatement().executeUpdate("insert into test_nested_array (rows_) values ([[1, 2], [3]])");
+        CONNECTION.createStatement().execute("refresh table test_nested_array");
+
+        ResultSet resultSet = CONNECTION.createStatement().executeQuery("select rows_ from test_nested_array");
+        assertThat(resultSet.next(), is(true));
+        assertThat(resultSet.getObject(1), is(List.of(List.of(1, 2), List.of(3))));
+        assertThat(resultSet.getString(1), is("[[1,2],[3]]"));
+        assertThat((Object[]) resultSet.getArray(1).getArray(), arrayContaining((Object) List.of(1, 2), List.of(3)));
+    }
+
+    @Test
+    public void testSelectNestedObjectArrayType() throws Exception {
+        CONNECTION.createStatement().executeUpdate("create table test_nested_objects (rows_ array(array(object)))");
+        CONNECTION.createStatement().executeUpdate("insert into test_nested_objects (rows_) values ([[{a=1}], [{b=2}]])");
+        CONNECTION.createStatement().execute("refresh table test_nested_objects");
+
+        ResultSet resultSet = CONNECTION.createStatement().executeQuery("select rows_ from test_nested_objects");
+        assertThat(resultSet.next(), is(true));
+        assertThat(resultSet.getObject(1), is(List.of(List.of(Map.of("a", 1)), List.of(Map.of("b", 2)))));
     }
 
     @Test
