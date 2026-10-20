@@ -22,57 +22,37 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.*;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.*;
 import org.testcontainers.cratedb.CrateDBContainer;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public abstract class BaseIntegrationTest extends RandomizedTest {
+public abstract class BaseIntegrationTest {
 
-    private static final String[] CRATE_VERSIONS = new String[] {
-            "4.8.4",
-            "5.10.16",
-            "6.2.2",
-    };
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    private static final String DEFAULT_CRATE_VERSION = "6.2.2";
 
     private static CrateDBContainer TEST_CLUSTER;
 
-    private static String getRandomServerVersion() {
-        String version = System.getenv().get("CRATE_VERSION");
-        if (version != null) {
-            return version;
-        }
-        Random random = getRandom();
-        return CRATE_VERSIONS[random.nextInt(CRATE_VERSIONS.length)];
-    }
-
-    @BeforeClass
+    @BeforeAll
     public static void setUpCluster() throws Throwable {
-        TEST_CLUSTER = new CrateDBContainer("crate:" + getRandomServerVersion());
+        String version = System.getenv().getOrDefault("CRATE_VERSION", DEFAULT_CRATE_VERSION);
+        TEST_CLUSTER = new CrateDBContainer("crate:" + version);
         TEST_CLUSTER.start();
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownCluster() {
         TEST_CLUSTER.stop();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         setUpTestTable();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         tearDownTables();
     }

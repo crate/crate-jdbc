@@ -70,11 +70,11 @@ Run the unit tests like so::
     $ ./gradlew test
 
 Integration tests run CrateDB in Docker, so they need a running Docker daemon.
-They use a randomized CrateDB version. If you want to run the tests against a
-specific version, set the ``CRATE_VERSION`` environment variable to a tag of
-the official ``crate`` Docker image, e.g.::
+They use CrateDB 6.2.2 by default. If you want to run the tests against another
+version, set the ``CRATE_VERSION`` environment variable to a tag of the
+official ``crate`` Docker image, e.g.::
 
-    $ CRATE_VERSION=6.2.2 ./gradlew test
+    $ CRATE_VERSION=5.10.16 ./gradlew test
 
 Preparing a Release
 ===================

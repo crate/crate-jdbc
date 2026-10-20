@@ -4,9 +4,9 @@ import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.CrateVersion;
 import org.postgresql.jdbc.PgDatabaseMetaData;
@@ -23,19 +23,19 @@ import java.util.Map;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class TypesITest extends BaseIntegrationTest {
 
     private static Connection CONNECTION;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws SQLException {
         CONNECTION = DriverManager.getConnection(getConnectionString());
     }
 
-    @Before
+    @BeforeEach
     public void setUpTables() throws Exception {
         insertIntoTestTable();
 

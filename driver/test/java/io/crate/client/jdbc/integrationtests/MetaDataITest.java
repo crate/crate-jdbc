@@ -22,8 +22,8 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.postgresql.jdbc.CrateVersion;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 
@@ -39,17 +39,17 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class MetaDataITest extends BaseIntegrationTest {
 
     private Connection conn;
 
-    @Before
+    @BeforeEach
     public void setUpTest() throws Throwable {
         conn = DriverManager.getConnection(getConnectionString());
         conn.createStatement().execute("create table test.cluster (arr array(int), name string)");

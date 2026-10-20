@@ -21,14 +21,14 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.postgresql.core.*;
 
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 /**
