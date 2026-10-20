@@ -37,8 +37,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.HashMap;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
@@ -209,7 +209,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     public void testExecuteBatchPreparedStatementFailBulkTypes() throws Exception {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement stmt = conn.prepareStatement("insert into test (id) values (?)");
-            stmt.setObject(1, newHashMap());
+            stmt.setObject(1, new HashMap<>());
             stmt.addBatch();
             PgDatabaseMetaData metaData = (PgDatabaseMetaData) conn.getMetaData();
 

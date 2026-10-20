@@ -17,6 +17,8 @@ allprojects {
     }
     sourceCompatibility = "11"
     targetCompatibility = "11"
+    // sourceCompatibility alone still compiles against the class library of the JDK running Gradle.
+    tasks.withType(JavaCompile).configureEach { options.release = 11 }
 }
 
 group = "io.crate"
@@ -130,6 +132,7 @@ task standaloneJar(type: ShadowJar, dependsOn: [getVersion]) {
     relocate 'org.osgi', 'io.crate.shade.org.osgi'
     relocate 'com.google', 'io.crate.shade.com.google'
     relocate 'com.ongres', 'io.crate.shade.com.ongres'
+    relocate 'com.github.benmanes', 'io.crate.shade.com.github.benmanes'
 }
 
 task javadocJar(type: Jar, dependsOn: [getVersion, javadoc]) {
@@ -261,9 +264,19 @@ signing {
     sign(publishing.publications)
 }
 
-test {
+// `-PtestJavaVersion=11` runs the suites on that JDK instead of the build's own.
+def testJavaVersion = providers.gradleProperty('testJavaVersion')
+
+tasks.withType(Test).configureEach {
     useJUnitPlatform()
-    // show standard out and standard error of the test JVM(s) on the console
+    if (testJavaVersion.present) {
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(testJavaVersion.get())
+        }
+    }
+    // Calendar conversions agree under UTC and diverge only at an offset, so the
+    // zone is pinned, and `-PtestTimeZone=Europe/Berlin` moves it.
+    systemProperty 'user.timezone', providers.gradleProperty('testTimeZone').getOrElse('UTC')
     testLogging.showStandardStreams = true
     outputs.upToDateWhen { false }
 }

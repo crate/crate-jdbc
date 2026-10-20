@@ -70,11 +70,29 @@ Run the unit tests like so::
     $ ./gradlew test
 
 Integration tests run CrateDB in Docker, so they need a running Docker daemon.
-They use CrateDB 6.2.2 by default. If you want to run the tests against another
-version, set the ``CRATE_VERSION`` environment variable to a tag of the
-official ``crate`` Docker image, e.g.::
+They use CrateDB 6.4.6 by default, and need CrateDB 6.0 or newer. If you want
+to run the tests against another version, set the ``CRATE_VERSION``
+environment variable to a tag of the official ``crate`` Docker image, e.g.::
 
-    $ CRATE_VERSION=5.10.16 ./gradlew test
+    $ CRATE_VERSION=6.0.8 ./gradlew test
+
+``CRATE_IMAGE`` selects any other image, e.g.::
+
+    $ CRATE_IMAGE=crate/crate:nightly ./gradlew test
+
+Updating pgJDBC
+===============
+
+The driver is built from `crate/pgjdbc`_, a fork of pgJDBC checked out as the
+``pg/upstream`` submodule. To move it to a new pgJDBC release:
+
+- In the fork, rebase the CrateDB branch onto the pgJDBC release tag
+
+- Point the ``pg/upstream`` submodule at the rebased commit, and update
+  ``pg/version.properties`` and the dependency versions in ``pg/build.gradle``
+  to match the fork's own build
+
+- Run the tests, and fix what they report
 
 Preparing a Release
 ===================
@@ -145,6 +163,7 @@ The docs are automatically built from Git by `Read the Docs`_ and there is
 nothing special you need to do to get the live docs to update.
 
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
+.. _crate/pgjdbc: https://github.com/crate/pgjdbc
 .. _Gradle: https://gradle.org/
 .. _installation documentation: https://crate.io/docs/jdbc/en/latest/getting-started.html
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
