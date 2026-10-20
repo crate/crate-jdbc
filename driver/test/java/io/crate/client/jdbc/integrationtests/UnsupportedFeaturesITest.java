@@ -21,43 +21,48 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 public class UnsupportedFeaturesITest extends BaseIntegrationTest {
 
     private static Connection connection;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws SQLException, InterruptedException {
         connection = DriverManager.getConnection(getConnectionString());
     }
 
     @Test
     public void testPrepareCall() throws SQLException {
-        expectUnsupportedFeature("Connection: prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) not supported");
-        connection.prepareCall("select *", 0, 0);
+        expectUnsupportedFeature("Connection: prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) not supported",
+            () -> connection.prepareCall("select *", 0, 0));
     }
 
     @Test
     public void testPrepareStatementWithColumnNames() throws SQLException {
-        expectUnsupportedFeature("Connection: prepareStatement(String sql, String[] columnNames) not supported");
-        connection.prepareStatement("select *", new String[]{"id"});
+        expectUnsupportedFeature("Connection: prepareStatement(String sql, String[] columnNames) not supported",
+            () -> connection.prepareStatement("select *", new String[]{"id"}));
     }
 
     @Test
     public void testExecuteUpdateNotSupported() throws SQLException {
-        expectUnsupportedFeature("Statement: executeUpdate(String sql, String[] columnNames) not supported");
-        connection.createStatement().executeUpdate("insert into test (id, name) values (3, 'hello')", new String[]{"id", "name"});
+        expectUnsupportedFeature("Statement: executeUpdate(String sql, String[] columnNames) not supported",
+            () -> connection.createStatement().executeUpdate("insert into test (id, name) values (3, 'hello')", new String[]{"id", "name"}));
     }
 
-    private void expectUnsupportedFeature(String errorMessage) {
-        expectedException.expect(SQLFeatureNotSupportedException.class);
-        expectedException.expectMessage(errorMessage);
+    private void expectUnsupportedFeature(String errorMessage, Executable executable) {
+        SQLFeatureNotSupportedException e = assertThrows(SQLFeatureNotSupportedException.class, executable);
+        assertThat(e.getMessage(), containsString(errorMessage));
     }
 }

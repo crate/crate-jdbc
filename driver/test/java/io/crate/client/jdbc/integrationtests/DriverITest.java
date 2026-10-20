@@ -23,9 +23,9 @@
 package io.crate.client.jdbc.integrationtests;
 
 import io.crate.client.jdbc.CrateDriver;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.postgresql.PGConnection;
 
 import java.sql.Connection;
@@ -34,12 +34,13 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DriverITest extends BaseIntegrationTest {
 
@@ -53,7 +54,7 @@ public class DriverITest extends BaseIntegrationTest {
 
     private static String HOST_AND_PORT;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
         DRIVER = new CrateDriver();
         HOST_AND_PORT = String.format("%s:%s", crateHost(), psqlPort());
@@ -69,18 +70,18 @@ public class DriverITest extends BaseIntegrationTest {
         assertThat(c1, instanceOf(PGConnection.class));
         c2.close();
 
-        expectedException.expect(SQLException.class);
-        expectedException.expectMessage(
+        SQLException e = assertThrows(
+            SQLException.class, () -> DriverManager.getConnection("jdbc:mysql://" + HOST_AND_PORT + "/"));
+        assertThat(e.getMessage(),
             containsString(String.format("No suitable driver found for %s", "jdbc:mysql://" + HOST_AND_PORT + "/")));
-        DriverManager.getConnection("jdbc:mysql://" + HOST_AND_PORT + "/");
     }
 
     @Test
     public void testDriverRegistrationDoesNotOverridePostgres() throws Exception {
-        expectedException.expect(SQLException.class);
-        expectedException.expectMessage(
+        SQLException e = assertThrows(
+            SQLException.class, () -> DriverManager.getConnection("jdbc:postgresql://" + HOST_AND_PORT + "/"));
+        assertThat(e.getMessage(),
                 containsString(String.format("No suitable driver found for %s", "jdbc:postgresql://" + HOST_AND_PORT + "/")));
-        DriverManager.getConnection("jdbc:postgresql://" + HOST_AND_PORT + "/");
     }
 
     private void assertInstanceOfCrateConnection(String connString, Properties prop) throws SQLException {
@@ -114,7 +115,7 @@ public class DriverITest extends BaseIntegrationTest {
     }
 
     @Test
-    @Ignore("set/get schema is not implemented")
+    @Disabled("set/get schema is not implemented")
     public void testClientPropertyUrlParser() throws Exception {
         Connection conn = DriverManager.getConnection("crate://" + HOST_AND_PORT + "/?prop1=value1&prop2=value2");
         Properties properties = conn.getClientInfo();
@@ -125,7 +126,7 @@ public class DriverITest extends BaseIntegrationTest {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testNullProperty() throws Exception {
         Connection conn = DriverManager.getConnection("crate://" + HOST_AND_PORT);
         conn.setClientInfo(null);

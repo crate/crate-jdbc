@@ -23,8 +23,8 @@
 package io.crate.client.jdbc.integrationtests;
 
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.postgresql.jdbc.CrateVersion;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.util.PSQLException;
@@ -39,16 +39,17 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ConnectionITest extends BaseIntegrationTest {
 
@@ -135,15 +136,15 @@ public class ConnectionITest extends BaseIntegrationTest {
     @Test
     public void testException() throws Exception {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
-            expectedException.expect(anyOf(instanceOf(SQLException.class), instanceOf(PSQLException.class)));
-            expectedException.expectMessage(anyOf(
+            Exception e = assertThrows(Exception.class, () -> conn.createStatement().execute("ERROR"));
+            assertThat(e, anyOf(instanceOf(SQLException.class), instanceOf(PSQLException.class)));
+            assertThat(e.getMessage(), anyOf(
                     containsString("line 1:1: no viable alternative at input 'ERROR'"),
                     containsString("line 1:1: mismatched input 'ERROR' expecting {'SELECT', '"),
                     // CrateDB 6.3.0: https://github.com/crate/crate-jdbc/issues/481
                     containsString("line 1:1: extraneous input 'ERROR' expecting {")
                     )
             );
-            conn.createStatement().execute("ERROR");
         }
     }
 
@@ -164,7 +165,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     }
 
     @Test
-    @Ignore("validate batch behaviour")
+    @Disabled("validate batch behaviour")
     public void testExecuteBatchStatementFail() throws Exception {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             Statement stmt = conn.createStatement();
@@ -243,7 +244,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testExecuteBatchPreparedStatementFailOne() throws Exception {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement stmt = conn.prepareStatement("insert into test (id, string_field) values (?, ?)");
