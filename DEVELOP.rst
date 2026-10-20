@@ -69,25 +69,12 @@ Run the unit tests like so::
 
     $ ./gradlew test
 
-Integration tests use a randomized CrateDB version. If you want to run the
-tests against a specific version you can either use the ``CRATE_VERSION`` or
-``CRATE_URL`` environment variable, e.g.::
+Integration tests run CrateDB in Docker, so they need a running Docker daemon.
+They use a randomized CrateDB version. If you want to run the tests against a
+specific version, set the ``CRATE_VERSION`` environment variable to a tag of
+the official ``crate`` Docker image, e.g.::
 
-    $ CRATE_VERSION=2.3.4 ./gradlew test
-
-or::
-
-    $ CRATE_URL=https://cdn.crate.io/downloads/releases/nightly/crate-0.58.0-201611210301-7d469f8.tar.gz ./gradlew test
-
-If you are using MacOS, you have to specify the URL to download the server, e.g.::
-
-    $ CRATE_URL=https://cdn2.crate.io/downloads/releases/cratedb/x64_mac/crate-5.9.0.tar.gz ./gradlew test
-
-For debugging purposes, integration tests can be run against any CrateDB build.
-Build tar.gz file by running ./gradlew distTar from crate repository and set
-path to the generated file to the ``CRATE_PATH`` environment variable, e.g.::
-
-    $ CRATE_PATH=../crate/app/build/distributions/crate-4.7.0-SNAPSHOT-3edf1b4f2f2.tar.gz ./gradlew test
+    $ CRATE_VERSION=6.2.2 ./gradlew test
 
 Preparing a Release
 ===================

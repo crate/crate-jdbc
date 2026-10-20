@@ -23,7 +23,6 @@
 package io.crate.client.jdbc.integrationtests;
 
 import io.crate.client.jdbc.CrateDriver;
-import io.crate.testing.CrateTestServer;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -57,8 +56,7 @@ public class DriverITest extends BaseIntegrationTest {
     @BeforeClass
     public static void beforeClass() {
         DRIVER = new CrateDriver();
-        CrateTestServer server = TEST_CLUSTER.randomServer();
-        HOST_AND_PORT = String.format("%s:%s", server.crateHost(), server.psqlPort());
+        HOST_AND_PORT = String.format("%s:%s", crateHost(), psqlPort());
     }
 
     @Test
