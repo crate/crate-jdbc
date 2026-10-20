@@ -24,10 +24,14 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -98,6 +102,35 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getLong(1), is(2L));
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("blockEnds")
+    public void testConnectionReusableAfterBlockEnds(boolean commit, String sql) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString)) {
+            connection.setAutoCommit(false);
+            try {
+                connection.createStatement().execute(sql);
+            } catch (SQLException refused) {
+                // A refused statement leaves the block failed, which is one of the cases.
+            }
+            if (commit) {
+                connection.commit();
+            } else {
+                connection.rollback();
+            }
+
+            connection.setReadOnly(true);
+            connection.setReadOnly(false);
+            ResultSet resultSet = connection.createStatement().executeQuery("select 1");
+            assertThat(resultSet.next(), is(true));
+        }
+    }
+
+    static Stream<Arguments> blockEnds() {
+        return Stream.of(true, false).flatMap(commit -> Stream.of(
+            Arguments.of(commit, "insert into test (id, string_field) values (70, 'written')"),
+            Arguments.of(commit, "select * from no_such_table")));
     }
 
     @Test
