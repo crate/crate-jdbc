@@ -22,7 +22,6 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import io.crate.testing.CrateTestServer;
 import org.hamcrest.Matchers;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -302,9 +301,8 @@ public class ConnectionITest extends BaseIntegrationTest {
 
     @Test
     public void testMultipleHostsConnectionString() throws Exception {
-        CrateTestServer server = TEST_CLUSTER.randomServer();
         String connectionStr = String.format(
-            "crate://%s:%s,%s:%s/doc?user=crate", server.crateHost(), server.psqlPort(), server.crateHost(), server.psqlPort()
+            "crate://%s:%s,%s:%s/doc?user=crate", crateHost(), psqlPort(), crateHost(), psqlPort()
         );
         try (Connection conn = DriverManager.getConnection(connectionStr)) {
             assertThat(conn.createStatement().execute("select 1 from sys.cluster"), is(true));
