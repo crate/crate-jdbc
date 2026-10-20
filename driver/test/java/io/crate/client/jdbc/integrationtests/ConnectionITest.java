@@ -35,6 +35,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -310,6 +311,14 @@ public class ConnectionITest extends BaseIntegrationTest {
         );
         try (Connection conn = DriverManager.getConnection(connectionStr)) {
             assertThat(conn.createStatement().execute("select 1 from sys.cluster"), is(true));
+        }
+    }
+
+    @Test
+    public void testStrictPropertyFromUrl() throws Exception {
+        try (Connection conn = DriverManager.getConnection(getConnectionString() + "&strict=true")) {
+            SQLException e = assertThrows(SQLFeatureNotSupportedException.class, conn::commit);
+            assertThat(e.getSQLState(), is("0A000"));
         }
     }
 

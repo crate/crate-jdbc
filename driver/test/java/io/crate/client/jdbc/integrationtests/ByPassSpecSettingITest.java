@@ -24,12 +24,14 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
+import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -193,6 +195,24 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
             SQLFeatureNotSupportedException e = assertThrows(
                 SQLFeatureNotSupportedException.class, () -> connection.rollback());
             assertThat(e.getMessage(), containsString("Rollback is not supported."));
+        }
+    }
+
+    @Test
+    public void testTransactionRefusalsCarrySQLStateStrictTrue() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
+            List<Executable> calls = List.of(
+                () -> connection.setAutoCommit(false),
+                connection::commit,
+                connection::rollback,
+                () -> connection.rollback(null),
+                () -> connection.setSavepoint("savepoint"),
+                () -> connection.releaseSavepoint(null),
+                () -> connection.setReadOnly(true));
+            for (Executable call : calls) {
+                SQLFeatureNotSupportedException e = assertThrows(SQLFeatureNotSupportedException.class, call);
+                assertThat(e.getSQLState(), is("0A000"));
+            }
         }
     }
 

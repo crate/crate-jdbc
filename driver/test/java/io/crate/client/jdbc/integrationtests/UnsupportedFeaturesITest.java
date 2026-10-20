@@ -27,11 +27,14 @@ import org.junit.jupiter.api.function.Executable;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class UnsupportedFeaturesITest extends BaseIntegrationTest {
@@ -59,6 +62,39 @@ public class UnsupportedFeaturesITest extends BaseIntegrationTest {
     public void testExecuteUpdateNotSupported() throws SQLException {
         expectUnsupportedFeature("Statement: executeUpdate(String sql, String[] columnNames) not supported",
             () -> connection.createStatement().executeUpdate("insert into test (id, name) values (3, 'hello')", new String[]{"id", "name"}));
+    }
+
+    @Test
+    public void testPrepareCallSQLState() {
+        expectNotImplemented(
+            () -> connection.prepareCall("select 1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY));
+    }
+
+    @Test
+    public void testPrepareStatementOverloadsRefused() {
+        String insert = "insert into test (id) values (1)";
+        expectNotImplemented(() -> connection.prepareStatement(insert, Statement.RETURN_GENERATED_KEYS));
+        expectNotImplemented(() -> connection.prepareStatement(insert, new int[]{1}));
+        expectNotImplemented(() -> connection.prepareStatement(insert, new String[]{"id"}));
+    }
+
+    @Test
+    public void testStatementOverloadsRefused() throws SQLException {
+        String insert = "insert into test (id) values (1)";
+        try (Statement stmt = connection.createStatement()) {
+            expectNotImplemented(() -> stmt.execute(insert, Statement.RETURN_GENERATED_KEYS));
+            expectNotImplemented(() -> stmt.execute(insert, new int[]{1}));
+            expectNotImplemented(() -> stmt.execute(insert, new String[]{"id"}));
+            expectNotImplemented(() -> stmt.executeUpdate(insert, Statement.RETURN_GENERATED_KEYS));
+            expectNotImplemented(() -> stmt.executeUpdate(insert, new int[]{1}));
+            expectNotImplemented(() -> stmt.executeUpdate(insert, new String[]{"id"}));
+            expectNotImplemented(stmt::getGeneratedKeys);
+        }
+    }
+
+    private void expectNotImplemented(Executable executable) {
+        SQLFeatureNotSupportedException e = assertThrows(SQLFeatureNotSupportedException.class, executable);
+        assertThat(e.getSQLState(), is("0A000"));
     }
 
     private void expectUnsupportedFeature(String errorMessage, Executable executable) {
