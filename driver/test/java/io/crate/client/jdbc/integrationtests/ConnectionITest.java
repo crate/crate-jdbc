@@ -323,6 +323,17 @@ public class ConnectionITest extends BaseIntegrationTest {
     }
 
     @Test
+    public void testGetCrateVersion() throws Exception {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
+            CrateVersion version = conn.getMetaData().unwrap(PgDatabaseMetaData.class).getCrateVersion();
+
+            ResultSet reported = conn.createStatement().executeQuery("select version['number'] from sys.nodes limit 1");
+            assertThat(reported.next(), is(true));
+            assertThat(version.compareTo(reported.getString(1)), is(0));
+        }
+    }
+
+    @Test
     public void testGetMoreResults() throws Exception {
         /**
          * getMoreResults() returns false once the last result has been read. A single query has one result;

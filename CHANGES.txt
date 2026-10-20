@@ -19,6 +19,13 @@ Unreleased
   ``getSchemas()`` names its catalog column ``TABLE_CATALOG``, as the JDBC
   specification requires.
 
+- ``Connection.getCatalog()`` returns ``crate``, the catalog CrateDB reports,
+  rather than the database named in the URL, such as ``doc``.
+
+- ``DatabaseMetaData`` calls return no rows for a catalog other than ``crate``,
+  ``""`` and ``doc`` included. ``null`` or ``crate`` return all rows, as in
+  stock pgJDBC.
+
 - Fixed ``commit()`` and ``rollback()`` leaving the connection in a transaction,
   which made connection pools fail to reset returned connections.
 
