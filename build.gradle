@@ -109,7 +109,11 @@ task standaloneJar(type: ShadowJar, dependsOn: [getVersion]) {
     archiveBaseName.set('crate-jdbc-standalone')
     archiveClassifier.set('')
     duplicatesStrategy 'fail'
-    configurations = [project.configurations.compileClasspath]
+    configurations = [project.configurations.runtimeClasspath]
+    // Shadow 8.1 cannot relocate classes built for newer Java releases, and a dependency's
+    // module descriptor would make the whole jar claim that dependency's module name.
+    exclude 'META-INF/versions/**'
+    exclude 'module-info.class'
     doFirst {
         from sourceSets.main.output
         manifest {
@@ -220,6 +224,17 @@ publishing {
                 licenses project.ext.licenses
                 developers project.ext.developers
                 scm project.ext.scm
+                // The jar bundles the fork but not the fork's own dependencies.
+                withXml {
+                    def dependencies = asNode().appendNode('dependencies')
+                    project(':pg').configurations.implementation.allDependencies.each { dep ->
+                        def node = dependencies.appendNode('dependency')
+                        node.appendNode('groupId', dep.group)
+                        node.appendNode('artifactId', dep.name)
+                        node.appendNode('version', dep.version)
+                        node.appendNode('scope', 'runtime')
+                    }
+                }
             }
         }
         jdbcStandalone(MavenPublication) {
