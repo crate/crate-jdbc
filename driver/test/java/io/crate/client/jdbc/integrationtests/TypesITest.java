@@ -7,6 +7,9 @@ import org.hamcrest.core.Is;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.CrateVersion;
 import org.postgresql.jdbc.PgDatabaseMetaData;
@@ -18,7 +21,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.instanceOf;
@@ -431,5 +436,40 @@ public class TypesITest extends BaseIntegrationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> map = (Map<String, Object>) resultSet.getObject(1);
         assertEquals(expected, map);
+    }
+
+    @ParameterizedTest
+    @MethodSource("arrayElementTypeNames")
+    public void testCreateArrayOfCrateTypeNames(String typeName, String pgTypeName) throws SQLException {
+        assertThat(CONNECTION.createArrayOf(typeName, new Object[0]).getBaseTypeName(), is(pgTypeName));
+        assertThat(CONNECTION.createArrayOf(typeName.toUpperCase(Locale.ENGLISH), new Object[0]).getBaseTypeName(),
+            is(pgTypeName));
+    }
+
+    static Stream<Arguments> arrayElementTypeNames() {
+        return Stream.of(
+            Arguments.of("string", "varchar"),
+            Arguments.of("ip", "varchar"),
+            Arguments.of("character", "bpchar"),
+            Arguments.of("boolean", "bool"),
+            Arguments.of("short", "int2"),
+            Arguments.of("integer", "int4"),
+            Arguments.of("long", "int8"),
+            // A CrateDB float is the four-byte one; a PostgreSQL float is not.
+            Arguments.of("float", "float4"),
+            Arguments.of("real", "float4"),
+            Arguments.of("double", "float8"),
+            Arguments.of("float_vector", "float4"),
+            Arguments.of("object", "json"),
+            Arguments.of("geo_shape", "json"),
+            Arguments.of("geo_point", "float8"),
+            Arguments.of("text", "text"),
+            Arguments.of("timestamp", "timestamp"),
+            Arguments.of("timestamptz", "timestamptz"),
+            Arguments.of("numeric", "numeric"),
+            Arguments.of("date", "date"),
+            Arguments.of("interval", "interval"),
+            Arguments.of("uuid", "uuid"),
+            Arguments.of("bit", "bit"));
     }
 }
