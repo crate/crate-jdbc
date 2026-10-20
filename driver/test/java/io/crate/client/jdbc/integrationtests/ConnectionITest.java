@@ -37,10 +37,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
@@ -313,14 +316,28 @@ public class ConnectionITest extends BaseIntegrationTest {
     @Test
     public void testGetMoreResults() throws Exception {
         /**
-         * getMoreResults() always returns false, because CrateDB does not support multiple result sets.
-         * In Postgres multiple result sets may occur when executing multiple statements (separated by ;) or when
-         * calling stored procedures.
+         * getMoreResults() returns false once the last result has been read. A single query has one result;
+         * statements separated by ; have one each.
          */
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             Statement stmt = conn.createStatement();
             assertTrue(stmt.execute("select name from sys.nodes"));
             assertFalse(stmt.getMoreResults());
+        }
+    }
+
+    @Test
+    public void testGetMoreResultsAfterSeveralStatements() throws Exception {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
+            Statement stmt = conn.createStatement();
+            List<Integer> read = new ArrayList<>();
+            for (boolean results = stmt.execute("select 1; select 2"); results; results = stmt.getMoreResults()) {
+                ResultSet resultSet = stmt.getResultSet();
+                while (resultSet.next()) {
+                    read.add(resultSet.getInt(1));
+                }
+            }
+            assertThat(read, contains(1, 2));
         }
     }
 }

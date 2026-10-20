@@ -45,7 +45,7 @@ public class UnsupportedFeaturesITest extends BaseIntegrationTest {
 
     @Test
     public void testPrepareCall() throws SQLException {
-        expectUnsupportedFeature("Connection: prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) not supported",
+        expectUnsupportedFeature("Connection: prepareCall(String sql, int resultSetType, int resultSetConcurrency) not supported",
             () -> connection.prepareCall("select *", 0, 0));
     }
 

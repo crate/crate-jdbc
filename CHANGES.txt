@@ -9,6 +9,10 @@ Unreleased
 
 - Updated pgJDBC from 42.2.5 to 42.7.13. CrateDB 6.0 or newer is required.
 
+- A URL without a database path, such as ``crate://localhost:5432``, raises
+  ``Unable to parse URL``, as pgJDBC does since 42.3.4, instead of being
+  declined.
+
 - ``DatabaseMetaData`` is answered from ``pg_catalog``, so some values changed:
   column type names are the PostgreSQL ones (``_int4`` rather than
   ``integer_array``), system tables report the table type ``TABLE``, and

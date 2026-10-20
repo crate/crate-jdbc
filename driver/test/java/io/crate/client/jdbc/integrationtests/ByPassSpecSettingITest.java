@@ -82,6 +82,25 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
     }
 
     @Test
+    public void testRollbackKeepsWritesStrictFalse() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString)) {
+            connection.setAutoCommit(false);
+            Statement statement = connection.createStatement();
+            statement.execute("insert into test (id, string_field) values (50, 'committed')");
+            connection.commit();
+            statement.execute("insert into test (id, string_field) values (51, 'rolled back')");
+            connection.rollback();
+            connection.setAutoCommit(true);
+
+            connection.createStatement().execute("refresh table test");
+            ResultSet resultSet = connection.createStatement().executeQuery(
+                "select count(*) from test where id in (50, 51)");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getLong(1), is(2L));
+        }
+    }
+
+    @Test
     public void testSetAutoToTrueCommitStrictTrue() throws SQLException {
         Connection connection = DriverManager.getConnection(connectionString, strictProperties);
         connection.setAutoCommit(true);

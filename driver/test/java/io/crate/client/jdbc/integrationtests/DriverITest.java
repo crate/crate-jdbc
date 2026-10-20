@@ -111,7 +111,9 @@ public class DriverITest extends BaseIntegrationTest {
 
         assertConnectionIsNull("crt://" + HOST_AND_PORT + "/", PROP);
         assertConnectionIsNull("jdbc:mysql://" + HOST_AND_PORT + "/", PROP);
-        assertConnectionIsNull("crate://" + HOST_AND_PORT, PROP);
+
+        SQLException e = assertThrows(SQLException.class, () -> DRIVER.connect("crate://" + HOST_AND_PORT, PROP));
+        assertThat(e.getMessage(), containsString("Unable to parse URL"));
     }
 
     @Test
