@@ -109,13 +109,13 @@ task standaloneJar(type: ShadowJar, dependsOn: [getVersion]) {
     archiveBaseName.set('crate-jdbc-standalone')
     archiveClassifier.set('')
     duplicatesStrategy 'fail'
+    from sourceSets.main.output
     configurations = [project.configurations.runtimeClasspath]
     // Shadow 8.1 cannot relocate classes built for newer Java releases, and a dependency's
     // module descriptor would make the whole jar claim that dependency's module name.
     exclude 'META-INF/versions/**'
     exclude 'module-info.class'
     doFirst {
-        from sourceSets.main.output
         manifest {
             attributes("Implementation-Title": "CrateDB JDBC Driver (Standalone)", "Implementation-Version": project.version)
         }
