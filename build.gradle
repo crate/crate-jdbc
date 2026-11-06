@@ -109,9 +109,13 @@ task standaloneJar(type: ShadowJar, dependsOn: [getVersion]) {
     archiveBaseName.set('crate-jdbc-standalone')
     archiveClassifier.set('')
     duplicatesStrategy 'fail'
-    configurations = [project.configurations.compileClasspath]
+    from sourceSets.main.output
+    configurations = [project.configurations.runtimeClasspath]
+    // Shadow 8.1 cannot relocate classes built for newer Java releases, and a dependency's
+    // module descriptor would make the whole jar claim that dependency's module name.
+    exclude 'META-INF/versions/**'
+    exclude 'module-info.class'
     doFirst {
-        from sourceSets.main.output
         manifest {
             attributes("Implementation-Title": "CrateDB JDBC Driver (Standalone)", "Implementation-Version": project.version)
         }
@@ -212,7 +216,6 @@ publishing {
             artifact shadowJar
             artifact sourcesJar
             artifact javadocJar
-            version = project.version
             pom {
                 name = "crate-jdbc"
                 description = "CrateDB JDBC Driver"
@@ -220,6 +223,17 @@ publishing {
                 licenses project.ext.licenses
                 developers project.ext.developers
                 scm project.ext.scm
+                // The jar bundles the fork but not the fork's own dependencies.
+                withXml {
+                    def dependencies = asNode().appendNode('dependencies')
+                    project(':pg').configurations.implementation.allDependencies.each { dep ->
+                        def node = dependencies.appendNode('dependency')
+                        node.appendNode('groupId', dep.group)
+                        node.appendNode('artifactId', dep.name)
+                        node.appendNode('version', dep.version)
+                        node.appendNode('scope', 'runtime')
+                    }
+                }
             }
         }
         jdbcStandalone(MavenPublication) {
@@ -227,7 +241,6 @@ publishing {
             artifact standaloneJar
             artifact javadocJarStandalone
             artifact sourcesJarStandalone
-            version = project.version
             pom {
                 name = "crate-jdbc-standalone"
                 description = "CrateDB JDBC Driver (Standalone)"
@@ -238,6 +251,11 @@ publishing {
             }
         }
     }
+}
+
+// The POMs take project.version when they are written, and getVersion sets it.
+tasks.withType(GenerateMavenPom).configureEach {
+    dependsOn getVersion
 }
 
 signing {
