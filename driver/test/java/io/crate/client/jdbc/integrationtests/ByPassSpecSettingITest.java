@@ -24,10 +24,16 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -79,6 +85,56 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
         connection.rollback();
         connection.rollback(null);
         connection.close();
+    }
+
+    @Test
+    public void testRollbackKeepsWritesStrictFalse() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString)) {
+            connection.setAutoCommit(false);
+            Statement statement = connection.createStatement();
+            statement.execute("insert into test (id, string_field) values (50, 'committed')");
+            connection.commit();
+            statement.execute("insert into test (id, string_field) values (51, 'rolled back')");
+            connection.rollback();
+            connection.setAutoCommit(true);
+
+            connection.createStatement().execute("refresh table test");
+            ResultSet resultSet = connection.createStatement().executeQuery(
+                "select count(*) from test where id in (50, 51)");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getLong(1), is(2L));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("blockEnds")
+    public void testConnectionReusableAfterBlockEnds(String blockEnd, String sql) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString)) {
+            connection.setAutoCommit(false);
+            try {
+                connection.createStatement().execute(sql);
+            } catch (SQLException refused) {
+                // The select from no_such_table fails on purpose; the block must end either way.
+            }
+            if (blockEnd.equals("commit")) {
+                connection.commit();
+            } else if (blockEnd.equals("rollback")) {
+                connection.rollback();
+            } else {
+                connection.setAutoCommit(true);
+            }
+
+            connection.setReadOnly(true);
+            connection.setReadOnly(false);
+            ResultSet resultSet = connection.createStatement().executeQuery("select 1");
+            assertThat(resultSet.next(), is(true));
+        }
+    }
+
+    static Stream<Arguments> blockEnds() {
+        return Stream.of("commit", "rollback", "autocommit").flatMap(blockEnd -> Stream.of(
+            Arguments.of(blockEnd, "insert into test (id, string_field) values (70, 'written')"),
+            Arguments.of(blockEnd, "select * from no_such_table")));
     }
 
     @Test
@@ -145,6 +201,24 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
     }
 
     @Test
+    public void testTransactionRefusalsCarrySQLStateStrictTrue() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
+            List<Executable> calls = List.of(
+                () -> connection.setAutoCommit(false),
+                connection::commit,
+                connection::rollback,
+                () -> connection.rollback(null),
+                () -> connection.setSavepoint("savepoint"),
+                () -> connection.releaseSavepoint(null),
+                () -> connection.setReadOnly(true));
+            for (Executable call : calls) {
+                SQLFeatureNotSupportedException e = assertThrows(SQLFeatureNotSupportedException.class, call);
+                assertThat(e.getSQLState(), is("0A000"));
+            }
+        }
+    }
+
+    @Test
     public void testSupportsTransactionsStrictFalse() throws SQLException {
         Connection connection = DriverManager.getConnection(connectionString);
         DatabaseMetaData metadata = connection.getMetaData();
@@ -161,10 +235,11 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
     }
 
     @Test
-    public void testGetDefaultTransactionIsolationReadCommittedStrictFalse() throws SQLException {
+    public void testGetDefaultTransactionIsolationMatchesConnectionStrictFalse() throws SQLException {
         Connection connection = DriverManager.getConnection(connectionString);
         DatabaseMetaData metadata = connection.getMetaData();
-        assertThat(metadata.getDefaultTransactionIsolation(), is (Connection.TRANSACTION_READ_COMMITTED));
+        assertThat(metadata.getDefaultTransactionIsolation(), is(Connection.TRANSACTION_READ_UNCOMMITTED));
+        assertThat(connection.getTransactionIsolation(), is(metadata.getDefaultTransactionIsolation()));
         connection.close();
     }
 

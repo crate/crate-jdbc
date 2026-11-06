@@ -24,6 +24,7 @@ package io.crate.client.jdbc.integrationtests;
 
 import org.junit.jupiter.api.*;
 import org.testcontainers.cratedb.CrateDBContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -31,15 +32,22 @@ import java.util.Map;
 
 public abstract class BaseIntegrationTest {
 
-    private static final String DEFAULT_CRATE_VERSION = "6.2.2";
+    private static final String DEFAULT_CRATE_VERSION = "6.4.6";
 
     private static CrateDBContainer TEST_CLUSTER;
 
     @BeforeAll
     public static void setUpCluster() throws Throwable {
-        String version = System.getenv().getOrDefault("CRATE_VERSION", DEFAULT_CRATE_VERSION);
-        TEST_CLUSTER = new CrateDBContainer("crate:" + version);
+        TEST_CLUSTER = new CrateDBContainer(crateImage());
         TEST_CLUSTER.start();
+    }
+
+    private static DockerImageName crateImage() {
+        String image = System.getenv("CRATE_IMAGE");
+        if (image == null) {
+            image = "crate:" + System.getenv().getOrDefault("CRATE_VERSION", DEFAULT_CRATE_VERSION);
+        }
+        return DockerImageName.parse(image).asCompatibleSubstituteFor("crate");
     }
 
     @AfterAll
