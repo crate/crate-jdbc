@@ -35,12 +35,16 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
@@ -209,7 +213,7 @@ public class ConnectionITest extends BaseIntegrationTest {
     public void testExecuteBatchPreparedStatementFailBulkTypes() throws Exception {
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             PreparedStatement stmt = conn.prepareStatement("insert into test (id) values (?)");
-            stmt.setObject(1, newHashMap());
+            stmt.setObject(1, new HashMap<>());
             stmt.addBatch();
             PgDatabaseMetaData metaData = (PgDatabaseMetaData) conn.getMetaData();
 
@@ -311,16 +315,45 @@ public class ConnectionITest extends BaseIntegrationTest {
     }
 
     @Test
+    public void testStrictPropertyFromUrl() throws Exception {
+        try (Connection conn = DriverManager.getConnection(getConnectionString() + "&strict=true")) {
+            SQLException e = assertThrows(SQLFeatureNotSupportedException.class, conn::commit);
+            assertThat(e.getSQLState(), is("0A000"));
+        }
+    }
+
+    @Test
+    public void testGetCrateVersion() throws Exception {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
+            CrateVersion version = conn.getMetaData().unwrap(PgDatabaseMetaData.class).getCrateVersion();
+
+            ResultSet reported = conn.createStatement().executeQuery("select version['number'] from sys.nodes limit 1");
+            assertThat(reported.next(), is(true));
+            assertThat(version.compareTo(reported.getString(1)), is(0));
+        }
+    }
+
+    @Test
     public void testGetMoreResults() throws Exception {
-        /**
-         * getMoreResults() always returns false, because CrateDB does not support multiple result sets.
-         * In Postgres multiple result sets may occur when executing multiple statements (separated by ;) or when
-         * calling stored procedures.
-         */
         try (Connection conn = DriverManager.getConnection(getConnectionString())) {
             Statement stmt = conn.createStatement();
             assertTrue(stmt.execute("select name from sys.nodes"));
             assertFalse(stmt.getMoreResults());
+        }
+    }
+
+    @Test
+    public void testGetMoreResultsAfterSeveralStatements() throws Exception {
+        try (Connection conn = DriverManager.getConnection(getConnectionString())) {
+            Statement stmt = conn.createStatement();
+            List<Integer> read = new ArrayList<>();
+            for (boolean results = stmt.execute("select 1; select 2"); results; results = stmt.getMoreResults()) {
+                ResultSet resultSet = stmt.getResultSet();
+                while (resultSet.next()) {
+                    read.add(resultSet.getInt(1));
+                }
+            }
+            assertThat(read, contains(1, 2));
         }
     }
 }

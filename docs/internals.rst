@@ -54,7 +54,8 @@ Please take notice of the corresponding implementation notes:
 
 :Supported:
 
-    - A few metadata functions have been adjusted to better support CrateDB's type system.
+    - Metadata comes from pgJDBC's ``pg_catalog`` queries, with CrateDB's answers
+      where it differs, such as its type names and the subcolumns of objects.
     - The CrateDB JDBC driver deserializes objects to a Map, pgJDBC treats them as JSON.
     - DDL and DML statements are supported through adjustments to the
       `PgPreparedStatement`_ and `PgStatement`_ interfaces.
@@ -91,8 +92,8 @@ features, see the specific code changes to the `PgConnection`_,
 .. _ResultSet: https://docs.oracle.com/javase/8/docs/api/java/sql/ResultSet.html
 
 
-.. _PgConnection: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-8ee30bec696495ec5763a3e1c1b216776efc124729f72e18dbaa35064af0aef0
-.. _PgDatabaseMetaData: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-0571f8ac3385a7f7bb34e5c77f8afd24810311506989379c2e85c6c16eea6ce4
-.. _PgResultSet: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-7e93771092eab9084402e3c7c81319a1f037febdc7614264329bd29f11d39ef2
-.. _PgPreparedStatement: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-d4946409bd7c59e525f34b4c974a3df76638dc84adc060cc5d13d5409c6aeb21
-.. _PgStatement: https://github.com/pgjdbc/pgjdbc/compare/REL42.2.5...crate:pgjdbc:REL42.2.5_crate?expand=1#diff-2abcc60e1b1ef8eeadd6372bf7afd0c0ebae0ebd691b0965fc914fea794eb6d0
+.. _PgConnection: https://github.com/pgjdbc/pgjdbc/compare/REL42.7.14...crate:pgjdbc:REL42.7.14_crate?expand=1#diff-8ee30bec696495ec5763a3e1c1b216776efc124729f72e18dbaa35064af0aef0
+.. _PgDatabaseMetaData: https://github.com/pgjdbc/pgjdbc/compare/REL42.7.14...crate:pgjdbc:REL42.7.14_crate?expand=1#diff-0571f8ac3385a7f7bb34e5c77f8afd24810311506989379c2e85c6c16eea6ce4
+.. _PgResultSet: https://github.com/pgjdbc/pgjdbc/compare/REL42.7.14...crate:pgjdbc:REL42.7.14_crate?expand=1#diff-7e93771092eab9084402e3c7c81319a1f037febdc7614264329bd29f11d39ef2
+.. _PgPreparedStatement: https://github.com/pgjdbc/pgjdbc/compare/REL42.7.14...crate:pgjdbc:REL42.7.14_crate?expand=1#diff-d4946409bd7c59e525f34b4c974a3df76638dc84adc060cc5d13d5409c6aeb21
+.. _PgStatement: https://github.com/pgjdbc/pgjdbc/compare/REL42.7.14...crate:pgjdbc:REL42.7.14_crate?expand=1#diff-2abcc60e1b1ef8eeadd6372bf7afd0c0ebae0ebd691b0965fc914fea794eb6d0

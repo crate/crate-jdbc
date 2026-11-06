@@ -7,6 +7,9 @@ import org.hamcrest.core.Is;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.CrateVersion;
 import org.postgresql.jdbc.PgDatabaseMetaData;
@@ -18,7 +21,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.instanceOf;
@@ -378,29 +383,39 @@ public class TypesITest extends BaseIntegrationTest {
         assertThat(objArray.getArray().getClass().isArray(), is(true));
         assertThat(objArray.getBaseType(), is(Types.JAVA_OBJECT));
 
-        PgDatabaseMetaData metaData = (PgDatabaseMetaData) CONNECTION.getMetaData();
-        // CrateDB >= 4.1.0 maps the `array(object)` data type to
-        // the `PGArray(JSON)` instead of `JSON` Postgres type.
-        if (metaData.getCrateVersion().before("4.1.0")) {
-            Object[] expectedArray = new Object[]{
-                    new HashMap<String, Object>() {{
-                        put("element1", "testing");
-                    }},
-                    new HashMap<String, Object>() {{
-                        put("element2", "testing2");
-                    }}};
+        Object[] expectedArray = new Object[]{
+                new HashMap<String, Object>() {{
+                    put("element1", "testing");
+                }},
+                new HashMap<String, Object>() {{
+                    put("element2", "testing2");
+                }}};
 
-            assertThat(objArray.getArray(), is(expectedArray));
-        } else {
-            PGobject firstObj = new PGobject();
-            firstObj.setType("json");
-            firstObj.setValue("{\"element1\":\"testing\"}");
-            PGobject secondObj = new PGobject();
-            secondObj.setType("json");
-            secondObj.setValue("{\"element2\":\"testing2\"}");
+        assertThat(objArray.getArray(), is(expectedArray));
+    }
 
-            assertThat(objArray.getArray(), is(new Object[]{firstObj, secondObj}));
-        }
+    @Test
+    public void testSelectNestedArrayType() throws Exception {
+        CONNECTION.createStatement().executeUpdate("create table test_nested_array (rows_ array(array(integer)))");
+        CONNECTION.createStatement().executeUpdate("insert into test_nested_array (rows_) values ([[1, 2], [3]])");
+        CONNECTION.createStatement().execute("refresh table test_nested_array");
+
+        ResultSet resultSet = CONNECTION.createStatement().executeQuery("select rows_ from test_nested_array");
+        assertThat(resultSet.next(), is(true));
+        assertThat(resultSet.getObject(1), is(List.of(List.of(1, 2), List.of(3))));
+        assertThat(resultSet.getString(1), is("[[1,2],[3]]"));
+        assertThat((Object[]) resultSet.getArray(1).getArray(), arrayContaining((Object) List.of(1, 2), List.of(3)));
+    }
+
+    @Test
+    public void testSelectNestedObjectArrayType() throws Exception {
+        CONNECTION.createStatement().executeUpdate("create table test_nested_objects (rows_ array(array(object)))");
+        CONNECTION.createStatement().executeUpdate("insert into test_nested_objects (rows_) values ([[{a=1}], [{b=2}]])");
+        CONNECTION.createStatement().execute("refresh table test_nested_objects");
+
+        ResultSet resultSet = CONNECTION.createStatement().executeQuery("select rows_ from test_nested_objects");
+        assertThat(resultSet.next(), is(true));
+        assertThat(resultSet.getObject(1), is(List.of(List.of(Map.of("a", 1)), List.of(Map.of("b", 2)))));
     }
 
     @Test
@@ -421,5 +436,64 @@ public class TypesITest extends BaseIntegrationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> map = (Map<String, Object>) resultSet.getObject(1);
         assertEquals(expected, map);
+    }
+
+    @ParameterizedTest
+    @MethodSource("arrayElementTypeNames")
+    public void testCreateArrayOfCrateTypeNames(String typeName, String pgTypeName) throws SQLException {
+        assertThat(CONNECTION.createArrayOf(typeName, new Object[0]).getBaseTypeName(), is(pgTypeName));
+        assertThat(CONNECTION.createArrayOf(typeName.toUpperCase(Locale.ENGLISH), new Object[0]).getBaseTypeName(),
+            is(pgTypeName));
+    }
+
+    @ParameterizedTest
+    @MethodSource("crateTypeColumns")
+    public void testCreateArrayOfCrateTypeNamesFillsColumnsOfThatType(String columnType, String typeName,
+                                                                        Object[] elements) throws SQLException {
+        CONNECTION.createStatement().execute("create table crate_type_column (c " + columnType + ")");
+        try (PreparedStatement stmt = CONNECTION.prepareStatement("insert into crate_type_column (c) values (?)")) {
+            stmt.setArray(1, CONNECTION.createArrayOf(typeName, elements));
+            assertThat(stmt.executeUpdate(), is(1));
+        }
+        CONNECTION.createStatement().execute("refresh table crate_type_column");
+        ResultSet resultSet = CONNECTION.createStatement().executeQuery("select c from crate_type_column");
+        assertThat(resultSet.next(), is(true));
+        assertThat(((Object[]) resultSet.getArray(1).getArray()).length, is(elements.length));
+    }
+
+    static Stream<Arguments> crateTypeColumns() {
+        return Stream.of(
+            Arguments.of("float_vector(2)", "float_vector", new Float[]{1.5f, 2.5f}),
+            Arguments.of("array(geo_point)", "geo_point", new PGpoint[]{new PGpoint(9.7, 47.4), new PGpoint(10.0, 50.0)}),
+            Arguments.of("array(geo_shape)", "geo_shape",
+                new Object[]{Map.of("type", "Point", "coordinates", List.of(9.7, 47.4))}),
+            Arguments.of("array(character(1))", "character", new String[]{"a", "b"}));
+    }
+
+    static Stream<Arguments> arrayElementTypeNames() {
+        return Stream.of(
+            Arguments.of("string", "varchar"),
+            Arguments.of("ip", "varchar"),
+            Arguments.of("character", "bpchar"),
+            Arguments.of("boolean", "bool"),
+            Arguments.of("short", "int2"),
+            Arguments.of("integer", "int4"),
+            Arguments.of("long", "int8"),
+            // In CrateDB float means real; in PostgreSQL it means double precision.
+            Arguments.of("float", "float4"),
+            Arguments.of("real", "float4"),
+            Arguments.of("double", "float8"),
+            Arguments.of("float_vector", "float4"),
+            Arguments.of("object", "json"),
+            Arguments.of("geo_shape", "json"),
+            Arguments.of("geo_point", "point"),
+            Arguments.of("text", "text"),
+            Arguments.of("timestamp", "timestamp"),
+            Arguments.of("timestamptz", "timestamptz"),
+            Arguments.of("numeric", "numeric"),
+            Arguments.of("date", "date"),
+            Arguments.of("interval", "interval"),
+            Arguments.of("uuid", "uuid"),
+            Arguments.of("bit", "bit"));
     }
 }

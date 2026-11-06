@@ -7,6 +7,46 @@ Unreleased
 
 - Bumped the required JRE version to 11
 
+- Updated pgJDBC from 42.2.5 to 42.7.14, which brings pgJDBC's security fixes
+  since 42.2.5. CrateDB 6.0 or newer is required; on CrateDB 5.x, stay on 2.7.0.
+
+- A URL without a database path, such as ``crate://localhost:5432``, raises
+  ``Unable to parse URL``, as pgJDBC does since 42.3.4, instead of being
+  declined.
+
+- ``DatabaseMetaData`` is answered from ``pg_catalog``, so some values changed:
+  column type names are the PostgreSQL ones (``_int4`` rather than
+  ``integer_array``), ``sys`` tables report the table type ``TABLE``, and
+  ``getSchemas()`` names its catalog column ``TABLE_CATALOG``, as the JDBC
+  specification requires.
+
+- ``getTypeInfo()`` lists the type names ``CREATE TABLE`` accepts, such as
+  ``object``, ``geo_point`` and ``bigint``, and no longer lists array types.
+
+- ``Connection.getCatalog()`` returns ``crate``, the catalog CrateDB reports,
+  rather than the database named in the URL, such as ``doc``.
+
+- ``DatabaseMetaData`` calls return no rows for a catalog other than ``crate``,
+  ``""`` and ``doc`` included. ``null`` or ``crate`` return all rows, as in
+  stock pgJDBC.
+
+- ``getDefaultTransactionIsolation()`` returns ``TRANSACTION_READ_UNCOMMITTED``,
+  the level CrateDB reports, instead of ``TRANSACTION_READ_COMMITTED``.
+
+- Fixed ``commit()`` and ``rollback()`` leaving the connection in a transaction,
+  which made connection pools fail to reset returned connections.
+
+- Breaking: ``ARRAY(OBJECT)`` elements are read as ``Map`` instead of
+  ``PGobject``, and nested arrays, which raised an error, are read as ``List``.
+
+- Added the ``float_vector``, ``geo_point``, ``geo_shape`` and ``character``
+  type names to ``createArrayOf()``.
+
+- Set the SQLState ``0A000`` on errors raised for unsupported features.
+
+- Added generated keys: ``getGeneratedKeys()`` returns the keys of an
+  ``INSERT`` through ``RETURNING`` instead of refusing the call.
+
 2023/04/18 2.7.0
 ================
 
