@@ -311,6 +311,17 @@ public class MetaDataITest extends BaseIntegrationTest {
     }
 
     @Test
+    public void testListedPowerAndLeftEscapesRun() throws SQLException {
+        DatabaseMetaData metaData = conn.getMetaData();
+        assertThat(List.of(metaData.getNumericFunctions().split(",")), hasItem("power"));
+        assertThat(List.of(metaData.getStringFunctions().split(",")), hasItem("left"));
+        ResultSet rs = conn.createStatement().executeQuery("SELECT {fn power(2, 3)}, {fn left('1234', 2)}");
+        assertThat(rs.next(), is(true));
+        assertThat(rs.getDouble(1), is(8.0));
+        assertThat(rs.getString(2), is("12"));
+    }
+
+    @Test
     public void testGetTablesReportsPgCatalogAsSystemTables() throws SQLException {
         ResultSet rs = conn.getMetaData().getTables(null, "pg_catalog", "pg_class", null);
         assertThat(rs.next(), is(true));
