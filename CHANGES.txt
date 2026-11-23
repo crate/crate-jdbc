@@ -37,6 +37,9 @@ Unreleased
 - The ``get...Functions()`` lists name the JDBC escape functions CrateDB runs,
   such as ``ceiling``, instead of CrateDB function names such as ``ceil``.
 
+- Fixed the ``{fn power(x, y)}`` and ``{fn left(s, n)}`` escape functions,
+  which failed on CrateDB.
+
 - ``getDefaultTransactionIsolation()`` returns ``TRANSACTION_READ_UNCOMMITTED``,
   the level CrateDB reports, instead of ``TRANSACTION_READ_COMMITTED``.
 
