@@ -26,9 +26,16 @@ Unreleased
 - ``Connection.getCatalog()`` returns ``crate``, the catalog CrateDB reports,
   rather than the database named in the URL, such as ``doc``.
 
-- ``DatabaseMetaData`` calls return no rows for a catalog other than ``crate``,
-  ``""`` and ``doc`` included. ``null`` or ``crate`` return all rows, as in
-  stock pgJDBC.
+- Breaking: ``DatabaseMetaData`` calls return no rows for a catalog other than
+  ``crate``, ``""`` and ``doc`` included, where 2.7.0 ignored the catalog.
+  ``null`` or ``crate`` return all rows, as in stock pgJDBC.
+
+- ``getColumns()`` numbers ``ORDINAL_POSITION`` as ``SELECT *`` orders the
+  columns. 2.7.0 reported CrateDB's ``ordinal_position``, which also counts the
+  subcolumns of an object column.
+
+- The ``get...Functions()`` lists name the JDBC escape functions CrateDB runs,
+  such as ``ceiling``, instead of CrateDB function names such as ``ceil``.
 
 - ``getDefaultTransactionIsolation()`` returns ``TRANSACTION_READ_UNCOMMITTED``,
   the level CrateDB reports, instead of ``TRANSACTION_READ_COMMITTED``.
@@ -37,7 +44,7 @@ Unreleased
   which made connection pools fail to reset returned connections.
 
 - Breaking: ``ARRAY(OBJECT)`` elements are read as ``Map`` instead of
-  ``PGobject``, and nested arrays, which raised an error, are read as ``List``.
+  ``PGobject``.
 
 - Added the ``float_vector``, ``geo_point``, ``geo_shape`` and ``character``
   type names to ``createArrayOf()``.
