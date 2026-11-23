@@ -174,9 +174,11 @@ public class MetaDataITest extends BaseIntegrationTest {
 
     public void testExcludeNestedColumns() throws Exception {
         ResultSet resultSet = conn.getMetaData().getColumns(null, "sys", "nodes", null);
+        int position = 0;
         while (resultSet.next()) {
             assertFalse(resultSet.getString(4).contains("."));
             assertFalse(resultSet.getString(4).contains("["));
+            assertThat(resultSet.getInt("ORDINAL_POSITION"), is(++position));
         }
     }
 
