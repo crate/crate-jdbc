@@ -22,9 +22,9 @@
 
 package io.crate.client.jdbc.integrationtests;
 
+import io.crate.testing.CrateTestCluster;
+import io.crate.testing.CrateTestServer;
 import org.junit.jupiter.api.*;
-import org.testcontainers.cratedb.CrateDBContainer;
-import org.testcontainers.utility.DockerImageName;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -34,25 +34,26 @@ public abstract class BaseIntegrationTest {
 
     private static final String DEFAULT_CRATE_VERSION = "6.4.6";
 
-    private static CrateDBContainer TEST_CLUSTER;
+    private static final CrateTestCluster TEST_CLUSTER;
 
-    @BeforeAll
-    public static void setUpCluster() throws Throwable {
-        TEST_CLUSTER = new CrateDBContainer(crateImage());
-        TEST_CLUSTER.start();
-    }
-
-    private static DockerImageName crateImage() {
-        String image = System.getenv("CRATE_IMAGE");
-        if (image == null) {
-            image = "crate:" + System.getenv().getOrDefault("CRATE_VERSION", DEFAULT_CRATE_VERSION);
+    static {
+        String url = System.getenv("CRATE_URL");
+        String path = System.getenv("CRATE_PATH");
+        CrateTestCluster.Builder builder;
+        if (url != null) {
+            builder = CrateTestCluster.fromURL(url);
+        } else if (path != null) {
+            builder = CrateTestCluster.fromFile(path);
+        } else {
+            builder = CrateTestCluster.fromVersion(System.getenv().getOrDefault("CRATE_VERSION", DEFAULT_CRATE_VERSION));
         }
-        return DockerImageName.parse(image).asCompatibleSubstituteFor("crate");
-    }
-
-    @AfterAll
-    public static void tearDownCluster() {
-        TEST_CLUSTER.stop();
+        TEST_CLUSTER = builder.keepWorkingDir(false).build();
+        try {
+            TEST_CLUSTER.before();
+        } catch (Throwable e) {
+            throw new ExceptionInInitializerError(e);
+        }
+        Runtime.getRuntime().addShutdownHook(new Thread(TEST_CLUSTER::after));
     }
 
     @BeforeEach
@@ -66,11 +67,15 @@ public abstract class BaseIntegrationTest {
     }
 
     static String crateHost() {
-        return TEST_CLUSTER.getHost();
+        return server().crateHost();
     }
 
     static int psqlPort() {
-        return TEST_CLUSTER.getMappedPort(5432);
+        return server().psqlPort();
+    }
+
+    private static CrateTestServer server() {
+        return TEST_CLUSTER.randomServer();
     }
 
     static String getConnectionString() {

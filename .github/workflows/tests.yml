@@ -28,7 +28,7 @@ jobs:
         java-version: ['11', '21']
         cratedb-version: [
           '6.0.8',
-          'latest',
+          '6.5.2',
         ]
 
     env:
@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      CRATE_IMAGE: 'crate/crate:nightly'
+      CRATE_VERSION: 'nightly'
 
     steps:
 
