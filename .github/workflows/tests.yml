@@ -29,6 +29,7 @@ jobs:
         cratedb-version: [
           '5.10.16',
           '6.2.2',
+          '6.5.2',
         ]
 
     env:
