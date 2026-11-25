@@ -21,6 +21,7 @@
 
 package io.crate.client.jdbc.integrationtests;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,8 +50,14 @@ public class GeneratedKeysITest extends BaseIntegrationTest {
     @BeforeEach
     public void setUpTable() throws SQLException {
         connection = DriverManager.getConnection(getConnectionString());
-        connection.createStatement().execute(
-            "create table generated_keys (id text default gen_random_text_uuid() primary key, value int)");
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("create table generated_keys (id text default gen_random_text_uuid() primary key, value int)");
+        }
+    }
+
+    @AfterEach
+    public void closeConnection() throws SQLException {
+        connection.close();
     }
 
     @Test
@@ -88,13 +95,15 @@ public class GeneratedKeysITest extends BaseIntegrationTest {
     public void testColumnIndexesAreRefusedBeforeTheInsert() throws SQLException {
         SQLException e = assertThrows(SQLException.class, () -> connection.prepareStatement(INSERT, new int[]{1}));
         assertThat(e.getSQLState(), is("0A000"));
-        e = assertThrows(SQLException.class, () -> connection.createStatement().executeUpdate(INSERT, new int[]{1}));
-        assertThat(e.getSQLState(), is("0A000"));
+        try (Statement stmt = connection.createStatement()) {
+            e = assertThrows(SQLException.class, () -> stmt.executeUpdate(INSERT, new int[]{1}));
+            assertThat(e.getSQLState(), is("0A000"));
 
-        connection.createStatement().execute("refresh table generated_keys");
-        ResultSet rs = connection.createStatement().executeQuery("select count(*) from generated_keys");
-        assertThat(rs.next(), is(true));
-        assertThat(rs.getLong(1), is(0L));
+            stmt.execute("refresh table generated_keys");
+            ResultSet rs = stmt.executeQuery("select count(*) from generated_keys");
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getLong(1), is(0L));
+        }
     }
 
     private static void assertGeneratedId(ResultSet keys) throws SQLException {
