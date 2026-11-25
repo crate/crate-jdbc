@@ -22,8 +22,9 @@
 
 package io.crate.client.jdbc.integrationtests;
 
+import io.crate.testing.CrateTestCluster;
+import io.crate.testing.CrateTestServer;
 import org.junit.jupiter.api.*;
-import org.testcontainers.cratedb.CrateDBContainer;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -33,18 +34,26 @@ public abstract class BaseIntegrationTest {
 
     private static final String DEFAULT_CRATE_VERSION = "6.2.2";
 
-    private static CrateDBContainer TEST_CLUSTER;
+    private static final CrateTestCluster TEST_CLUSTER;
 
-    @BeforeAll
-    public static void setUpCluster() throws Throwable {
-        String version = System.getenv().getOrDefault("CRATE_VERSION", DEFAULT_CRATE_VERSION);
-        TEST_CLUSTER = new CrateDBContainer("crate:" + version);
-        TEST_CLUSTER.start();
-    }
-
-    @AfterAll
-    public static void tearDownCluster() {
-        TEST_CLUSTER.stop();
+    static {
+        String url = System.getenv("CRATE_URL");
+        String path = System.getenv("CRATE_PATH");
+        CrateTestCluster.Builder builder;
+        if (url != null) {
+            builder = CrateTestCluster.fromURL(url);
+        } else if (path != null) {
+            builder = CrateTestCluster.fromFile(path);
+        } else {
+            builder = CrateTestCluster.fromVersion(System.getenv().getOrDefault("CRATE_VERSION", DEFAULT_CRATE_VERSION));
+        }
+        TEST_CLUSTER = builder.keepWorkingDir(false).build();
+        try {
+            TEST_CLUSTER.before();
+        } catch (Throwable e) {
+            throw new ExceptionInInitializerError(e);
+        }
+        Runtime.getRuntime().addShutdownHook(new Thread(TEST_CLUSTER::after));
     }
 
     @BeforeEach
@@ -58,11 +67,15 @@ public abstract class BaseIntegrationTest {
     }
 
     static String crateHost() {
-        return TEST_CLUSTER.getHost();
+        return server().crateHost();
     }
 
     static int psqlPort() {
-        return TEST_CLUSTER.getMappedPort(5432);
+        return server().psqlPort();
+    }
+
+    private static CrateTestServer server() {
+        return TEST_CLUSTER.randomServer();
     }
 
     static String getConnectionString() {
