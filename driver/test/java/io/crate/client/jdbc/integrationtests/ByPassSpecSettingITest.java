@@ -108,13 +108,15 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
 
     @ParameterizedTest
     @MethodSource("blockEnds")
-    public void testConnectionReusableAfterBlockEnds(String blockEnd, String sql) throws SQLException {
+    public void testConnectionReusableAfterBlockEnds(String blockEnd, String sql, String refusal) throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString)) {
             connection.setAutoCommit(false);
-            try {
-                connection.createStatement().execute(sql);
-            } catch (SQLException refused) {
-                // The select from no_such_table fails on purpose; the block must end either way.
+            Statement statement = connection.createStatement();
+            if (refusal == null) {
+                statement.execute(sql);
+            } else {
+                SQLException e = assertThrows(SQLException.class, () -> statement.execute(sql));
+                assertThat(e.getSQLState(), is(refusal));
             }
             if (blockEnd.equals("commit")) {
                 connection.commit();
@@ -133,8 +135,8 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
 
     static Stream<Arguments> blockEnds() {
         return Stream.of("commit", "rollback", "autocommit").flatMap(blockEnd -> Stream.of(
-            Arguments.of(blockEnd, "insert into test (id, string_field) values (70, 'written')"),
-            Arguments.of(blockEnd, "select * from no_such_table")));
+            Arguments.of(blockEnd, "insert into test (id, string_field) values (70, 'written')", null),
+            Arguments.of(blockEnd, "select * from no_such_table", "42P01")));
     }
 
     @Test
