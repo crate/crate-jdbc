@@ -32,7 +32,7 @@ import java.util.Map;
 
 public abstract class BaseIntegrationTest {
 
-    private static final String DEFAULT_CRATE_VERSION = "6.2.2";
+    private static final String DEFAULT_CRATE_VERSION = "6.4.6";
 
     private static final CrateTestCluster TEST_CLUSTER;
 

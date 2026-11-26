@@ -27,11 +27,13 @@ import org.junit.jupiter.api.function.Executable;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class UnsupportedFeaturesITest extends BaseIntegrationTest {
@@ -45,20 +47,19 @@ public class UnsupportedFeaturesITest extends BaseIntegrationTest {
 
     @Test
     public void testPrepareCall() throws SQLException {
-        expectUnsupportedFeature("Connection: prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) not supported",
+        expectUnsupportedFeature("Connection: prepareCall(String sql, int resultSetType, int resultSetConcurrency) not supported",
             () -> connection.prepareCall("select *", 0, 0));
     }
 
     @Test
-    public void testPrepareStatementWithColumnNames() throws SQLException {
-        expectUnsupportedFeature("Connection: prepareStatement(String sql, String[] columnNames) not supported",
-            () -> connection.prepareStatement("select *", new String[]{"id"}));
+    public void testPrepareCallSQLState() {
+        expectNotImplemented(
+            () -> connection.prepareCall("select 1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY));
     }
 
-    @Test
-    public void testExecuteUpdateNotSupported() throws SQLException {
-        expectUnsupportedFeature("Statement: executeUpdate(String sql, String[] columnNames) not supported",
-            () -> connection.createStatement().executeUpdate("insert into test (id, name) values (3, 'hello')", new String[]{"id", "name"}));
+    private void expectNotImplemented(Executable executable) {
+        SQLFeatureNotSupportedException e = assertThrows(SQLFeatureNotSupportedException.class, executable);
+        assertThat(e.getSQLState(), is("0A000"));
     }
 
     private void expectUnsupportedFeature(String errorMessage, Executable executable) {

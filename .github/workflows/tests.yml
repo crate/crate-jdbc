@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - master
+  schedule:
+    - cron: '0 5 * * 1'
 
   # Allow job to be triggered manually.
   workflow_dispatch:
@@ -17,24 +19,56 @@ concurrency:
 jobs:
   test:
 
-    name: "Test Java: ${{ matrix.java-version }}
-     CrateDB: ${{ matrix.cratedb-version }}
-     on ${{ matrix.os }}"
-    runs-on: ${{ matrix.os }}
+    name: "Test Java: ${{ matrix.java-version }} CrateDB: ${{ matrix.cratedb-version }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest']
-        java-version: ['11']
+        java-version: ['11', '21']
         cratedb-version: [
-          '5.10.16',
-          '6.2.2',
+          '6.0.8',
           '6.5.2',
         ]
 
     env:
-      JAVA_VERSION: ${{ matrix.java-version }}
       CRATE_VERSION: ${{ matrix.cratedb-version }}
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      # Gradle runs on 17, and the suites run on the matrix JDK.
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: |
+            ${{ matrix.java-version }}
+            17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run gradle test
+        run: ./gradlew test -PtestJavaVersion=${{ matrix.java-version }}
+
+  nightly:
+
+    name: "Test Java: ${{ matrix.java-version }} CrateDB: nightly"
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        java-version: ['11', '21']
+
+    env:
+      CRATE_VERSION: 'nightly'
 
     steps:
 
@@ -47,10 +81,12 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '${{ matrix.java-version }}'
+          java-version: |
+            ${{ matrix.java-version }}
+            17
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
       - name: Run gradle test
-        run: ./gradlew test
+        run: ./gradlew test -PtestJavaVersion=${{ matrix.java-version }}

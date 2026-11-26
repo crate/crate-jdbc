@@ -69,11 +69,11 @@ Run the unit tests like so::
 
     $ ./gradlew test
 
-Integration tests download CrateDB and run it locally. They use CrateDB 6.2.2
-by default. If you want to run the tests against another version, set the
-``CRATE_VERSION`` environment variable, e.g.::
+Integration tests download CrateDB and run it locally. They use CrateDB 6.4.6
+by default, and need CrateDB 6.0 or newer. If you want to run the tests against
+another version, set the ``CRATE_VERSION`` environment variable, e.g.::
 
-    $ CRATE_VERSION=5.10.16 ./gradlew test
+    $ CRATE_VERSION=6.0.8 ./gradlew test
 
 To test against a nightly build, or any other tarball you can download, set
 the ``CRATE_URL`` environment variable, e.g.::
@@ -87,6 +87,22 @@ path to the generated file to the ``CRATE_PATH`` environment variable, e.g.::
     $ CRATE_PATH=../crate/app/build/distributions/crate-6.6.0-SNAPSHOT-3edf1b4f2f2.tar.gz ./gradlew test
 
 On an Apple-silicon Mac, released versions run the x64 build, which needs Rosetta.
+
+Updating pgJDBC
+===============
+
+The driver is built from `crate/pgjdbc`_, a fork of pgJDBC checked out as the
+``pg/upstream`` submodule. To move it to a new pgJDBC release:
+
+- In the fork, create a ``REL<version>_crate`` branch from the pgJDBC release
+  tag and replay the CrateDB commits onto it. Keep the older branches, because
+  released versions of the driver point at their commits
+
+- Point the ``pg/upstream`` submodule at the replayed commit, and update
+  ``pg/version.properties`` and the dependency versions in ``pg/build.gradle``
+  to match the fork's build
+
+- Run the tests, and fix what they report
 
 Preparing a Release
 ===================
@@ -157,6 +173,7 @@ The docs are automatically built from Git by `Read the Docs`_ and there is
 nothing special you need to do to get the live docs to update.
 
 .. _@crate/docs: https://github.com/orgs/crate/teams/docs
+.. _crate/pgjdbc: https://github.com/crate/pgjdbc
 .. _Gradle: https://gradle.org/
 .. _installation documentation: https://crate.io/docs/jdbc/en/latest/getting-started.html
 .. _ReStructuredText: http://docutils.sourceforge.net/rst.html
