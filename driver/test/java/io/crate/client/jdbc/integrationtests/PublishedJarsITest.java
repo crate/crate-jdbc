@@ -22,7 +22,7 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.net.URL;
@@ -33,10 +33,10 @@ import java.sql.ResultSet;
 import java.util.Properties;
 import java.util.ServiceLoader;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PublishedJarsITest extends BaseIntegrationTest {
 
@@ -66,7 +66,7 @@ public class PublishedJarsITest extends BaseIntegrationTest {
                     break;
                 }
             }
-            assertNotNull("no java.sql.Driver accepts " + url, driver);
+            assertNotNull(driver, "no java.sql.Driver accepts " + url);
             try (Connection connection = driver.connect(url, new Properties());
                  ResultSet rs = connection.createStatement().executeQuery("select 1")) {
                 assertTrue(rs.next());

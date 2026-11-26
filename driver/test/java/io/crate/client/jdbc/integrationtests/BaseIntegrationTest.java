@@ -22,82 +22,64 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
-import org.junit.*;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.*;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
-public abstract class BaseIntegrationTest extends RandomizedTest {
+public abstract class BaseIntegrationTest {
 
-    private static final String[] CRATE_VERSIONS = new String[] {
-            "4.8.4",
-            "5.10.16",
-            "6.2.2",
-    };
+    private static final String DEFAULT_CRATE_VERSION = "6.2.2";
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    private static final CrateTestCluster TEST_CLUSTER;
 
-    static CrateTestCluster TEST_CLUSTER;
-
-    private static String getRandomServerVersion() {
-        String version = System.getenv().get("CRATE_VERSION");
-        if (version != null) {
-            return version;
-        }
-        Random random = getRandom();
-        return CRATE_VERSIONS[random.nextInt(CRATE_VERSIONS.length)];
-    }
-
-    @BeforeClass
-    public static void setUpCluster() throws Throwable {
-        String downloadUrl = System.getenv().get("CRATE_URL");
+    static {
+        String url = System.getenv("CRATE_URL");
+        String path = System.getenv("CRATE_PATH");
         CrateTestCluster.Builder builder;
-        if (downloadUrl != null) {
-            builder = CrateTestCluster.fromURL(downloadUrl);
+        if (url != null) {
+            builder = CrateTestCluster.fromURL(url);
+        } else if (path != null) {
+            builder = CrateTestCluster.fromFile(path);
         } else {
-            String filePath = System.getenv().get("CRATE_PATH");
-            if (filePath != null) {
-                builder = CrateTestCluster.fromFile(filePath);
-            } else {
-                String versionNumber = System.getenv().get("CRATE_VERSION");
-                if (versionNumber != null) {
-                    builder = CrateTestCluster.fromVersion(versionNumber);
-                } else {
-                    builder = CrateTestCluster.fromVersion(getRandomServerVersion());
-                }
-            }
+            builder = CrateTestCluster.fromVersion(System.getenv().getOrDefault("CRATE_VERSION", DEFAULT_CRATE_VERSION));
         }
         TEST_CLUSTER = builder.keepWorkingDir(false).build();
-        TEST_CLUSTER.before();
+        try {
+            TEST_CLUSTER.before();
+        } catch (Throwable e) {
+            throw new ExceptionInInitializerError(e);
+        }
+        Runtime.getRuntime().addShutdownHook(new Thread(TEST_CLUSTER::after));
     }
 
-    @AfterClass
-    public static void tearDownCluster() {
-        TEST_CLUSTER.after();
-    }
-
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         setUpTestTable();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         tearDownTables();
     }
 
+    static String crateHost() {
+        return server().crateHost();
+    }
+
+    static int psqlPort() {
+        return server().psqlPort();
+    }
+
+    private static CrateTestServer server() {
+        return TEST_CLUSTER.randomServer();
+    }
+
     static String getConnectionString() {
-        CrateTestServer server = TEST_CLUSTER.randomServer();
-        return String.format("crate://%s:%s/doc?user=crate", server.crateHost(), server.psqlPort());
+        return String.format("crate://%s:%s/doc?user=crate", crateHost(), psqlPort());
     }
 
     private static void tearDownTables() {

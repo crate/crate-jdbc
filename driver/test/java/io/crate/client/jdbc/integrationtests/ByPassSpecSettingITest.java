@@ -22,22 +22,24 @@
 
 package io.crate.client.jdbc.integrationtests;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
 import java.util.Properties;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ByPassSpecSettingITest extends BaseIntegrationTest {
 
     private static Properties strictProperties = new Properties();
     private static String connectionString;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() {
         strictProperties.put("strict", "true");
         connectionString = getConnectionString();
@@ -90,9 +92,9 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
     @Test
     public void testSetAutoCommitToFalseStrictTrue() throws SQLException {
         try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("The auto-commit mode cannot be disabled in strict mode. The Crate JDBC driver does not support manual commit.");
-            connection.setAutoCommit(false);
+            SQLFeatureNotSupportedException e = assertThrows(
+                SQLFeatureNotSupportedException.class, () -> connection.setAutoCommit(false));
+            assertThat(e.getMessage(), containsString("The auto-commit mode cannot be disabled in strict mode. The Crate JDBC driver does not support manual commit."));
         }
     }
 
@@ -100,45 +102,45 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
     public void testCommitWhenAutoCommitIsTrueStrictTrue() throws SQLException {
         try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
             connection.setAutoCommit(true);
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("The commit operation is not allowed. The Crate JDBC driver does not support manual commit.");
-            connection.commit(); // cannot commit in a strict mode if auto-commit is set to true
+            SQLFeatureNotSupportedException e = assertThrows(
+                SQLFeatureNotSupportedException.class, () -> connection.commit()); // cannot commit in a strict mode if auto-commit is set to true
+            assertThat(e.getMessage(), containsString("The commit operation is not allowed. The Crate JDBC driver does not support manual commit."));
         }
     }
 
     @Test
     public void testSetSavepointStrictTrue() throws SQLException {
         try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("Savepoint is not supported.");
-            connection.setSavepoint("savepoint");
+            SQLFeatureNotSupportedException e = assertThrows(
+                SQLFeatureNotSupportedException.class, () -> connection.setSavepoint("savepoint"));
+            assertThat(e.getMessage(), containsString("Savepoint is not supported."));
         }
     }
 
     @Test
     public void testRollbackSavepointStrictTrue() throws SQLException {
         try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("Rollback is not supported.");
-            connection.rollback(null);
+            SQLFeatureNotSupportedException e = assertThrows(
+                SQLFeatureNotSupportedException.class, () -> connection.rollback(null));
+            assertThat(e.getMessage(), containsString("Rollback is not supported."));
         }
     }
 
     @Test
     public void testReleaseSavepointStrictTrue() throws SQLException {
         try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("Savepoint is not supported.");
-            connection.releaseSavepoint(null);
+            SQLFeatureNotSupportedException e = assertThrows(
+                SQLFeatureNotSupportedException.class, () -> connection.releaseSavepoint(null));
+            assertThat(e.getMessage(), containsString("Savepoint is not supported."));
         }
     }
 
     @Test
     public void testRollbackStrictTrue() throws SQLException {
         try(Connection connection = DriverManager.getConnection(connectionString, strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage("Rollback is not supported.");
-            connection.rollback();
+            SQLFeatureNotSupportedException e = assertThrows(
+                SQLFeatureNotSupportedException.class, () -> connection.rollback());
+            assertThat(e.getMessage(), containsString("Rollback is not supported."));
         }
     }
 
@@ -218,10 +220,10 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
     public void testSetReadOnlyStrictTrue() throws SQLException {
         try (Connection connection = DriverManager.getConnection(connectionString,
             strictProperties)) {
-            expectedException.expect(SQLFeatureNotSupportedException.class);
-            expectedException.expectMessage(
-                "Setting transaction isolation READ ONLY not supported.");
-            connection.setReadOnly(true);
+            SQLFeatureNotSupportedException e = assertThrows(
+                SQLFeatureNotSupportedException.class, () -> connection.setReadOnly(true));
+            assertThat(e.getMessage(), containsString(
+                "Setting transaction isolation READ ONLY not supported."));
         }
     }
 
@@ -231,9 +233,9 @@ public class ByPassSpecSettingITest extends BaseIntegrationTest {
         readOnlyStrictProperties.setProperty("strict", "true");
         readOnlyStrictProperties.setProperty("readOnly", "true");
 
-        expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("Read-only connections are not supported.");
-        DriverManager.getConnection(connectionString, readOnlyStrictProperties);
+        PSQLException e = assertThrows(
+            PSQLException.class, () -> DriverManager.getConnection(connectionString, readOnlyStrictProperties));
+        assertThat(e.getMessage(), containsString("Read-only connections are not supported."));
     }
 
 }
