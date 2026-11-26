@@ -257,6 +257,21 @@ tasks.withType(GenerateMavenPom).configureEach {
     dependsOn getVersion
 }
 
+// PublishedJarsITest loads each jar as a consumer gets it: crate-jdbc with the
+// dependencies named by its POM, and crate-jdbc-standalone alone.
+tasks.named('test') {
+    dependsOn shadowJar, standaloneJar, 'generatePomFileForJdbcPublication'
+    doFirst {
+        def pom = new groovy.xml.XmlSlurper().parse(tasks.generatePomFileForJdbcPublication.destination)
+        def pomDependencies = pom.dependencies.dependency.collect {
+            project.dependencies.create("${it.groupId}:${it.artifactId}:${it.version}")
+        }
+        def jarClasspath = project.files(shadowJar.archiveFile) + project.configurations.detachedConfiguration(*pomDependencies)
+        systemProperty 'jdbc.jar.classpath', jarClasspath.asPath
+        systemProperty 'jdbc.standaloneJar', standaloneJar.archiveFile.get().asFile.path
+    }
+}
+
 signing {
     def signingKey = findProperty("signingKey")
     def signingPassword = findProperty("signingPassword")
